@@ -1,12 +1,11 @@
 """GlitchTip/Sentry error reporting for the Yarbo Home Assistant integration."""
+
 from __future__ import annotations
 
 import logging
 import os
 
 _LOGGER = logging.getLogger(__name__)
-
-_DEFAULT_DSN = "http://c9d816d9a8714ac288e86b49c683b533@192.168.1.99:8000/4"
 
 
 def init_error_reporting(
@@ -17,11 +16,12 @@ def init_error_reporting(
 ) -> None:
     """Initialize Sentry/GlitchTip error reporting for the Yarbo HA integration.
 
-    Enabled by default (opt-out). To disable, set YARBO_SENTRY_DSN="" or pass enabled=False.
+    Opt-in only: no data is sent unless YARBO_SENTRY_DSN is explicitly set.
+    To enable, set the YARBO_SENTRY_DSN environment variable to your project DSN.
 
     Args:
-        dsn: Sentry DSN. Defaults to the home-assistant-yarbo GlitchTip project.
-             Set YARBO_SENTRY_DSN="" to explicitly disable.
+        dsn: Sentry DSN. If None, falls back to YARBO_SENTRY_DSN env var.
+             No default is provided — reporting is disabled unless DSN is explicitly set.
         environment: Environment tag (production/development/testing).
         enabled: Master switch. If False, no SDK initialization occurs.
         tags: Optional extra tags (e.g. robot_serial, ha_version, integration_version).
@@ -29,14 +29,12 @@ def init_error_reporting(
     if not enabled:
         return
 
-    # Check for explicit disable via empty env var
-    env_dsn = os.environ.get("YARBO_SENTRY_DSN")
-    if env_dsn is not None and env_dsn == "":
-        return  # Explicitly disabled
-
-    effective_dsn = dsn or env_dsn or os.environ.get("SENTRY_DSN") or _DEFAULT_DSN
+    # Resolve DSN: explicit arg > YARBO_SENTRY_DSN env var > SENTRY_DSN env var
+    # No hardcoded default — opt-in only
+    effective_dsn = dsn or os.environ.get("YARBO_SENTRY_DSN") or os.environ.get("SENTRY_DSN")
 
     if not effective_dsn:
+        # No DSN configured — error reporting disabled (opt-in model)
         return
 
     try:
@@ -57,7 +55,7 @@ def init_error_reporting(
         _LOGGER.debug("Error reporting initialized (dsn=%s...)", effective_dsn[:30])
     except ImportError:
         _LOGGER.debug("sentry-sdk not installed; error reporting disabled")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         _LOGGER.warning("Failed to initialize error reporting: %s", exc)
 
 

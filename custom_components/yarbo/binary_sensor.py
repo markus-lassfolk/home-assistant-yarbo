@@ -41,6 +41,7 @@ class YarboChargingSensor(YarboBinarySensor):
     """Charging status sensor."""
 
     _attr_device_class = BinarySensorDeviceClass.BATTERY_CHARGING
+    _attr_translation_key = "charging"
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "charging")
@@ -57,6 +58,7 @@ class YarboProblemSensor(YarboBinarySensor):
     """Problem indicator sensor."""
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_translation_key = "problem"
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "problem")

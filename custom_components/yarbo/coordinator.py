@@ -22,6 +22,7 @@ from .const import (
     DOMAIN,
     HEARTBEAT_TIMEOUT_SECONDS,
     OPT_TELEMETRY_THROTTLE,
+    TELEMETRY_RETRY_DELAY_SECONDS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,12 +37,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     The robot streams DeviceMSG at ~1-2 Hz. A configurable throttle (default 1.0s)
     debounces updates to avoid stressing the HA recorder and event bus.
 
-    TODO: Implement in v0.1.0
-    - Start telemetry loop task in _async_setup()
-    - Implement debounce logic
-    - Handle MQTT disconnects (set last_update_success=False)
-    - Implement heartbeat watchdog (repair issue after 60s silence)
-    - Handle reconnection
+    On connection error, the loop retries after TELEMETRY_RETRY_DELAY_SECONDS.
     """
 
     def __init__(
@@ -75,14 +71,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self.command_lock = asyncio.Lock()
 
     async def _async_setup(self) -> None:
-        """Start the telemetry listener task.
-
-        Called by async_config_entry_first_refresh().
-
-        TODO: Implement in v0.1.0
-        - Create telemetry loop task
-        - Register cleanup on entry unload
-        """
+        """Start the telemetry listener task."""
         if self._telemetry_task is None:
             self._telemetry_task = asyncio.create_task(self._telemetry_loop())
         if self._watchdog_task is None:
@@ -92,37 +81,41 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Listen to python-yarbo telemetry stream and push updates.
 
         Runs continuously until cancelled.
-
-        TODO: Implement in v0.1.0
-        - Iterate over client.watch_telemetry() async generator
-        - Apply throttle debounce
-        - Call async_set_updated_data() with each telemetry object
-        - Handle YarboConnectionError → set last_update_success=False
-        - Heartbeat watchdog: if no update in 60s, create repair issue
+        Retries automatically after TELEMETRY_RETRY_DELAY_SECONDS on connection error.
         """
-        try:
-            async for telemetry in self.client.watch_telemetry():
-                now = time.monotonic()
-                self._last_seen = now
-                if now - self._last_update < self._throttle_interval:
-                    continue
-                self._last_update = now
-                self._update_count += 1
-                self.async_set_updated_data(telemetry)
-                if self._issue_active:
-                    ir.async_delete_issue(
-                        self.hass, DOMAIN, f"telemetry_timeout_{self._entry.entry_id}"
-                    )
-                    self._issue_active = False
-        except YarboConnectionError as err:
-            _LOGGER.warning("Yarbo telemetry connection error: %s", err)
-            self.last_update_success = False
-        except asyncio.CancelledError:
-            _LOGGER.debug("Telemetry loop cancelled")
-            raise
-        except Exception:
-            _LOGGER.exception("Unexpected error in telemetry loop")
-            self.last_update_success = False
+        while True:
+            try:
+                async for telemetry in self.client.watch_telemetry():
+                    now = time.monotonic()
+                    self._last_seen = now
+                    if now - self._last_update < self._throttle_interval:
+                        continue
+                    self._last_update = now
+                    self._update_count += 1
+                    self.async_set_updated_data(telemetry)
+                    if self._issue_active:
+                        ir.async_delete_issue(
+                            self.hass, DOMAIN, f"telemetry_timeout_{self._entry.entry_id}"
+                        )
+                        self._issue_active = False
+            except asyncio.CancelledError:
+                _LOGGER.debug("Telemetry loop cancelled")
+                raise
+            except YarboConnectionError as err:
+                _LOGGER.warning(
+                    "Yarbo telemetry connection error: %s — retrying in %ds",
+                    err,
+                    TELEMETRY_RETRY_DELAY_SECONDS,
+                )
+                self.last_update_success = False
+                await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
+            except Exception:
+                _LOGGER.exception(
+                    "Unexpected error in telemetry loop — retrying in %ds",
+                    TELEMETRY_RETRY_DELAY_SECONDS,
+                )
+                self.last_update_success = False
+                await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
 
     async def _heartbeat_watchdog(self) -> None:
         """Watch for telemetry silence and raise a repair issue."""
@@ -156,8 +149,6 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
         This method is called by the coordinator framework if no data is available.
         In normal operation, data comes from _telemetry_loop() via async_set_updated_data().
-
-        TODO: Implement in v0.1.0
         """
         try:
             return await self.client.get_status(timeout=5.0)

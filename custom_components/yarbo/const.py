@@ -10,6 +10,12 @@ PLATFORMS: list[str] = [
     "binary_sensor",
     "button",
     "event",
+    "light",
+    "switch",
+    "number",
+    "device_tracker",
+    "lawn_mower",
+    "update",
 ]
 
 # Config entry data keys
@@ -32,8 +38,7 @@ DEFAULT_BROKER_PORT = 1883
 DEFAULT_TELEMETRY_THROTTLE = 1.0
 DEFAULT_AUTO_CONTROLLER = True
 DEFAULT_CLOUD_ENABLED = False
-ACTIVITY_PERSONALITY_OPTIONS: list[str] = ["default", "verbose", "simple"]
-DEFAULT_ACTIVITY_PERSONALITY = "default"
+DEFAULT_ACTIVITY_PERSONALITY = False  # Boolean: False=standard, True=fun/verbose descriptions
 
 # Head types (from Dart HeadType enum, APK v3.17.4)
 HEAD_TYPE_SNOW_BLOWER = 0
@@ -54,17 +59,41 @@ HEAD_TYPE_NAMES: dict[int, str] = {
     HEAD_TYPE_NONE: "None",
 }
 
-# Activity states
-ACTIVITY_CHARGING = "Charging in the dock"
-ACTIVITY_IDLE = "Idle"
-ACTIVITY_WORKING = "Working on a plan"
-ACTIVITY_PAUSED = "Paused"
-ACTIVITY_RETURNING = "Returning to dock"
-ACTIVITY_ERROR = "Error"
-
 # Heartbeat timeout before raising a repair issue
 HEARTBEAT_TIMEOUT_SECONDS = 60
+
+# Retry delay for telemetry loop reconnection
+TELEMETRY_RETRY_DELAY_SECONDS = 30
 
 # hass.data storage keys
 DATA_COORDINATOR = "coordinator"
 DATA_CLIENT = "client"
+
+# Light channel names (for LED control)
+LIGHT_CHANNEL_HEAD = "led_head"
+LIGHT_CHANNEL_LEFT_W = "led_left_w"
+LIGHT_CHANNEL_RIGHT_W = "led_right_w"
+LIGHT_CHANNEL_BODY_LEFT = "body_left_r"
+LIGHT_CHANNEL_BODY_RIGHT = "body_right_r"
+LIGHT_CHANNEL_TAIL_LEFT = "tail_left_r"
+LIGHT_CHANNEL_TAIL_RIGHT = "tail_right_r"
+
+LIGHT_CHANNELS: list[str] = [
+    LIGHT_CHANNEL_HEAD,
+    LIGHT_CHANNEL_LEFT_W,
+    LIGHT_CHANNEL_RIGHT_W,
+    LIGHT_CHANNEL_BODY_LEFT,
+    LIGHT_CHANNEL_BODY_RIGHT,
+    LIGHT_CHANNEL_TAIL_LEFT,
+    LIGHT_CHANNEL_TAIL_RIGHT,
+]
+
+# Verbose activity descriptions (shown in extra_state_attributes when personality=True)
+VERBOSE_ACTIVITY_DESCRIPTIONS: dict[str, str] = {
+    "charging": "Charging up for the next adventure ⚡",
+    "idle": "Resting and waiting for orders 😴",
+    "working": "Munching away on the task 🌱",
+    "paused": "Taking a short break ☕",
+    "returning": "Heading home to the dock 🏠",
+    "error": "Oops! Something went wrong 🚨",
+}
