@@ -69,16 +69,21 @@ def mock_yarbo_client() -> Generator[MagicMock, None, None]:
     Mocks: connect, disconnect, watch_telemetry, get_status,
            publish_raw, set_lights, buzzer, set_chute.
     """
-    with patch("custom_components.yarbo.YarboClient", autospec=True) as mock_cls:
+    with patch("custom_components.yarbo.YarboLocalClient", autospec=True) as mock_cls:
         client = mock_cls.return_value
         client.connect = AsyncMock()
         client.disconnect = AsyncMock()
+        client.get_controller = AsyncMock()
         client.get_status = AsyncMock(return_value=MOCK_TELEMETRY)
         client.publish_raw = AsyncMock()
+        client.publish_command = AsyncMock()
         client.set_lights = AsyncMock()
         client.buzzer = AsyncMock()
         client.set_chute = AsyncMock()
+        client.start_plan = AsyncMock()
         client.is_connected = True
+        client.controller_acquired = True
+        client.serial_number = MOCK_ROBOT_SERIAL
         # watch_telemetry is an async generator — stub it to yield once then stop
         client.watch_telemetry = MagicMock(return_value=_async_gen([MOCK_TELEMETRY]))
         yield client

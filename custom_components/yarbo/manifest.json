@@ -1,14 +1,14 @@
 {
   "domain": "yarbo",
   "name": "Yarbo",
+  "after_dependencies": ["logbook"],
   "codeowners": ["@markus-lassfolk"],
   "config_flow": true,
   "dependencies": ["mqtt"],
-  "after_dependencies": ["logbook"],
+  "dhcp": [{"macaddress": "C8FE0F*"}],
   "documentation": "https://github.com/markus-lassfolk/home-assistant-yarbo",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/markus-lassfolk/home-assistant-yarbo/issues",
   "requirements": ["python-yarbo>=0.1.0,<1.0", "sentry-sdk>=2.0"],
-  "version": "0.0.0",
-  "dhcp": [{"macaddress": "C8FE0F*"}]
+  "version": "0.1.0"
 }
