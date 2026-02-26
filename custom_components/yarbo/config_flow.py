@@ -70,7 +70,8 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             self._broker_host = user_input[CONF_BROKER_HOST]
-            self._broker_port = int(user_input.get(CONF_BROKER_PORT) or DEFAULT_BROKER_PORT)
+            port = user_input.get(CONF_BROKER_PORT)
+            self._broker_port = int(port if port is not None else DEFAULT_BROKER_PORT)
             return await self.async_step_mqtt_test()
 
         return self.async_show_form(
@@ -105,9 +106,8 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             if existing_entry.data.get(CONF_BROKER_HOST) != discovery_info.ip:
                 self._reconfigure_entry = existing_entry
                 self._broker_host = discovery_info.ip
-                self._broker_port = int(
-                    existing_entry.data.get(CONF_BROKER_PORT) or DEFAULT_BROKER_PORT
-                )
+                port = existing_entry.data.get(CONF_BROKER_PORT)
+                self._broker_port = int(port if port is not None else DEFAULT_BROKER_PORT)
                 return await self.async_step_reconfigure()
             return self.async_abort(reason="already_configured")
 
@@ -197,9 +197,15 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             self._broker_host = user_input[CONF_BROKER_HOST]
-            self._broker_port = int(user_input.get(CONF_BROKER_PORT) or DEFAULT_BROKER_PORT)
+            port = user_input.get(CONF_BROKER_PORT)
+            self._broker_port = int(port if port is not None else DEFAULT_BROKER_PORT)
             return await self.async_step_mqtt_test()
 
+        port = (
+            self._broker_port
+            if self._broker_host is not None
+            else self._reconfigure_entry.data.get(CONF_BROKER_PORT)
+        )
         schema = vol.Schema(
             {
                 vol.Required(
@@ -209,14 +215,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                 ): str,
                 vol.Optional(
                     CONF_BROKER_PORT,
-                    default=int(
-                        (
-                            self._broker_port
-                            if self._broker_host is not None
-                            else self._reconfigure_entry.data.get(CONF_BROKER_PORT)
-                        )
-                        or DEFAULT_BROKER_PORT
-                    ),
+                    default=int(port if port is not None else DEFAULT_BROKER_PORT),
                 ): int,
             }
         )
