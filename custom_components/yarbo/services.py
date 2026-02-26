@@ -10,6 +10,8 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 
+from yarbo import YarboLightState
+
 from .const import DATA_CLIENT, DATA_COORDINATOR, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -136,13 +138,15 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             await client.get_controller(timeout=5.0)
             await client.set_lights(
-                head=call.data.get("led_head", brightness),
-                left_w=call.data.get("led_left_w", brightness),
-                right_w=call.data.get("led_right_w", brightness),
-                body_left_r=call.data.get("body_left_r", brightness),
-                body_right_r=call.data.get("body_right_r", brightness),
-                tail_left_r=call.data.get("tail_left_r", brightness),
-                tail_right_r=call.data.get("tail_right_r", brightness),
+                YarboLightState(
+                    led_head=call.data.get("led_head", brightness),
+                    led_left_w=call.data.get("led_left_w", brightness),
+                    led_right_w=call.data.get("led_right_w", brightness),
+                    body_left_r=call.data.get("body_left_r", brightness),
+                    body_right_r=call.data.get("body_right_r", brightness),
+                    tail_left_r=call.data.get("tail_left_r", brightness),
+                    tail_right_r=call.data.get("tail_right_r", brightness),
+                )
             )
 
     async def handle_set_chute_velocity(call: ServiceCall) -> None:

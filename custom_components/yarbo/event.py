@@ -175,7 +175,7 @@ class YarboEventEntity(YarboEntity, EventEntity):
         if (
             previous.battery_capacity >= 20
             and telemetry.battery_capacity < 20
-            and telemetry.charging_status != 2
+            and telemetry.charging_status not in (1, 2, 3)
         ):
             self._fire_event(
                 "low_battery",
