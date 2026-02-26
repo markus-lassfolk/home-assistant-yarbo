@@ -71,7 +71,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._broker_host = user_input[CONF_BROKER_HOST]
             port = user_input.get(CONF_BROKER_PORT)
-            self._broker_port = int(port if port is not None else DEFAULT_BROKER_PORT)
+            self._broker_port = DEFAULT_BROKER_PORT if port in (None, "") else int(port)
             return await self.async_step_mqtt_test()
 
         return self.async_show_form(
@@ -107,7 +107,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                 self._reconfigure_entry = existing_entry
                 self._broker_host = discovery_info.ip
                 port = existing_entry.data.get(CONF_BROKER_PORT)
-                self._broker_port = int(port if port is not None else DEFAULT_BROKER_PORT)
+                self._broker_port = DEFAULT_BROKER_PORT if port in (None, "") else int(port)
                 return await self.async_step_reconfigure()
             return self.async_abort(reason="already_configured")
 
@@ -198,7 +198,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._broker_host = user_input[CONF_BROKER_HOST]
             port = user_input.get(CONF_BROKER_PORT)
-            self._broker_port = int(port if port is not None else DEFAULT_BROKER_PORT)
+            self._broker_port = DEFAULT_BROKER_PORT if port in (None, "") else int(port)
             return await self.async_step_mqtt_test()
 
         port = (
