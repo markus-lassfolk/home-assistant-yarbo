@@ -14,7 +14,7 @@ from homeassistant.util import dt as dt_util
 
 from yarbo import YarboTelemetry
 
-from .const import CONF_ROBOT_SERIAL, DATA_COORDINATOR, DOMAIN
+from .const import CONF_ROBOT_SERIAL, DATA_COORDINATOR, DOMAIN, get_activity_state
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 
@@ -76,8 +76,8 @@ class YarboEventEntity(YarboEntity, EventEntity):
             self._last_controller_acquired = self.coordinator.client.controller_acquired
             return
 
-        previous_activity = _activity_state(previous)
-        current_activity = _activity_state(telemetry)
+        previous_activity = get_activity_state(previous)
+        current_activity = get_activity_state(telemetry)
         device_id = self._device_id_for_event()
         robot_sn = telemetry.serial_number
         now = dt_util.utcnow().isoformat()
@@ -192,7 +192,8 @@ class YarboEventEntity(YarboEntity, EventEntity):
 
     def _fire_event(self, event_type: str, data: dict) -> None:
         self.hass.bus.async_fire(f"yarbo_{event_type}", data)
-        self.async_trigger(event_type, data)
+        self._trigger_event(event_type, data)
+        self.async_write_ha_state()
 
     def _logbook(self, message: str) -> None:
         async_log_entry(
@@ -202,19 +203,3 @@ class YarboEventEntity(YarboEntity, EventEntity):
             entity_id=self.entity_id,
             domain=DOMAIN,
         )
-
-
-def _activity_state(telemetry: YarboTelemetry) -> str:
-    if telemetry.error_code != 0:
-        return "error"
-    if telemetry.charging_status in (1, 2, 3):
-        return "charging"
-    if telemetry.state in (1, 7, 8):
-        return "working"
-    if telemetry.state == 2:
-        return "returning"
-    if telemetry.state == 5:
-        return "paused"
-    if telemetry.state == 6:
-        return "error"
-    return "idle"

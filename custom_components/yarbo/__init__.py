@@ -74,7 +74,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryNotReady(f"Cannot connect to Yarbo: {err}") from err
 
     coordinator = YarboDataCoordinator(hass, client, entry)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except Exception:
+        await coordinator.async_shutdown()
+        await client.disconnect()
+        raise
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         DATA_CLIENT: client,

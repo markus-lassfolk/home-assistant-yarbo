@@ -24,6 +24,7 @@ from .const import (
     HEAD_TYPE_SMART_COVER,
     HEAD_TYPE_SNOW_BLOWER,
     HEAD_TYPE_TRIMMER,
+    get_activity_state,
 )
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
@@ -122,23 +123,7 @@ class YarboActivitySensor(YarboSensor):
         telemetry = self.telemetry
         if not telemetry:
             return None
-
-        if telemetry.error_code != 0:
-            return ACTIVITY_ERROR
-        if telemetry.charging_status in (1, 2, 3):
-            return ACTIVITY_CHARGING
-
-        state = telemetry.state
-        if state in (1, 7, 8):
-            return ACTIVITY_WORKING
-        if state == 2:
-            return ACTIVITY_RETURNING
-        if state == 5:
-            return ACTIVITY_PAUSED
-        if state == 6:
-            return ACTIVITY_ERROR
-
-        return ACTIVITY_IDLE
+        return get_activity_state(telemetry)
 
 
 class YarboHeadTypeSensor(YarboSensor):

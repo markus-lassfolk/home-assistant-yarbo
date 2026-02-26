@@ -251,7 +251,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         default_name = f"Yarbo {self._robot_serial[-4:]}"
         if user_input is not None:
             await self.async_set_unique_id(self._robot_serial)
-            self._async_abort_entries_match({"unique_id": self._robot_serial})
+            self._abort_if_unique_id_configured()
 
             name = user_input.get(CONF_ROBOT_NAME, default_name)
             data = {

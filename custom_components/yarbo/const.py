@@ -53,17 +53,33 @@ HEAD_TYPE_NAMES: dict[int, str] = {
     HEAD_TYPE_NONE: "None",
 }
 
-# Activity states
-ACTIVITY_CHARGING = "Charging in the dock"
-ACTIVITY_IDLE = "Idle"
-ACTIVITY_WORKING = "Working on a plan"
-ACTIVITY_PAUSED = "Paused"
-ACTIVITY_RETURNING = "Returning to dock"
-ACTIVITY_ERROR = "Error"
-
 # Heartbeat timeout before raising a repair issue
 HEARTBEAT_TIMEOUT_SECONDS = 60
 
 # hass.data storage keys
 DATA_COORDINATOR = "coordinator"
 DATA_CLIENT = "client"
+
+
+def get_activity_state(telemetry) -> str:
+    """Map telemetry to activity state string.
+    
+    Args:
+        telemetry: YarboTelemetry object
+        
+    Returns:
+        Activity state: "error", "charging", "working", "returning", "paused", or "idle"
+    """
+    if telemetry.error_code != 0:
+        return "error"
+    if telemetry.charging_status in (1, 2, 3):
+        return "charging"
+    if telemetry.state in (1, 7, 8):
+        return "working"
+    if telemetry.state == 2:
+        return "returning"
+    if telemetry.state == 5:
+        return "paused"
+    if telemetry.state == 6:
+        return "error"
+    return "idle"
