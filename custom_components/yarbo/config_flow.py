@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -25,6 +26,8 @@ from .const import (
     OPT_CLOUD_ENABLED,
     OPT_TELEMETRY_THROTTLE,
 )
+from yarbo import YarboLocalClient
+from yarbo.exceptions import YarboConnectionError, YarboTimeoutError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,6 +61,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         self._robot_serial: str | None = None
         self._broker_host: str | None = None
         self._broker_port: int = DEFAULT_BROKER_PORT
+        self._reconfigure_entry: ConfigEntry | None = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step — manual IP entry.
@@ -71,8 +75,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._broker_host = user_input[CONF_BROKER_HOST]
             self._broker_port = user_input.get(CONF_BROKER_PORT, DEFAULT_BROKER_PORT)
-            # TODO: Proceed to MQTT validation
-            # return await self.async_step_mqtt_test()
+            return await self.async_step_mqtt_test()
 
         return self.async_show_form(
             step_id="user",
@@ -116,8 +119,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         """
         if user_input is not None:
             self._broker_host = self._discovered_host
-            # TODO: Proceed to MQTT validation
-            # return await self.async_step_mqtt_test()
+            return await self.async_step_mqtt_test()
 
         return self.async_show_form(
             step_id="confirm",
@@ -138,18 +140,80 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
         Error keys: cannot_connect, no_telemetry, decode_error
         """
-        # TODO: Implement MQTT validation
-        # try:
-        #     from yarbo import YarboLocalClient, YarboConnectionError, YarboTimeoutError
-        #     client = YarboLocalClient(broker=self._broker_host, port=self._broker_port)
-        #     sn = await client.probe(timeout=10.0)
-        #     self._robot_serial = sn
-        # except YarboConnectionError:
-        #     errors["base"] = "cannot_connect"
-        # except YarboTimeoutError:
-        #     errors["base"] = "no_telemetry"
+        errors: dict[str, str] = {}
+        if self._broker_host is None:
+            return self.async_abort(reason="cannot_connect")
 
-        return self.async_abort(reason="not_implemented")
+        client = YarboLocalClient(host=self._broker_host, port=self._broker_port)
+        telemetry = None
+        async_gen = None
+        try:
+            await client.connect()
+            async_gen = client.watch_telemetry()
+            telemetry = await asyncio.wait_for(async_gen.__anext__(), timeout=10.0)
+            self._robot_serial = (
+                telemetry.serial_number
+                if telemetry and telemetry.serial_number
+                else client.serial_number
+            )
+        except YarboConnectionError:
+            errors["base"] = "cannot_connect"
+        except (YarboTimeoutError, asyncio.TimeoutError):
+            errors["base"] = "no_telemetry"
+        except Exception:  # noqa: BLE001 - library may raise decode errors
+            _LOGGER.exception("Failed to decode Yarbo telemetry")
+            errors["base"] = "decode_error"
+        finally:
+            if async_gen is not None:
+                await async_gen.aclose()
+            await client.disconnect()
+
+        if errors:
+            return self.async_show_form(
+                step_id="mqtt_test",
+                data_schema=vol.Schema({}),
+                errors=errors,
+            )
+
+        if not self._robot_serial:
+            return self.async_show_form(
+                step_id="mqtt_test",
+                data_schema=vol.Schema({}),
+                errors={"base": "no_telemetry"},
+            )
+
+        return await self.async_step_name()
+
+    async def async_step_name(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Prompt for an optional friendly name."""
+        if not self._robot_serial:
+            return self.async_abort(reason="no_telemetry")
+
+        default_name = f"Yarbo {self._robot_serial[-4:]}"
+        if user_input is not None:
+            await self.async_set_unique_id(self._robot_serial)
+            self._async_abort_entries_match({"unique_id": self._robot_serial})
+
+            name = user_input.get(CONF_ROBOT_NAME, default_name)
+            data = {
+                CONF_BROKER_HOST: self._broker_host,
+                CONF_BROKER_PORT: self._broker_port,
+                CONF_ROBOT_SERIAL: self._robot_serial,
+                CONF_ROBOT_NAME: name,
+            }
+            if self._discovered_mac:
+                data[CONF_BROKER_MAC] = self._discovered_mac
+
+            return self.async_create_entry(title=name, data=data)
+
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_ROBOT_NAME, default=default_name): str,
+            }
+        )
+        return self.async_show_form(step_id="name", data_schema=schema)
 
     @staticmethod
     @callback
