@@ -109,6 +109,10 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 )
                 self.last_update_success = False
                 await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
+                try:
+                    await self.client.connect()
+                except Exception as connect_err:
+                    _LOGGER.warning("Failed to reconnect: %s", connect_err)
             except Exception:
                 _LOGGER.exception(
                     "Unexpected error in telemetry loop — retrying in %ds",
