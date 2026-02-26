@@ -45,7 +45,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "integration": DOMAIN,
             "integration_version": integration_version,
             "robot_serial": f"****{_serial[-4:]}" if len(_serial) > 4 else _serial,
-            "ha_version": str(hass.config.as_dict().get("version", "unknown")),
+            "ha_version": str(hass.config.version),
         }
     )
 

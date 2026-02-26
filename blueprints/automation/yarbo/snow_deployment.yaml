@@ -54,18 +54,24 @@ condition:
   - condition: state
     entity_id: !input head_type_sensor
     state: snow_blower
+
+action:
+  - action: weather.get_forecasts
+    target:
+      entity_id: !input weather_entity
+    data:
+      type: hourly
+    response_variable: forecast_data
   - condition: template
     value_template: >
-      {% set forecast = state_attr(inputs.weather_entity, 'forecast') %}
-      {% if forecast %}
-        {% set next = forecast[0] %}
+      {% set forecasts = forecast_data[weather_entity]['forecast'] %}
+      {% if forecasts %}
+        {% set next = forecasts[0] %}
         {{ next.get('condition', '') in ['snowy', 'snowy-rainy'] or
            next.get('precipitation', 0) | float > 5 }}
       {% else %}
         false
       {% endif %}
-
-action:
   - service: yarbo.start_plan
     data:
       device_id: !input yarbo_device
