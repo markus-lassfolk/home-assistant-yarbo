@@ -1,35 +1,40 @@
-# Home Assistant Yarbo Integration
+# home-assistant-yarbo
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 [![GitHub Release](https://img.shields.io/github/release/markus-lassfolk/home-assistant-yarbo.svg)](https://github.com/markus-lassfolk/home-assistant-yarbo/releases)
+[![CI](https://github.com/markus-lassfolk/home-assistant-yarbo/actions/workflows/ci.yml/badge.svg)](https://github.com/markus-lassfolk/home-assistant-yarbo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub Issues](https://img.shields.io/github/issues/markus-lassfolk/home-assistant-yarbo.svg)](https://github.com/markus-lassfolk/home-assistant-yarbo/issues)
 
-A **local, cloud-free** Home Assistant integration for [Yarbo](https://www.yarbo.com/) robot mowers. Control your mower via MQTT with zero-configuration auto-discovery — no Yarbo cloud account required at runtime.
+Local-first Home Assistant integration for [Yarbo](https://www.yarbo.com/) — the multi-head outdoor robot platform (snow blower, lawn mower, leaf blower, SAM patrol). Connects via the robot's on-board MQTT broker. **No cloud account required.**
 
+> **Status:** Pre-release scaffold. See the [roadmap](docs/roadmap.md) for implementation milestones.
+
+---
+
+## Why local MQTT?
+
+| Feature | Cloud integrations | **home-assistant-yarbo** |
+|---|---|---|
+| Latency | 2–10 s | **< 100 ms** |
+| Works offline | ❌ | **✅** |
+| Multi-head | N/A | **✅ snow / mow / leaf / SAM** |
+| RTK GPS | ❌ | **✅** |
+| LED control (7 ch) | ❌ | **✅** |
+| Weather blueprints | ❌ | **✅ (4 shipped)** |
 
 ---
 
 ## Features
 
-- 🔍 **Zero-config auto-discovery** — Yarbo robots are detected automatically via DHCP MAC OUI and MQTT topic scanning. No manual IP or serial number entry.
-- 🏠 **100% local control** — All communication stays on your LAN via your local MQTT broker (EMQX or Mosquitto). No cloud dependency at runtime.
-- 📡 **Real-time telemetry** — Live status updates: battery level, mowing zone, GPS position, error codes, and more.
-- 💡 **Light control** — Toggle the robot's work light on/off from Home Assistant.
-- 🔔 **Buzzer control** — Trigger the robot's buzzer (useful for locating it in tall grass).
-- 🔄 **Start / stop / dock** — Full mowing session control via HA services and dashboard buttons.
-- 🛡️ **No cloud polling** — Everything is event-driven over MQTT; no REST polling, no rate limits.
-
----
-
-## Requirements
-
-- Home Assistant 2024.1 or later
-- A local MQTT broker (e.g. [Mosquitto](https://mosquitto.org/) or EMQX) on your LAN
-- Your Yarbo robot mower connected to your local Wi-Fi
-- The [MQTT integration](https://www.home-assistant.io/integrations/mqtt/) configured in Home Assistant
-
-> The Yarbo robot ships with an EMQX broker embedded in its dock/base station. Point this integration at that broker (typically on port 1883, anonymous auth) or your own Mosquitto instance if you bridge it.
+- **Auto-discovery** — Detects the Yarbo base station via DHCP MAC OUI `C8:FE:0F:*`; no IP entry required
+- **Push telemetry** — `DeviceMSG` streamed at ~1–2 Hz; entities update in real time
+- **Multi-head aware** — Head-specific entities show as unavailable when the wrong module is attached
+- **Full controls** — Beep, pause, resume, stop, return to dock, start plan, light control
+- **7-channel LED** — Individual control of head light, left/right white, body/tail red LEDs
+- **GPS device tracker** — Parses GNGGA NMEA from RTK; robot appears on your HA map
+- **Automation blueprints** — Rain pause, snow deployment, low battery alert, job complete notification
+- **Diagnostics** — One-click download; PII redacted (GPS, serial numbers)
 
 ---
 
@@ -37,82 +42,117 @@ A **local, cloud-free** Home Assistant integration for [Yarbo](https://www.yarbo
 
 ### HACS (recommended)
 
-1. Open **HACS** in Home Assistant → **Integrations** → ⋮ menu → **Custom repositories**
-2. Add `https://github.com/markus-lassfolk/home-assistant-yarbo` as category **Integration**
-3. Search for **Yarbo** and click **Install**
+1. **HACS → Integrations → ⋮ → Custom repositories**
+2. Add `https://github.com/markus-lassfolk/home-assistant-yarbo` → category **Integration**
+3. Search **Yarbo** → **Download**
 4. Restart Home Assistant
+5. **Settings → Devices & Services → Add Integration → Yarbo**
 
 ### Manual
 
-1. Copy the `custom_components/yarbo/` folder into your HA `config/custom_components/` directory
-2. Restart Home Assistant
-
-### Configuration
-
-After installation, go to **Settings → Devices & Services → Add Integration → Yarbo**.
-
-You will be prompted for:
-- **MQTT broker host** — IP/hostname of your local broker (e.g. `192.168.1.24`)
-- **MQTT port** — default `1883`
-- **Username / Password** — leave blank if your broker allows anonymous connections
-
-The integration will auto-discover all Yarbo robots on the broker within seconds.
+Copy `custom_components/yarbo/` to your HA `config/custom_components/yarbo/` and restart.
 
 ---
 
-## How It Works
+## Quick Start
 
-### 1. DHCP MAC OUI Detection
+The integration supports two setup paths:
 
-Yarbo robots advertise themselves on the local network. Their Wi-Fi MAC address uses a known OUI (Organizationally Unique Identifier) registered to the Yarbo manufacturer. When the integration starts, it scans ARP/DHCP leases (or listens passively) to identify candidate IPs matching this OUI.
+**Auto-discovery (recommended):** If your Yarbo base station is on the same LAN as Home Assistant, it will be discovered automatically when its MAC (`C8:FE:0F:*`) appears on DHCP. Accept the notification in HA.
 
-### 2. MQTT Topic Discovery
+**Manual:** Go to **Settings → Devices & Services → Add Integration → Yarbo** and enter the base station IP.
 
-Each Yarbo robot publishes telemetry and subscribes to commands under a well-known topic hierarchy:
-
-```
-yarbo/{serial_number}/heart_beat        ← live telemetry (zlib-compressed JSON)
-yarbo/{serial_number}/command/set       ← outbound commands
-yarbo/{serial_number}/command/response  ← command ACKs
-```
-
-The integration subscribes to the wildcard `yarbo/+/heart_beat` to catch all robots on the broker. The serial number extracted from the topic becomes the unique device identifier in Home Assistant — no manual entry needed.
-
-### 3. Telemetry Decoding
-
-Telemetry payloads are zlib-compressed JSON. The integration decompresses and parses these in real time, mapping fields to HA sensor entities (battery, status, GPS, zone, error codes, etc.).
-
-### 4. Command Encoding
-
-Commands (lights, buzzer, start/stop) are JSON payloads published to the robot's command topic. The protocol is documented in detail in the [yarbo-reversing](https://github.com/markus-lassfolk/yarbo-reversing) repository.
+The config flow connects to MQTT port 1883, waits for telemetry, extracts the robot serial number, and creates the device.
 
 ---
 
-## Entities Created
+## Entity Reference
 
-| Entity | Type | Description |
-|--------|------|-------------|
-| `sensor.yarbo_battery` | Sensor | Battery percentage |
-| `sensor.yarbo_status` | Sensor | Mowing / docked / error / charging |
-| `sensor.yarbo_zone` | Sensor | Active mowing zone name |
-| `device_tracker.yarbo` | Device Tracker | GPS position on HA map |
-| `light.yarbo_work_light` | Light | Work light on/off |
-| `button.yarbo_buzzer` | Button | Trigger buzzer |
-| `button.yarbo_start` | Button | Start mowing |
-| `button.yarbo_dock` | Button | Return to dock |
+### Core (always enabled)
+
+| Entity | Platform | Description |
+|---|---|---|
+| `sensor.{name}_battery` | sensor | Battery % |
+| `sensor.{name}_activity` | sensor | Human-readable status (Charging / Working / Paused…) |
+| `sensor.{name}_head_type` | sensor | Attached head (Snow Blower / Lawn Mower…) |
+| `binary_sensor.{name}_charging` | binary_sensor | Charging state |
+| `binary_sensor.{name}_problem` | binary_sensor | Error present |
+| `button.{name}_beep` | button | Trigger buzzer |
+| `button.{name}_return_to_dock` | button | Send to dock |
+| `button.{name}_pause` | button | Pause current plan |
+| `button.{name}_resume` | button | Resume plan |
+| `button.{name}_stop` | button | Stop |
+| `light.{name}_lights` | light | All-lights group (7 channels) |
+| `event.{name}_events` | event | Job lifecycle events |
+
+### Extended (disabled by default) — see [docs/entities.md](docs/entities.md)
+
+RTK status, heading, chute angle, rain sensor, satellite count, charging power, 7 individual LED channels, chute velocity, buzzer switch, planning binary sensor, emergency stop.
+
+### Head-specific (availability gated)
+
+| Entity | Available when |
+|---|---|
+| `lawn_mower.{name}` | Lawn Mower / Pro head |
+| `number.{name}_chute_velocity` | Snow Blower head |
+| `switch.{name}_blower` | Snow Blower head |
+| `number.{name}_roller_speed` | Leaf Blower head |
+| `device_tracker.{name}` | Any head (RTK fix) |
+
+---
+
+## Services
+
+| Service | Description | Milestone |
+|---|---|---|
+| `yarbo.send_command` | Send any raw MQTT command | v0.1.0 |
+| `yarbo.pause` | Pause current job | v0.2.0 |
+| `yarbo.resume` | Resume paused job | v0.2.0 |
+| `yarbo.return_to_dock` | Return to dock | v0.2.0 |
+| `yarbo.set_lights` | Set all 7 LED channels | v0.2.0 |
+| `yarbo.set_chute_velocity` | Snow chute control | v0.2.0 |
+| `yarbo.start_plan` | Start a saved work plan | v0.3.0 |
+
+---
+
+## Blueprints
+
+Four automation blueprints ship with the integration (available in `blueprints/automation/yarbo/`):
+
+- **Rain Pause** — Pause and dock on rain, resume after dry delay
+- **Snow Deployment** — Start snow clearing plan when snowfall threshold is exceeded
+- **Low Battery Alert** — Notify when battery drops below threshold
+- **Job Complete** — Notify when a work plan finishes
+
+---
+
+## Documentation
+
+| Doc | Contents |
+|---|---|
+| [Architecture](docs/architecture.md) | Design principles, data flow, coordinator |
+| [Config Flow](docs/config-flow.md) | Setup steps, DHCP discovery, options |
+| [Entities](docs/entities.md) | Full entity reference with MQTT sources |
+| [Services](docs/services.md) | Service definitions and examples |
+| [Events](docs/events.md) | HA event bus events and triggers |
+| [Multi-Head](docs/multi-head.md) | Head types, availability gating |
+| [Blueprints](docs/blueprints.md) | Automation blueprint reference |
+| [MQTT Protocol](docs/mqtt-protocol.md) | Topic reference, encoding |
+| [Security](docs/security.md) | Hardening, credential storage |
+| [Development](docs/development.md) | Contributing, testing, linting |
+| [Roadmap](docs/roadmap.md) | Milestone plan |
+
+---
+
+## Security Note
+
+The Yarbo base station MQTT broker (port 1883) is **unauthenticated**. Anyone on your LAN can read telemetry and send commands. Place the base station on an isolated IoT VLAN and restrict MQTT access to your HA host. See [docs/security.md](docs/security.md).
 
 ---
 
 ## Contributing
 
-Pull requests welcome! Please open an issue first to discuss major changes.
-
-1. Fork the repo
-2. Create a feature branch (`git checkout -b feature/my-feature`)
-3. Commit your changes (`git commit -m 'Add my feature'`)
-4. Push and open a PR
-
----
+See [CONTRIBUTING.md](CONTRIBUTING.md). Issues and PRs welcome — please open an issue first for major changes.
 
 ## License
 

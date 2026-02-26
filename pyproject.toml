@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "home-assistant-yarbo"
+version = "0.0.0"
+description = "Home Assistant HACS integration for Yarbo robot mowers"
+requires-python = ">=3.12"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # isort
+  "B",   # flake8-bugbear
+  "UP",  # pyupgrade
+  "ANN", # flake8-annotations
+  "RUF", # Ruff-specific rules
+]
+ignore = [
+  "ANN101",  # Missing type annotation for self
+  "ANN102",  # Missing type annotation for cls
+  "ANN401",  # Dynamically typed expressions (Any) disallowed
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components.yarbo"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+allow_redefinition = true
+warn_return_any = false
+# homeassistant stubs aren't always complete
+[[tool.mypy.overrides]]
+module = ["homeassistant.*", "yarbo.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.coverage.run]
+source = ["custom_components/yarbo"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "# TODO:",
+]

@@ -1,0 +1,71 @@
+name: New Device / Head Report
+description: Report a new Yarbo model or head type for compatibility tracking
+labels: ["feature", "hacs"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help us support more Yarbo devices! Please share your device details.
+
+  - type: input
+    id: robot_model
+    attributes:
+      label: Robot Model
+      placeholder: "e.g. Yarbo S2, Yarbo Pro"
+    validations:
+      required: true
+
+  - type: input
+    id: serial_prefix
+    attributes:
+      label: Serial Number Prefix (first 4-6 chars only)
+      description: Do NOT share your full serial number
+      placeholder: "e.g. 2440"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: head_types
+    attributes:
+      label: Head Types You Own
+      options:
+        - label: Snow Blower
+        - label: Lawn Mower (M1)
+        - label: Leaf Blower (B1)
+        - label: Smart Cover / SAM
+        - label: Other (describe below)
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Robot Firmware Version
+      placeholder: "e.g. 3.17.4"
+    validations:
+      required: true
+
+  - type: input
+    id: app_version
+    attributes:
+      label: Yarbo App Version
+      placeholder: "e.g. 3.17.4"
+    validations:
+      required: false
+
+  - type: textarea
+    id: mqtt_samples
+    attributes:
+      label: MQTT Payload Samples
+      description: |
+        If you can capture MQTT traffic, please share anonymized DeviceMSG samples.
+        Remove GPS coordinates and serial numbers.
+      render: json
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional Notes
+      description: Any differences in behavior, commands, or topics compared to Yarbo S1?
+    validations:
+      required: false
