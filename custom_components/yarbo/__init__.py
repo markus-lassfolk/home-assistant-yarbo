@@ -32,7 +32,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Get actual integration version from manifest
     integration_version = "unknown"
     if DOMAIN in hass.data.get("integrations", {}):
-        integration_version = getattr(hass.data["integrations"][DOMAIN], "version", "unknown")
+        integration_version = getattr(hass.data["integrations"][DOMAIN], "version", "unknown") or "unknown"
     
     # Opt-in error reporting: only active if YARBO_SENTRY_DSN env var is set
     init_error_reporting(
