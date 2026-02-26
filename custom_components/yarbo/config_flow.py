@@ -105,7 +105,9 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             if existing_entry.data.get(CONF_BROKER_HOST) != discovery_info.ip:
                 self._reconfigure_entry = existing_entry
                 self._broker_host = discovery_info.ip
-                self._broker_port = existing_entry.data.get(CONF_BROKER_PORT, DEFAULT_BROKER_PORT)
+                self._broker_port = int(
+                    existing_entry.data.get(CONF_BROKER_PORT) or DEFAULT_BROKER_PORT
+                )
                 return await self.async_step_reconfigure()
             return self.async_abort(reason="already_configured")
 
@@ -207,9 +209,14 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                 ): str,
                 vol.Optional(
                     CONF_BROKER_PORT,
-                    default=self._broker_port
-                    if self._broker_host is not None
-                    else self._reconfigure_entry.data.get(CONF_BROKER_PORT, DEFAULT_BROKER_PORT),
+                    default=int(
+                        (
+                            self._broker_port
+                            if self._broker_host is not None
+                            else self._reconfigure_entry.data.get(CONF_BROKER_PORT)
+                        )
+                        or DEFAULT_BROKER_PORT
+                    ),
                 ): int,
             }
         )
