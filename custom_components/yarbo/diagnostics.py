@@ -41,7 +41,7 @@ async def async_get_config_entry_diagnostics(
         raw = getattr(raw_source, "raw", {})
     else:
         raw = {}
-    
+
     # Ensure raw is a dict before passing to _redact_telemetry
     if not isinstance(raw, dict):
         raw = {}
