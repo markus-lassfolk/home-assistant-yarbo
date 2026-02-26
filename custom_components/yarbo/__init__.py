@@ -14,12 +14,14 @@ from yarbo.exceptions import YarboConnectionError
 from .const import (
     CONF_BROKER_HOST,
     CONF_BROKER_PORT,
+    CONF_ROBOT_SERIAL,
     DATA_CLIENT,
     DATA_COORDINATOR,
     DOMAIN,
     PLATFORMS,
 )
 from .coordinator import YarboDataCoordinator
+from .error_reporting import init_error_reporting
 from .services import async_register_services, async_unregister_services
 
 _LOGGER = logging.getLogger(__name__)
@@ -60,6 +62,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # TODO: Forward setup to platforms
     # await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Opt-out error reporting: enabled by default, disable via YARBO_SENTRY_DSN=""
+    init_error_reporting(
+        tags={
+            "integration": DOMAIN,
+            "integration_version": entry.version if hasattr(entry, "version") else "unknown",
+            "robot_serial": entry.data.get(CONF_ROBOT_SERIAL, "unknown"),
+            "ha_version": str(hass.config.as_dict().get("version", "unknown")),
+        }
+    )
 
     client = YarboLocalClient(
         host=entry.data[CONF_BROKER_HOST],
