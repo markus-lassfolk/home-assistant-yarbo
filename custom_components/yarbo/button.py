@@ -48,6 +48,8 @@ class YarboButton(YarboEntity, ButtonEntity):
 class YarboBeepButton(YarboButton):
     """Beep the robot."""
 
+    _attr_translation_key = "beep"
+
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "beep")
 
@@ -60,6 +62,8 @@ class YarboBeepButton(YarboButton):
 class YarboReturnToDockButton(YarboButton):
     """Send the robot back to the dock."""
 
+    _attr_translation_key = "return_to_dock"
+
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "return_to_dock")
 
@@ -69,6 +73,8 @@ class YarboReturnToDockButton(YarboButton):
 
 class YarboPauseButton(YarboButton):
     """Pause the current plan."""
+
+    _attr_translation_key = "pause"
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "pause")
@@ -80,6 +86,8 @@ class YarboPauseButton(YarboButton):
 class YarboResumeButton(YarboButton):
     """Resume a paused plan."""
 
+    _attr_translation_key = "resume"
+
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "resume")
 
@@ -89,6 +97,8 @@ class YarboResumeButton(YarboButton):
 
 class YarboStopButton(YarboButton):
     """Stop the robot gracefully."""
+
+    _attr_translation_key = "stop"
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "stop")
@@ -101,6 +111,7 @@ class YarboEmergencyStopButton(YarboButton):
     """Immediate emergency stop."""
 
     _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "emergency_stop"
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "emergency_stop")

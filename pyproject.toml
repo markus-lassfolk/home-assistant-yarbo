@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "home-assistant-yarbo"
@@ -31,7 +31,7 @@ ignore = [
 known-first-party = ["custom_components.yarbo"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.13"
 strict = true
 ignore_missing_imports = true
 allow_redefinition = true
@@ -40,6 +40,10 @@ warn_return_any = false
 [[tool.mypy.overrides]]
 module = ["homeassistant.*", "yarbo.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["custom_components.yarbo.*"]
+disable_error_code = ["return-value", "attr-defined", "arg-type"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

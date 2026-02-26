@@ -30,6 +30,27 @@ EVENT_TYPES: Final[list[str]] = [
 ]
 
 
+def _activity_state(telemetry: YarboTelemetry) -> str:
+    """Compute activity state string from telemetry.
+
+    Single source of truth — also imported by sensor.py to avoid duplication.
+    """
+    if telemetry.error_code != 0:
+        return "error"
+    if telemetry.charging_status in (1, 2, 3):
+        return "charging"
+    state = telemetry.state
+    if state in (1, 7, 8):
+        return "working"
+    if state == 2:
+        return "returning"
+    if state == 5:
+        return "paused"
+    if state == 6:
+        return "error"
+    return "idle"
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -44,10 +65,11 @@ class YarboEventEntity(YarboEntity, EventEntity):
     """Event entity for Yarbo state transitions."""
 
     _attr_event_types = EVENT_TYPES
+    _attr_translation_key = "events"
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "events")
-        self._previous = None
+        self._previous: YarboTelemetry | None = None
         self._last_controller_acquired: bool | None = None
         self._device_id: str | None = None
 
@@ -73,7 +95,9 @@ class YarboEventEntity(YarboEntity, EventEntity):
         previous = self._previous
         if previous is None:
             self._previous = telemetry
-            self._last_controller_acquired = self.coordinator.client.controller_acquired
+            self._last_controller_acquired = getattr(
+                self.coordinator.client, "controller_acquired", None
+            )
             return
 
         previous_activity = get_activity_state(previous)
@@ -151,7 +175,7 @@ class YarboEventEntity(YarboEntity, EventEntity):
         if (
             previous.battery_capacity >= 20
             and telemetry.battery_capacity < 20
-            and telemetry.charging_status != 2
+            and telemetry.charging_status not in (1, 2, 3)
         ):
             self._fire_event(
                 "low_battery",
@@ -164,7 +188,7 @@ class YarboEventEntity(YarboEntity, EventEntity):
             )
             self._logbook("Low battery")
 
-        current_controller = self.coordinator.client.controller_acquired
+        current_controller = getattr(self.coordinator.client, "controller_acquired", None)
         if self._last_controller_acquired and not current_controller:
             self._fire_event(
                 "controller_lost",
@@ -190,9 +214,9 @@ class YarboEventEntity(YarboEntity, EventEntity):
 
         self._previous = telemetry
 
-    def _fire_event(self, event_type: str, data: dict) -> None:
+    def _fire_event(self, event_type: str, data: dict) -> None:  # type: ignore[type-arg]
         self.hass.bus.async_fire(f"yarbo_{event_type}", data)
-        self._trigger_event(event_type, data)
+        self._trigger_event(event_type, data)  # Fixed: was async_trigger (wrong method name)
         self.async_write_ha_state()
 
     def _logbook(self, message: str) -> None:

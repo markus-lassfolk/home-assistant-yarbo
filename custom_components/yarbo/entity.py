@@ -19,10 +19,7 @@ class YarboEntity(CoordinatorEntity[YarboDataCoordinator]):
     - Unique ID pattern: {robot_sn}_{entity_key}
     - Coordinator data access helpers
     - Head-type availability gating (override available in subclasses)
-
-    TODO: Flesh out in v0.1.0
-    - Add device_info with robot and data center entries
-    - Add entity_picture support
+    - Entity picture (robot image from integration assets)
     """
 
     _attr_has_entity_name = True
@@ -41,27 +38,27 @@ class YarboEntity(CoordinatorEntity[YarboDataCoordinator]):
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Return device information for the robot.
-
-        TODO: Implement in v0.1.0
-        - Use robot serial from coordinator config entry
-        - Include manufacturer, model, sw_version
-        - Set via_device for the data center device
-        """
+        """Return device information for the robot."""
         entry = self.coordinator._entry
         robot_sn = entry.data.get(CONF_ROBOT_SERIAL, "unknown")
         robot_name = entry.data.get(CONF_ROBOT_NAME, f"Yarbo {robot_sn[-4:]}")
-        raw = self.coordinator.data.raw if self.coordinator.data else {}
+        raw_source = self.coordinator.data
+        if isinstance(raw_source, dict):
+            raw: dict = raw_source.get("raw", raw_source)
+        elif raw_source is not None:
+            raw = getattr(raw_source, "raw", {})
+        else:
+            raw = {}
 
         return DeviceInfo(
             identifiers={(DOMAIN, robot_sn)},
             name=robot_name,
             manufacturer="Yarbo (Hytech)",
             model="S1",
-            sw_version=raw.get("firmware_version"),
+            sw_version=raw.get("firmware_version") if isinstance(raw, dict) else None,
         )
 
     @property
     def telemetry(self) -> YarboTelemetry | None:
         """Return the current telemetry object, or None if not available."""
-        return self.coordinator.data
+        return self.coordinator.data  # type: ignore[return-value]

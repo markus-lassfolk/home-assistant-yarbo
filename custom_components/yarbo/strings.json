@@ -61,11 +61,16 @@
     "step": {
       "init": {
         "title": "Yarbo Options",
+        "description": "Configure integration behaviour. Changes take effect after reload.",
         "data": {
-          "telemetry_throttle": "Telemetry update interval (seconds)",
+          "telemetry_throttle": "Telemetry update interval (1–10 seconds)",
           "auto_controller": "Auto-acquire controller before commands",
           "cloud_enabled": "Enable cloud features",
-          "activity_personality": "Use personality phrases in activity sensor"
+          "activity_personality": "Fun activity descriptions (emoji mode)"
+        },
+        "data_description": {
+          "telemetry_throttle": "How often telemetry updates are pushed to Home Assistant. Lower values mean more frequent updates but higher recorder load.",
+          "activity_personality": "When enabled, the activity sensor includes fun emoji descriptions as extra attributes."
         }
       }
     }
@@ -78,9 +83,9 @@
       "activity": {
         "name": "Activity",
         "state": {
-          "charging": "Charging in the dock",
+          "charging": "Charging",
           "idle": "Idle",
-          "working": "Working on a plan",
+          "working": "Working",
           "paused": "Paused",
           "returning": "Returning to dock",
           "error": "Error"
@@ -99,7 +104,15 @@
         }
       },
       "rtk_status": {
-        "name": "RTK Status"
+        "name": "RTK Status",
+        "state": {
+          "invalid": "No Fix",
+          "gps": "GPS",
+          "dgps": "DGPS",
+          "rtk_float": "RTK Float",
+          "rtk_fixed": "RTK Fixed",
+          "unknown": "Unknown"
+        }
       },
       "heading": {
         "name": "Heading"
@@ -163,12 +176,93 @@
           }
         }
       }
+    },
+    "light": {
+      "lights": {
+        "name": "Lights"
+      },
+      "led_head": {
+        "name": "Head Light"
+      },
+      "led_left_w": {
+        "name": "Left White"
+      },
+      "led_right_w": {
+        "name": "Right White"
+      },
+      "led_body_left": {
+        "name": "Body Left"
+      },
+      "led_body_right": {
+        "name": "Body Right"
+      },
+      "led_tail_left": {
+        "name": "Tail Left"
+      },
+      "led_tail_right": {
+        "name": "Tail Right"
+      }
+    },
+    "switch": {
+      "buzzer": {
+        "name": "Buzzer"
+      }
+    },
+    "number": {
+      "chute_velocity": {
+        "name": "Chute Velocity"
+      }
+    },
+    "device_tracker": {
+      "location": {
+        "name": "Location"
+      }
+    },
+    "lawn_mower": {
+      "mower": {
+        "name": "Mower"
+      }
+    },
+    "update": {
+      "firmware": {
+        "name": "Firmware"
+      }
     }
   },
   "issues": {
     "telemetry_timeout": {
       "title": "Yarbo telemetry not received",
-      "description": "No telemetry has been received from {name} for at least 60 seconds. Check the base station connection."
+      "description": "No telemetry has been received from **{name}** for at least 60 seconds. Check that the base station is powered on and connected to the network."
+    }
+  },
+  "services": {
+    "send_command": {
+      "name": "Send raw command",
+      "description": "Publish an arbitrary MQTT command to the robot (power users only)."
+    },
+    "start_plan": {
+      "name": "Start work plan",
+      "description": "Start a saved work plan by its ID."
+    },
+    "pause": {
+      "name": "Pause",
+      "description": "Pause the robot's current work plan."
+    },
+    "resume": {
+      "name": "Resume",
+      "description": "Resume a previously paused work plan."
+    },
+    "return_to_dock": {
+      "name": "Return to dock",
+      "description": "Send the robot back to its charging dock."
+    },
+    "set_lights": {
+      "name": "Set lights",
+      "description": "Set brightness for all 7 LED channels simultaneously."
+    },
+    "set_chute_velocity": {
+      "name": "Set chute velocity",
+      "description": "Control snow chute direction and speed (snow blower head only)."
     }
   }
 }

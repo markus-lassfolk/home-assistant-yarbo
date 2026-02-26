@@ -7,3 +7,6 @@ ruff>=0.3
 mypy>=1.9
 voluptuous>=0.14
 homeassistant>=2024.12.0
+# python-yarbo is not on PyPI; installed from git in CI:
+#   pip install git+https://github.com/markus-lassfolk/python-yarbo.git@develop
+# Tests mock the yarbo module directly so the real package is not required for testing.

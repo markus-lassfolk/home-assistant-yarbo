@@ -50,10 +50,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
     - Manual IP entry (async_step_user)
     - DHCP auto-discovery (async_step_dhcp)
     - MQTT connection validation (async_step_mqtt_test)
-    - Optional cloud auth (async_step_cloud)
     - Reconfigure flow (async_step_reconfigure)
-
-    TODO: Implement each step in v0.1.0
     """
 
     VERSION = 1
@@ -68,12 +65,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         self._reconfigure_entry: ConfigEntry | None = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Handle the initial step — manual IP entry.
-
-        TODO: Implement in v0.1.0
-        - Show form for broker IP and port
-        - On submit, proceed to async_step_mqtt_test
-        """
+        """Handle the initial step — manual IP entry."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -92,11 +84,6 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
         Triggered when a device with MAC OUI C8:FE:0F:* appears on the network.
         This is the Yarbo Data Center (base station).
-
-        TODO: Implement in v0.1.0
-        - Check if this DC's robot is already configured (abort_already_configured)
-        - Store discovered IP and MAC
-        - Show confirmation form (async_step_confirm)
         """
         _LOGGER.debug(
             "DHCP discovery: IP=%s MAC=%s hostname=%s",
@@ -105,6 +92,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             discovery_info.hostname,
         )
 
+        # Check by MAC address for IP changes (reconfigure)
         existing_entry = next(
             (
                 entry
@@ -127,12 +115,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         return await self.async_step_confirm()
 
     async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Confirm DHCP-discovered device.
-
-        TODO: Implement in v0.1.0
-        - Show discovered IP to user
-        - On confirm, proceed to async_step_mqtt_test
-        """
+        """Confirm DHCP-discovered device."""
         if user_input is not None:
             self._broker_host = self._discovered_host
             return await self.async_step_mqtt_test()
@@ -143,19 +126,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_mqtt_test(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Validate MQTT connection and extract robot serial number.
-
-        TODO: Implement in v0.1.0
-        Steps:
-        1. Connect to broker:1883 via python-yarbo
-        2. Subscribe to snowbot/+/device/DeviceMSG
-        3. Wait up to 10s for first telemetry
-        4. Extract SN from topic: snowbot/{SN}/device/...
-        5. Decode DeviceMSG to confirm zlib works
-        6. Abort if: cannot_connect, no_telemetry, decode_error, already_configured
-
-        Error keys: cannot_connect, no_telemetry, decode_error
-        """
+        """Validate MQTT connection and extract robot serial number."""
         errors: dict[str, str] = {}
         if self._broker_host is None:
             return self.async_abort(reason="cannot_connect")
@@ -250,11 +221,12 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
         default_name = f"Yarbo {self._robot_serial[-4:]}"
         if user_input is not None:
+            # Use robot serial as unique ID and abort if already configured
             await self.async_set_unique_id(self._robot_serial)
-            self._abort_if_unique_id_configured()
+            self._abort_if_unique_id_configured()  # Fixed: was _async_abort_entries_match (wrong)
 
             name = user_input.get(CONF_ROBOT_NAME, default_name)
-            data = {
+            data: dict[str, Any] = {
                 CONF_BROKER_HOST: self._broker_host,
                 CONF_BROKER_PORT: self._broker_port,
                 CONF_ROBOT_SERIAL: self._robot_serial,
@@ -286,9 +258,7 @@ class YarboOptionsFlow(OptionsFlow):
     - telemetry_throttle: debounce interval (seconds)
     - auto_controller: auto-acquire controller before commands
     - cloud_enabled: enable cloud REST features
-    - activity_personality: personality phrases in activity sensor
-
-    TODO: Implement in v0.1.0
+    - activity_personality: fun personality descriptions (boolean toggle)
     """
 
     def __init__(self, config_entry: ConfigEntry) -> None:
@@ -296,10 +266,7 @@ class YarboOptionsFlow(OptionsFlow):
         self._config_entry = config_entry
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Manage options.
-
-        TODO: Implement in v0.1.0
-        """
+        """Manage options."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
@@ -310,7 +277,7 @@ class YarboOptionsFlow(OptionsFlow):
                     default=self._config_entry.options.get(
                         OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE
                     ),
-                ): vol.Coerce(float),
+                ): vol.All(vol.Coerce(float), vol.Range(min=1.0, max=10.0)),
                 vol.Optional(
                     OPT_AUTO_CONTROLLER,
                     default=self._config_entry.options.get(
@@ -323,6 +290,7 @@ class YarboOptionsFlow(OptionsFlow):
                         OPT_CLOUD_ENABLED, DEFAULT_CLOUD_ENABLED
                     ),
                 ): bool,
+                # Fixed: activity_personality is a boolean toggle, not an enum string
                 vol.Optional(
                     OPT_ACTIVITY_PERSONALITY,
                     default=self._config_entry.options.get(
