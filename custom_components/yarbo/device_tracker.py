@@ -45,8 +45,3 @@ class YarboDeviceTracker(YarboEntity, TrackerEntity):
         if not self.telemetry:
             return None
         return getattr(self.telemetry, "longitude", None)
-
-    @property
-    def source_type(self) -> SourceType:
-        """Return source type."""
-        return SourceType.GPS

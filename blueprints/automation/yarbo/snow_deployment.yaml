@@ -56,14 +56,15 @@ condition:
     state: snow_blower
   - condition: template
     value_template: >
-      {% set forecast = state_attr(inputs.weather_entity, 'forecast') %}
-      {% if forecast %}
-        {% set next = forecast[0] %}
-        {{ next.get('condition', '') in ['snowy', 'snowy-rainy'] or
-           next.get('precipitation', 0) | float > 5 }}
-      {% else %}
-        false
+      {% set forecast_data = namespace(result=false) %}
+      {% set ns = namespace(forecasts={}) %}
+      {% set service_data = {'type': 'hourly', 'entity_id': inputs.weather_entity} %}
+      {% set ns.forecasts = weather.get_forecasts(service_data) %}
+      {% if ns.forecasts and inputs.weather_entity in ns.forecasts and ns.forecasts[inputs.weather_entity].forecast %}
+        {% set next = ns.forecasts[inputs.weather_entity].forecast[0] %}
+        {% set forecast_data.result = next.get('condition', '') in ['snowy', 'snowy-rainy'] or next.get('precipitation', 0) | float > 5 %}
       {% endif %}
+      {{ forecast_data.result }}
 
 action:
   - service: yarbo.start_plan
