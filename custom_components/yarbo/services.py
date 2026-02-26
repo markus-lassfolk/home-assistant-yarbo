@@ -7,8 +7,10 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import device_registry as dr
 
-from .const import DOMAIN
+from .const import DATA_CLIENT, DATA_COORDINATOR, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,25 +59,36 @@ def async_register_services(hass: HomeAssistant) -> None:
             payload,
         )
 
-        # TODO: Resolve device_id to config entry → client
-        # dev_reg = dr.async_get(hass)
-        # device = dev_reg.async_get(device_id)
-        # if device is None:
-        #     raise ServiceValidationError(f"Device {device_id} not found")
-        # entry_id = next(iter(device.config_entries))
-        # client = hass.data[DOMAIN][entry_id][DATA_CLIENT]
-        # await client.publish_raw(command, payload)
+        dev_reg = dr.async_get(hass)
+        device = dev_reg.async_get(device_id)
+        if device is None:
+            raise ServiceValidationError(f"Device {device_id} not found")
+        if not device.config_entries:
+            raise ServiceValidationError(f"Device {device_id} has no config entry")
+        entry_id = next(iter(device.config_entries))
+        if entry_id not in hass.data.get(DOMAIN, {}):
+            raise ServiceValidationError(
+                f"Device {device_id} is not managed by the Yarbo integration"
+            )
 
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_SEND_COMMAND,
-        handle_send_command,
-        schema=SERVICE_SEND_COMMAND_SCHEMA,
-    )
+        client = hass.data[DOMAIN][entry_id][DATA_CLIENT]
+        coordinator = hass.data[DOMAIN][entry_id][DATA_COORDINATOR]
+        async with coordinator.command_lock:
+            await client.get_controller(timeout=5.0)
+            await client.publish_raw(command, payload)
+
+    if not hass.services.has_service(DOMAIN, SERVICE_SEND_COMMAND):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_SEND_COMMAND,
+            handle_send_command,
+            schema=SERVICE_SEND_COMMAND_SCHEMA,
+        )
 
     _LOGGER.debug("Yarbo services registered")
 
 
 def async_unregister_services(hass: HomeAssistant) -> None:
     """Unregister Yarbo services when the last config entry is removed."""
-    hass.services.async_remove(DOMAIN, SERVICE_SEND_COMMAND)
+    if hass.services.has_service(DOMAIN, SERVICE_SEND_COMMAND):
+        hass.services.async_remove(DOMAIN, SERVICE_SEND_COMMAND)
