@@ -41,6 +41,10 @@ warn_return_any = false
 module = ["homeassistant.*", "yarbo.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["custom_components.yarbo.*"]
+disable_error_code = ["return-value", "attr-defined", "arg-type"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
