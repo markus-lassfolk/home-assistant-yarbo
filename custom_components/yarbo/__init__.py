@@ -29,11 +29,16 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Yarbo from a config entry."""
+    # Get actual integration version from manifest
+    integration_version = "unknown"
+    if DOMAIN in hass.data.get("integrations", {}):
+        integration_version = hass.data["integrations"][DOMAIN].version
+    
     # Opt-in error reporting: only active if YARBO_SENTRY_DSN env var is set
     init_error_reporting(
         tags={
             "integration": DOMAIN,
-            "integration_version": str(entry.version) if hasattr(entry, "version") else "unknown",
+            "integration_version": integration_version,
             "robot_serial": entry.data.get(CONF_ROBOT_SERIAL, "unknown"),
             "ha_version": str(hass.config.as_dict().get("version", "unknown")),
         }

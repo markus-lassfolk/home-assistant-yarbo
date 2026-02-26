@@ -38,7 +38,7 @@ async def async_get_config_entry_diagnostics(
     if isinstance(raw_source, dict):
         raw = raw_source.get("raw", raw_source)
     elif raw_source is not None:
-        raw = raw_source.raw
+        raw = getattr(raw_source, "raw", {})
     else:
         raw = {}
 

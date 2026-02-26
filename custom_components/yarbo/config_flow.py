@@ -208,7 +208,8 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Optional(
                     CONF_BROKER_PORT,
                     default=self._broker_port
-                    or self._reconfigure_entry.data.get(CONF_BROKER_PORT, DEFAULT_BROKER_PORT),
+                    if self._broker_host is not None
+                    else self._reconfigure_entry.data.get(CONF_BROKER_PORT, DEFAULT_BROKER_PORT),
                 ): int,
             }
         )

@@ -28,8 +28,8 @@ blueprint:
       name: Rain Detection Value
       description: >
         Sensor value above which rain is considered active.
-        For the Yarbo rain sensor, use 0 (any positive value = rain).
-      default: 0
+        For the Yarbo rain sensor, use 1 (sensor returns 0 when dry, positive when wet).
+      default: 1
       selector:
         number:
           min: 0

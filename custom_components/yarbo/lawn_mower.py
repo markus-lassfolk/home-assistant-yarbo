@@ -60,11 +60,13 @@ class YarboLawnMower(YarboEntity, LawnMowerEntity):
 
         if telemetry.error_code != 0:
             return LawnMowerActivity.ERROR
+        if telemetry.charging_status in (1, 2, 3):
+            return LawnMowerActivity.DOCKED
         if telemetry.state in (1, 7, 8):
             return LawnMowerActivity.MOWING
         if telemetry.state == 5:
             return LawnMowerActivity.PAUSED
-        if telemetry.state == 2 or telemetry.charging_status in (1, 2, 3):
+        if telemetry.state == 2:
             return LawnMowerActivity.DOCKED
         return LawnMowerActivity.DOCKED
 
