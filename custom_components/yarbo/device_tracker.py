@@ -45,4 +45,3 @@ class YarboDeviceTracker(YarboEntity, TrackerEntity):
         if not self.telemetry:
             return None
         return getattr(self.telemetry, "longitude", None)
-
