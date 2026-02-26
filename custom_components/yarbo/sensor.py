@@ -11,6 +11,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
@@ -75,6 +76,7 @@ async def async_setup_entry(
             YarboBatterySensor(coordinator),
             YarboActivitySensor(coordinator),
             YarboHeadTypeSensor(coordinator),
+            YarboErrorCodeSensor(coordinator),
         ]
     )
 
@@ -154,3 +156,18 @@ class YarboHeadTypeSensor(YarboSensor):
             return None
         return HEAD_TYPE_MAP.get(self.telemetry.head_type, "none")
 
+
+class YarboErrorCodeSensor(YarboSensor):
+    """Diagnostic sensor for raw error codes."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator, "error_code")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the raw error code."""
+        if not self.telemetry:
+            return None
+        return self.telemetry.error_code
