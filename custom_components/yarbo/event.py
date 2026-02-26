@@ -30,27 +30,6 @@ EVENT_TYPES: Final[list[str]] = [
 ]
 
 
-def _activity_state(telemetry: YarboTelemetry) -> str:
-    """Compute activity state string from telemetry.
-
-    Single source of truth — also imported by sensor.py to avoid duplication.
-    """
-    if telemetry.error_code != 0:
-        return "error"
-    if telemetry.charging_status in (1, 2, 3):
-        return "charging"
-    state = telemetry.state
-    if state in (1, 7, 8):
-        return "working"
-    if state == 2:
-        return "returning"
-    if state == 5:
-        return "paused"
-    if state == 6:
-        return "error"
-    return "idle"
-
-
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,

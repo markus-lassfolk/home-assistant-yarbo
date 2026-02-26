@@ -27,10 +27,10 @@ from .const import (
     HEAD_TYPE_TRIMMER,
     OPT_ACTIVITY_PERSONALITY,
     VERBOSE_ACTIVITY_DESCRIPTIONS,
+    get_activity_state,
 )
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
-from .event import _activity_state  # Shared activity logic — single source of truth
 
 # Internal activity state values (snake_case enum values)
 ACTIVITY_CHARGING: Final = "charging"
@@ -150,7 +150,7 @@ class YarboActivitySensor(YarboSensor):
         telemetry = self.telemetry
         if not telemetry:
             return None
-        return _activity_state(telemetry)
+        return get_activity_state(telemetry)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
