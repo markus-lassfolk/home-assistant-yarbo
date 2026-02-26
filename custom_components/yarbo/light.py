@@ -9,6 +9,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from yarbo import YarboLightState
+
 from .const import (
     DATA_COORDINATOR,
     DOMAIN,
@@ -86,13 +88,15 @@ class YarboAllLightsGroup(YarboLight):
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
             await self.coordinator.client.set_lights(
-                head=brightness,
-                left_w=brightness,
-                right_w=brightness,
-                body_left_r=brightness,
-                body_right_r=brightness,
-                tail_left_r=brightness,
-                tail_right_r=brightness,
+                YarboLightState(
+                    led_head=brightness,
+                    led_left_w=brightness,
+                    led_right_w=brightness,
+                    body_left_r=brightness,
+                    body_right_r=brightness,
+                    tail_left_r=brightness,
+                    tail_right_r=brightness,
+                )
             )
         self._brightness = brightness
         self._is_on = True
@@ -102,15 +106,7 @@ class YarboAllLightsGroup(YarboLight):
         """Turn off all lights."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.set_lights(
-                head=0,
-                left_w=0,
-                right_w=0,
-                body_left_r=0,
-                body_right_r=0,
-                tail_left_r=0,
-                tail_right_r=0,
-            )
+            await self.coordinator.client.set_lights(YarboLightState.all_off())
         self._brightness = 0
         self._is_on = False
         self.async_write_ha_state()
@@ -127,20 +123,18 @@ class YarboChannelLight(YarboLight):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on this LED channel."""
         brightness: int = kwargs.get(ATTR_BRIGHTNESS, 255)
-        channel_kwargs = {self._channel: brightness}
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.set_lights(**channel_kwargs)
+            await self.coordinator.client.set_lights(YarboLightState(**{self._channel: brightness}))
         self._brightness = brightness
         self._is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off this LED channel."""
-        channel_kwargs = {self._channel: 0}
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.set_lights(**channel_kwargs)
+            await self.coordinator.client.set_lights(YarboLightState(**{self._channel: 0}))
         self._brightness = 0
         self._is_on = False
         self.async_write_ha_state()

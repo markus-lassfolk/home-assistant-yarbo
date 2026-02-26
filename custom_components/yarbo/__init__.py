@@ -39,11 +39,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         pass
 
     # Opt-in error reporting: only active if YARBO_SENTRY_DSN env var is set
+    _serial = entry.data.get(CONF_ROBOT_SERIAL, "unknown")
     init_error_reporting(
         tags={
             "integration": DOMAIN,
             "integration_version": integration_version,
-            "robot_serial": entry.data.get(CONF_ROBOT_SERIAL, "unknown"),
+            "robot_serial": f"****{_serial[-4:]}" if len(_serial) > 4 else _serial,
             "ha_version": str(hass.config.as_dict().get("version", "unknown")),
         }
     )
@@ -59,6 +60,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except YarboConnectionError as err:
         await client.disconnect()
         raise ConfigEntryNotReady(f"Cannot connect to Yarbo: {err}") from err
+    except Exception:
+        await client.disconnect()
+        raise
 
     coordinator = YarboDataCoordinator(hass, client, entry)
     try:
