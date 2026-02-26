@@ -46,6 +46,9 @@ blueprint:
       selector:
         time:
 
+variables:
+  weather_entity_id: !input weather_entity
+
 trigger:
   - platform: time
     at: !input trigger_time
@@ -54,19 +57,22 @@ condition:
   - condition: state
     entity_id: !input head_type_sensor
     state: snow_blower
+
+action:
+  - service: weather.get_forecasts
+    data:
+      type: hourly
+    target:
+      entity_id: !input weather_entity
+    response_variable: forecast_response
   - condition: template
     value_template: >
       {% set forecast_data = namespace(result=false) %}
-      {% set ns = namespace(forecasts={}) %}
-      {% set service_data = {'type': 'hourly', 'entity_id': inputs.weather_entity} %}
-      {% set ns.forecasts = weather.get_forecasts(service_data) %}
-      {% if ns.forecasts and inputs.weather_entity in ns.forecasts and ns.forecasts[inputs.weather_entity].forecast %}
-        {% set next = ns.forecasts[inputs.weather_entity].forecast[0] %}
+      {% if forecast_response and weather_entity_id in forecast_response and forecast_response[weather_entity_id].forecast %}
+        {% set next = forecast_response[weather_entity_id].forecast[0] %}
         {% set forecast_data.result = next.get('condition', '') in ['snowy', 'snowy-rainy'] or next.get('precipitation', 0) | float > 5 %}
       {% endif %}
       {{ forecast_data.result }}
-
-action:
   - service: yarbo.start_plan
     data:
       device_id: !input yarbo_device
