@@ -7,7 +7,6 @@
 
 A **local, cloud-free** Home Assistant integration for [Yarbo](https://www.yarbo.com/) robot mowers. Control your mower via MQTT with zero-configuration auto-discovery — no Yarbo cloud account required at runtime.
 
-> **Protocol documentation & reverse engineering notes:** [markus-lassfolk/yarbo-reversing](https://github.com/markus-lassfolk/yarbo-reversing)
 
 ---
 
@@ -101,14 +100,6 @@ Commands (lights, buzzer, start/stop) are JSON payloads published to the robot's
 | `button.yarbo_buzzer` | Button | Trigger buzzer |
 | `button.yarbo_start` | Button | Start mowing |
 | `button.yarbo_dock` | Button | Return to dock |
-
----
-
-## Protocol Documentation
-
-All reverse-engineered protocol details (MQTT topics, payload formats, zlib encoding, command structures) are documented in the companion repository:
-
-👉 **[markus-lassfolk/yarbo-reversing](https://github.com/markus-lassfolk/yarbo-reversing)**
 
 ---
 
