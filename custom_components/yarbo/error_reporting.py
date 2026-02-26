@@ -63,6 +63,9 @@ def _scrub_event(event: dict, hint: dict) -> dict:  # type: ignore[type-arg]
     """Remove sensitive data before sending."""
     if "extra" in event:
         for key in list(event["extra"]):
-            if any(s in key.lower() for s in ("password", "token", "secret", "credential", "_key")):
+            key_lower = key.lower()
+            if any(s in key_lower for s in ("password", "token", "secret", "credential")):
+                event["extra"][key] = "[REDACTED]"
+            elif key_lower.endswith("_key") and key_lower != "entity_key":
                 event["extra"][key] = "[REDACTED]"
     return event
