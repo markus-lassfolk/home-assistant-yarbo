@@ -68,7 +68,7 @@ action:
   - condition: template
     value_template: >
       {% set forecast_data = namespace(result=false) %}
-      {% if forecast_response and weather_entity_id in forecast_response and forecast_response[weather_entity_id].forecast %}
+      {% if forecast_response and weather_entity_id in forecast_response and forecast_response[weather_entity_id].forecast | length > 0 %}
         {% set next = forecast_response[weather_entity_id].forecast[0] %}
         {% set forecast_data.result = next.get('condition', '') in ['snowy', 'snowy-rainy'] or next.get('precipitation', 0) | float > 5 %}
       {% endif %}
