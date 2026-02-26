@@ -31,7 +31,7 @@ ignore = [
 known-first-party = ["custom_components.yarbo"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.13"
 strict = true
 ignore_missing_imports = true
 allow_redefinition = true
