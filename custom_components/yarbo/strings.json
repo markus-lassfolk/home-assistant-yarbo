@@ -164,5 +164,11 @@
         }
       }
     }
+  },
+  "issues": {
+    "telemetry_timeout": {
+      "title": "Yarbo telemetry not received",
+      "description": "No telemetry has been received from {name} for at least 60 seconds. Check the base station connection."
+    }
   }
 }
