@@ -16,6 +16,7 @@ from yarbo import YarboLocalClient
 from yarbo.exceptions import YarboConnectionError
 
 from .const import (
+    ACTIVITY_PERSONALITY_OPTIONS,
     CONF_BROKER_HOST,
     CONF_BROKER_MAC,
     CONF_BROKER_PORT,
@@ -328,7 +329,7 @@ class YarboOptionsFlow(OptionsFlow):
                     default=self._config_entry.options.get(
                         OPT_ACTIVITY_PERSONALITY, DEFAULT_ACTIVITY_PERSONALITY
                     ),
-                ): bool,
+                ): vol.In(ACTIVITY_PERSONALITY_OPTIONS),
             }
         )
 

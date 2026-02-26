@@ -50,7 +50,13 @@ class YarboEntity(CoordinatorEntity[YarboDataCoordinator]):
         entry = self.coordinator._entry
         robot_sn = entry.data.get(CONF_ROBOT_SERIAL, "unknown")
         robot_name = entry.data.get(CONF_ROBOT_NAME, f"Yarbo {robot_sn[-4:]}")
-        raw = self.coordinator.data.raw if self.coordinator.data else {}
+        raw_source = self.coordinator.data
+        if isinstance(raw_source, dict):
+            raw = raw_source.get("raw", raw_source)
+        elif raw_source is not None:
+            raw = raw_source.raw
+        else:
+            raw = {}
 
         return DeviceInfo(
             identifiers={(DOMAIN, robot_sn)},

@@ -7,3 +7,4 @@ ruff>=0.3
 mypy>=1.9
 voluptuous>=0.14
 homeassistant>=2024.12.0
+python-yarbo>=0.1.0,<1.0

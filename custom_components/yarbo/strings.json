@@ -65,7 +65,7 @@
           "telemetry_throttle": "Telemetry update interval (seconds)",
           "auto_controller": "Auto-acquire controller before commands",
           "cloud_enabled": "Enable cloud features",
-          "activity_personality": "Use personality phrases in activity sensor"
+          "activity_personality": "Activity personality"
         }
       }
     }

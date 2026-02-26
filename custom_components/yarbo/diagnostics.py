@@ -34,7 +34,13 @@ async def async_get_config_entry_diagnostics(
     coordinator = data[DATA_COORDINATOR]
     client = data[DATA_CLIENT]
 
-    raw = coordinator.data.raw if coordinator.data else {}
+    raw_source = coordinator.data
+    if isinstance(raw_source, dict):
+        raw = raw_source.get("raw", raw_source)
+    elif raw_source is not None:
+        raw = raw_source.raw
+    else:
+        raw = {}
 
     return {
         "config_entry": _redact_config(entry.data),
@@ -56,10 +62,12 @@ async def async_get_config_entry_diagnostics(
 
 
 def _redact_sn(sn: str) -> str:
-    """Redact serial number — keep first 6 chars only."""
+    """Redact serial number — keep last 4 chars only."""
     if not sn:
-        return "***"
-    return sn[:6] + "***"
+        return "****"
+    if len(sn) <= 4:
+        return sn
+    return f"****{sn[-4:]}"
 
 
 def _redact_config(config: dict[str, Any]) -> dict[str, Any]:
@@ -84,5 +92,5 @@ def _redact_telemetry(raw: dict[str, Any]) -> dict[str, Any]:
     redacted.pop("latitude", None)
     redacted.pop("longitude", None)
     if "HeadSerialMsg" in redacted:
-        redacted["HeadSerialMsg"] = {"head_sn": "***"}
+        redacted["HeadSerialMsg"] = {"head_sn": "[REDACTED]"}
     return redacted
