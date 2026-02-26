@@ -1,0 +1,168 @@
+send_command:
+  name: Send raw command
+  description: >
+    Publish an arbitrary MQTT command to the robot (power users only).
+    The payload is zlib-compressed automatically by python-yarbo.
+  fields:
+    device_id:
+      name: Device
+      description: The Yarbo robot to send the command to.
+      required: true
+      selector:
+        device:
+          integration: yarbo
+    command:
+      name: Command
+      description: The MQTT command name (e.g. read_all_plan, cmd_recharge).
+      required: true
+      example: "read_all_plan"
+      selector:
+        text:
+    payload:
+      name: Payload (JSON)
+      description: Optional JSON payload for the command. Defaults to empty object.
+      required: false
+      default: {}
+      example: '{"planId": "abc123"}'
+      selector:
+        object:
+
+start_plan:
+  name: Start work plan
+  description: Start a saved work plan by its ID.
+  fields:
+    device_id:
+      name: Device
+      description: The Yarbo robot to start the plan on.
+      required: true
+      selector:
+        device:
+          integration: yarbo
+    plan_id:
+      name: Plan ID
+      description: The UUID of the work plan to start.
+      required: true
+      example: "abc123-def456"
+      selector:
+        text:
+
+pause:
+  name: Pause current job
+  description: Pause the robot's current work plan.
+  fields:
+    device_id:
+      name: Device
+      required: true
+      selector:
+        device:
+          integration: yarbo
+
+resume:
+  name: Resume paused job
+  description: Resume a previously paused work plan.
+  fields:
+    device_id:
+      name: Device
+      required: true
+      selector:
+        device:
+          integration: yarbo
+
+return_to_dock:
+  name: Return to dock
+  description: Send the robot back to its charging dock.
+  fields:
+    device_id:
+      name: Device
+      required: true
+      selector:
+        device:
+          integration: yarbo
+
+set_lights:
+  name: Set lights
+  description: Set brightness for all 7 LED channels simultaneously.
+  fields:
+    device_id:
+      name: Device
+      required: true
+      selector:
+        device:
+          integration: yarbo
+    brightness:
+      name: Global brightness
+      description: Set all channels to this value (0–255).
+      required: false
+      default: 255
+      selector:
+        number:
+          min: 0
+          max: 255
+    led_head:
+      name: Head light
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 255
+    led_left_w:
+      name: Left white
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 255
+    led_right_w:
+      name: Right white
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 255
+    body_left_r:
+      name: Left body red
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 255
+    body_right_r:
+      name: Right body red
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 255
+    tail_left_r:
+      name: Left tail red
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 255
+    tail_right_r:
+      name: Right tail red
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 255
+
+set_chute_velocity:
+  name: Set chute velocity
+  description: Control snow chute direction and speed (snow blower head only).
+  fields:
+    device_id:
+      name: Device
+      required: true
+      selector:
+        device:
+          integration: yarbo
+    velocity:
+      name: Velocity
+      description: Chute velocity (-2000 to 2000). Negative = left, positive = right.
+      required: true
+      selector:
+        number:
+          min: -2000
+          max: 2000

@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [develop]
+
+jobs:
+  hassfest:
+    name: hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs-validate:
+    name: hacs-validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+          # brands check requires submitting to hacs/brands repo first; skip for now
+          ignore: brands
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install python-yarbo from git
+        run: pip install git+https://github.com/markus-lassfolk/python-yarbo.git@develop
+      - name: Install dependencies
+        run: |
+          pip install ruff mypy
+          pip install -r requirements_test.txt
+      - name: ruff check
+        run: ruff check custom_components/ tests/
+      - name: ruff format check
+        run: ruff format --check custom_components/ tests/
+      - name: mypy
+        run: mypy custom_components/yarbo/ || true  # Non-blocking: HA core type stubs are incomplete
+
+  test:
+    name: test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install python-yarbo from git
+        run: pip install git+https://github.com/markus-lassfolk/python-yarbo.git@develop
+      - name: Install dependencies
+        run: pip install -r requirements_test.txt
+      - name: Run tests
+        run: |
+          pytest tests/ --cov=custom_components/yarbo --cov-report=xml --cov-report=term-missing
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.python-version }}
+          path: coverage.xml

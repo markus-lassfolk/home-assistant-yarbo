@@ -1,0 +1,103 @@
+blueprint:
+  name: Yarbo Rain Pause & Resume
+  description: >
+    Automatically pause the Yarbo robot when rain is detected, and resume after
+    rain stops (with a configurable delay to let the ground dry).
+  domain: automation
+  author: markus-lassfolk
+  source_url: https://github.com/markus-lassfolk/home-assistant-yarbo
+
+  input:
+    yarbo_device:
+      name: Yarbo Robot
+      description: The Yarbo robot device to control.
+      selector:
+        device:
+          integration: yarbo
+
+    rain_sensor:
+      name: Rain Sensor
+      description: >
+        Sensor that indicates rain. Can be the Yarbo rain sensor entity
+        or any external weather sensor.
+      selector:
+        entity:
+          domain: sensor
+
+    rain_threshold:
+      name: Rain Detection Value
+      description: >
+        Sensor value above which rain is considered active.
+        For the Yarbo rain sensor, use 1 (sensor returns 0 when dry, positive when wet).
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 1000
+          mode: box
+
+    resume_delay:
+      name: Resume Delay (minutes)
+      description: >
+        Wait this many minutes after rain stops before resuming,
+        to allow the ground to dry.
+      default: 30
+      selector:
+        number:
+          min: 0
+          max: 120
+          unit_of_measurement: min
+          mode: slider
+
+    activity_sensor:
+      name: Activity Sensor
+      description: The Yarbo activity sensor — used to check if robot is working.
+      selector:
+        entity:
+          integration: yarbo
+          domain: sensor
+
+variables:
+  yarbo_device_id: !input yarbo_device
+  activity_entity: !input activity_sensor
+
+trigger:
+  - platform: numeric_state
+    id: rain_start
+    entity_id: !input rain_sensor
+    above: !input rain_threshold
+
+  - platform: numeric_state
+    id: rain_stop
+    entity_id: !input rain_sensor
+    below: !input rain_threshold
+
+condition: []
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: rain_start
+          - condition: state
+            entity_id: !input activity_sensor
+            state: working
+        sequence:
+          - service: yarbo.pause
+            data:
+              device_id: !input yarbo_device
+
+      - conditions:
+          - condition: trigger
+            id: rain_stop
+        sequence:
+          - delay:
+              minutes: !input resume_delay
+          - condition: state
+            entity_id: !input activity_sensor
+            state: paused
+          - service: yarbo.resume
+            data:
+              device_id: !input yarbo_device
+
+mode: restart

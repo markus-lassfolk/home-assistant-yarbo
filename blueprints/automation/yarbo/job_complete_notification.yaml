@@ -1,0 +1,59 @@
+blueprint:
+  name: Yarbo Job Complete Notification
+  description: >
+    Send a notification when the Yarbo robot completes a job (plan) and returns to dock.
+    Includes information about duration and battery level.
+  domain: automation
+  author: markus-lassfolk
+  source_url: https://github.com/markus-lassfolk/home-assistant-yarbo
+
+  input:
+    yarbo_event_entity:
+      name: Yarbo Events Entity
+      description: The Yarbo events entity to listen to.
+      selector:
+        entity:
+          integration: yarbo
+          domain: event
+
+    battery_sensor:
+      name: Battery Sensor
+      description: The Yarbo battery sensor for post-job status.
+      selector:
+        entity:
+          integration: yarbo
+          domain: sensor
+          device_class: battery
+
+    notify_service:
+      name: Notification Service
+      description: The notify service to call (e.g. notify.mobile_app_phone).
+      selector:
+        text:
+          multiline: false
+
+    message:
+      name: Notification Message
+      description: >
+        Message template. Available variables: {battery} for battery level.
+      default: "Yarbo has finished! Battery at {battery}%."
+      selector:
+        text:
+          multiline: true
+
+trigger:
+  - platform: state
+    entity_id: !input yarbo_event_entity
+    attribute: event_type
+    to: job_completed
+
+action:
+  - service: !input notify_service
+    data:
+      title: "Yarbo Job Complete"
+      message: >
+        {{ (inputs.message | default('Yarbo has finished! Battery at {battery}%.'))
+           | replace('{battery}', states(inputs.battery_sensor) | default('?')) }}
+
+mode: queued
+max: 3

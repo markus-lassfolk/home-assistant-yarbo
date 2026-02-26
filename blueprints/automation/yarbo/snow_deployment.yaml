@@ -1,0 +1,82 @@
+blueprint:
+  name: Yarbo Snow Deployment
+  description: >
+    Automatically start a snow clearing plan when significant snowfall is forecast
+    or detected. Uses weather forecast or manual trigger.
+  domain: automation
+  author: markus-lassfolk
+  source_url: https://github.com/markus-lassfolk/home-assistant-yarbo
+
+  input:
+    yarbo_device:
+      name: Yarbo Robot
+      description: The Yarbo robot device to control (must have Snow Blower head installed).
+      selector:
+        device:
+          integration: yarbo
+
+    snow_plan_id:
+      name: Snow Clearing Plan ID
+      description: >
+        UUID of the snow clearing work plan to start.
+        Find this in the Yarbo app under Plans.
+      selector:
+        text:
+          multiline: false
+
+    weather_entity:
+      name: Weather Entity
+      description: Weather integration entity to check forecast.
+      selector:
+        entity:
+          domain: weather
+
+    head_type_sensor:
+      name: Head Type Sensor
+      description: The Yarbo head type sensor — used to verify snow blower is installed.
+      selector:
+        entity:
+          integration: yarbo
+          domain: sensor
+
+    trigger_time:
+      name: Check Time
+      description: Time of day to check weather forecast and start snow plan if needed.
+      default: "06:00:00"
+      selector:
+        time:
+
+variables:
+  weather_entity_id: !input weather_entity
+
+trigger:
+  - platform: time
+    at: !input trigger_time
+
+condition:
+  - condition: state
+    entity_id: !input head_type_sensor
+    state: snow_blower
+
+action:
+  - service: weather.get_forecasts
+    data:
+      type: hourly
+    target:
+      entity_id: !input weather_entity
+    response_variable: forecast_response
+  - condition: template
+    value_template: >
+      {% set forecast_data = namespace(result=false) %}
+      {% if forecast_response and weather_entity_id in forecast_response and forecast_response[weather_entity_id].forecast %}
+        {% set next = forecast_response[weather_entity_id].forecast[0] %}
+        {% set forecast_data.result = next.get('condition', '') in ['snowy', 'snowy-rainy'] or next.get('precipitation', 0) | float > 5 %}
+      {% endif %}
+      {{ forecast_data.result }}
+  - service: yarbo.start_plan
+    data:
+      device_id: !input yarbo_device
+      plan_id: !input snow_plan_id
+
+mode: single
+max_exceeded: silent

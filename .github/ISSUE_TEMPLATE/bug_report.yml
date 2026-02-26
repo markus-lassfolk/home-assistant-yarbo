@@ -1,0 +1,101 @@
+name: Bug Report
+description: Report a bug with the Yarbo integration
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please fill in as much detail as possible.
+
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant Version
+      placeholder: "e.g. 2024.12.3"
+    validations:
+      required: true
+
+  - type: input
+    id: integration_version
+    attributes:
+      label: Integration Version
+      placeholder: "e.g. 0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: yarbo_model
+    attributes:
+      label: Yarbo Model
+      options:
+        - Yarbo S1
+        - Other (describe below)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: head_type
+    attributes:
+      label: Head Type
+      options:
+        - Snow Blower (S1)
+        - Lawn Mower (M1)
+        - Leaf Blower (B1)
+        - Smart Cover / SAM
+        - None / Unknown
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Robot Firmware Version
+      description: Available in the Yarbo app or integration diagnostics
+      placeholder: "e.g. 3.17.4"
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Go to ...
+        2. Click on ...
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: |
+        Please attach the diagnostics download from Settings → Devices → Yarbo → Download Diagnostics.
+        Remove any sensitive information before pasting.
+      render: json
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Log Lines
+      description: Enable debug logging for `custom_components.yarbo` and paste relevant lines
+      render: text
+    validations:
+      required: false

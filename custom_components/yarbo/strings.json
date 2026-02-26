@@ -1,0 +1,268 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Yarbo",
+        "description": "Enter the IP address of your Yarbo base station (Data Center). The integration will connect to the local MQTT broker on port 1883.",
+        "data": {
+          "broker_host": "Base Station IP Address",
+          "broker_port": "MQTT Port"
+        }
+      },
+      "confirm": {
+        "title": "Yarbo Discovered",
+        "description": "A Yarbo base station was discovered at **{host}**. Proceed to connect?"
+      },
+      "mqtt_test": {
+        "title": "Connecting to Yarbo",
+        "description": "Testing MQTT connection and waiting for telemetry from your robot..."
+      },
+      "reconfigure": {
+        "title": "Reconfigure Yarbo",
+        "description": "Update the IP address of your Yarbo base station.",
+        "data": {
+          "broker_host": "Base Station IP Address",
+          "broker_port": "MQTT Port"
+        }
+      },
+      "name": {
+        "title": "Name Your Robot",
+        "description": "Choose a name for your Yarbo robot. This will be used for all entity names.",
+        "data": {
+          "robot_name": "Robot Name"
+        }
+      },
+      "cloud": {
+        "title": "Cloud Features (Optional)",
+        "description": "Optionally connect to the Yarbo cloud for firmware updates and device info. Not required for local control.",
+        "data": {
+          "cloud_username": "Yarbo Account Email",
+          "cloud_password": "Password"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This robot is already configured.",
+      "cannot_connect": "Cannot connect to MQTT broker at {host}:1883. Is the base station powered on and reachable?",
+      "no_telemetry": "Connected but no robot telemetry received within 10 seconds. Is the robot powered on?",
+      "decode_error": "Received data but cannot decode it. Firmware may be incompatible.",
+      "not_implemented": "Configuration flow not yet implemented.",
+      "wrong_device": "The discovered device does not match this Yarbo robot.",
+      "reconfigure_successful": "Reconfiguration completed successfully.",
+      "reconfigure_failed": "Reconfiguration failed."
+    },
+    "error": {
+      "cannot_connect": "Cannot connect",
+      "no_telemetry": "No telemetry received",
+      "decode_error": "Decode error"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Yarbo Options",
+        "description": "Configure integration behaviour. Changes take effect after reload.",
+        "data": {
+          "telemetry_throttle": "Telemetry update interval (1–10 seconds)",
+          "auto_controller": "Auto-acquire controller before commands",
+          "cloud_enabled": "Enable cloud features",
+          "activity_personality": "Fun activity descriptions (emoji mode)"
+        },
+        "data_description": {
+          "telemetry_throttle": "How often telemetry updates are pushed to Home Assistant. Lower values mean more frequent updates but higher recorder load.",
+          "activity_personality": "When enabled, the activity sensor includes fun emoji descriptions as extra attributes."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery": {
+        "name": "Battery"
+      },
+      "activity": {
+        "name": "Activity",
+        "state": {
+          "charging": "Charging",
+          "idle": "Idle",
+          "working": "Working",
+          "paused": "Paused",
+          "returning": "Returning to dock",
+          "error": "Error"
+        }
+      },
+      "head_type": {
+        "name": "Head Type",
+        "state": {
+          "snow_blower": "Snow Blower",
+          "lawn_mower": "Lawn Mower",
+          "lawn_mower_pro": "Lawn Mower Pro",
+          "leaf_blower": "Leaf Blower",
+          "smart_cover": "Smart Cover",
+          "trimmer": "Trimmer",
+          "none": "None"
+        }
+      },
+      "rtk_status": {
+        "name": "RTK Status",
+        "state": {
+          "invalid": "No Fix",
+          "gps": "GPS",
+          "dgps": "DGPS",
+          "rtk_float": "RTK Float",
+          "rtk_fixed": "RTK Fixed",
+          "unknown": "Unknown"
+        }
+      },
+      "heading": {
+        "name": "Heading"
+      },
+      "chute_angle": {
+        "name": "Chute Angle"
+      },
+      "rain_sensor": {
+        "name": "Rain Sensor"
+      },
+      "error_code": {
+        "name": "Error Code"
+      }
+    },
+    "binary_sensor": {
+      "charging": {
+        "name": "Charging"
+      },
+      "problem": {
+        "name": "Problem"
+      },
+      "planning": {
+        "name": "Planning Active"
+      }
+    },
+    "button": {
+      "beep": {
+        "name": "Beep"
+      },
+      "return_to_dock": {
+        "name": "Return to Dock"
+      },
+      "pause": {
+        "name": "Pause"
+      },
+      "resume": {
+        "name": "Resume"
+      },
+      "stop": {
+        "name": "Stop"
+      },
+      "emergency_stop": {
+        "name": "Emergency Stop"
+      }
+    },
+    "event": {
+      "events": {
+        "name": "Events",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "job_started": "Job started",
+              "job_completed": "Job completed",
+              "job_paused": "Job paused",
+              "error": "Error",
+              "head_changed": "Head changed",
+              "low_battery": "Low battery",
+              "controller_lost": "Controller lost",
+              "docked": "Docked"
+            }
+          }
+        }
+      }
+    },
+    "light": {
+      "lights": {
+        "name": "Lights"
+      },
+      "led_head": {
+        "name": "Head Light"
+      },
+      "led_left_w": {
+        "name": "Left White"
+      },
+      "led_right_w": {
+        "name": "Right White"
+      },
+      "led_body_left": {
+        "name": "Body Left"
+      },
+      "led_body_right": {
+        "name": "Body Right"
+      },
+      "led_tail_left": {
+        "name": "Tail Left"
+      },
+      "led_tail_right": {
+        "name": "Tail Right"
+      }
+    },
+    "switch": {
+      "buzzer": {
+        "name": "Buzzer"
+      }
+    },
+    "number": {
+      "chute_velocity": {
+        "name": "Chute Velocity"
+      }
+    },
+    "device_tracker": {
+      "location": {
+        "name": "Location"
+      }
+    },
+    "lawn_mower": {
+      "mower": {
+        "name": "Mower"
+      }
+    },
+    "update": {
+      "firmware": {
+        "name": "Firmware"
+      }
+    }
+  },
+  "issues": {
+    "telemetry_timeout": {
+      "title": "Yarbo telemetry not received",
+      "description": "No telemetry has been received from **{name}** for at least 60 seconds. Check that the base station is powered on and connected to the network."
+    }
+  },
+  "services": {
+    "send_command": {
+      "name": "Send raw command",
+      "description": "Publish an arbitrary MQTT command to the robot (power users only)."
+    },
+    "start_plan": {
+      "name": "Start work plan",
+      "description": "Start a saved work plan by its ID."
+    },
+    "pause": {
+      "name": "Pause",
+      "description": "Pause the robot's current work plan."
+    },
+    "resume": {
+      "name": "Resume",
+      "description": "Resume a previously paused work plan."
+    },
+    "return_to_dock": {
+      "name": "Return to dock",
+      "description": "Send the robot back to its charging dock."
+    },
+    "set_lights": {
+      "name": "Set lights",
+      "description": "Set brightness for all 7 LED channels simultaneously."
+    },
+    "set_chute_velocity": {
+      "name": "Set chute velocity",
+      "description": "Control snow chute direction and speed (snow blower head only)."
+    }
+  }
+}
