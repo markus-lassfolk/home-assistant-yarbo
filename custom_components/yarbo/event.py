@@ -12,7 +12,10 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
+from yarbo import YarboTelemetry
+
 from .const import CONF_ROBOT_SERIAL, DATA_COORDINATOR, DOMAIN
+from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 
 EVENT_TYPES: Final[list[str]] = [
@@ -42,7 +45,7 @@ class YarboEventEntity(YarboEntity, EventEntity):
 
     _attr_event_types = EVENT_TYPES
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "events")
         self._previous = None
         self._last_controller_acquired: bool | None = None
@@ -66,7 +69,7 @@ class YarboEventEntity(YarboEntity, EventEntity):
             self._device_id = device.id
         return self._device_id
 
-    def _process_events(self, telemetry) -> None:
+    def _process_events(self, telemetry: YarboTelemetry) -> None:
         previous = self._previous
         if previous is None:
             self._previous = telemetry
@@ -201,7 +204,7 @@ class YarboEventEntity(YarboEntity, EventEntity):
         )
 
 
-def _activity_state(telemetry) -> str:
+def _activity_state(telemetry: YarboTelemetry) -> str:
     if telemetry.error_code != 0:
         return "error"
     if telemetry.charging_status in (1, 2, 3):

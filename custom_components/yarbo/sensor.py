@@ -21,10 +21,11 @@ from .const import (
     HEAD_TYPE_LAWN_MOWER_PRO,
     HEAD_TYPE_LEAF_BLOWER,
     HEAD_TYPE_NONE,
-    HEAD_TYPE_SNOW_BLOWER,
     HEAD_TYPE_SMART_COVER,
+    HEAD_TYPE_SNOW_BLOWER,
     HEAD_TYPE_TRIMMER,
 )
+from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 
 ACTIVITY_CHARGING: Final = "charging"
@@ -84,7 +85,7 @@ async def async_setup_entry(
 class YarboSensor(YarboEntity, SensorEntity):
     """Base sensor for Yarbo."""
 
-    def __init__(self, coordinator, entity_key: str) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator, entity_key: str) -> None:
         super().__init__(coordinator, entity_key)
 
 
@@ -95,7 +96,7 @@ class YarboBatterySensor(YarboSensor):
     _attr_native_unit_of_measurement = "%"
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "battery")
 
     @property
@@ -112,7 +113,7 @@ class YarboActivitySensor(YarboSensor):
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = ACTIVITY_OPTIONS
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "activity")
 
     @property
@@ -146,7 +147,7 @@ class YarboHeadTypeSensor(YarboSensor):
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = HEAD_TYPE_OPTIONS
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "head_type")
 
     @property
@@ -162,7 +163,7 @@ class YarboErrorCodeSensor(YarboSensor):
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "error_code")
 
     @property

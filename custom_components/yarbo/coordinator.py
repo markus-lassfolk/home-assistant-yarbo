@@ -12,6 +12,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from yarbo import YarboTelemetry
+from yarbo.exceptions import YarboConnectionError
+
 from .const import (
     CONF_ROBOT_NAME,
     DEFAULT_TELEMETRY_THROTTLE,
@@ -19,8 +22,6 @@ from .const import (
     HEARTBEAT_TIMEOUT_SECONDS,
     OPT_TELEMETRY_THROTTLE,
 )
-from yarbo import YarboTelemetry
-from yarbo.exceptions import YarboConnectionError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -118,7 +119,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         except asyncio.CancelledError:
             _LOGGER.debug("Telemetry loop cancelled")
             raise
-        except Exception:  # noqa: BLE001 - defensive for library errors
+        except Exception:
             _LOGGER.exception("Unexpected error in telemetry loop")
             self.last_update_success = False
 

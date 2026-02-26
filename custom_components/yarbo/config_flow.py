@@ -12,9 +12,15 @@ from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
+from yarbo import YarboLocalClient
+from yarbo.exceptions import YarboConnectionError
+
 from .const import (
     CONF_BROKER_HOST,
+    CONF_BROKER_MAC,
     CONF_BROKER_PORT,
+    CONF_ROBOT_NAME,
+    CONF_ROBOT_SERIAL,
     DEFAULT_ACTIVITY_PERSONALITY,
     DEFAULT_AUTO_CONTROLLER,
     DEFAULT_BROKER_PORT,
@@ -26,8 +32,6 @@ from .const import (
     OPT_CLOUD_ENABLED,
     OPT_TELEMETRY_THROTTLE,
 )
-from yarbo import YarboLocalClient
-from yarbo.exceptions import YarboConnectionError, YarboTimeoutError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -113,9 +117,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             if existing_entry.data.get(CONF_BROKER_HOST) != discovery_info.ip:
                 self._reconfigure_entry = existing_entry
                 self._broker_host = discovery_info.ip
-                self._broker_port = existing_entry.data.get(
-                    CONF_BROKER_PORT, DEFAULT_BROKER_PORT
-                )
+                self._broker_port = existing_entry.data.get(CONF_BROKER_PORT, DEFAULT_BROKER_PORT)
                 return await self.async_step_reconfigure()
             return self.async_abort(reason="already_configured")
 
@@ -172,9 +174,9 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             )
         except YarboConnectionError:
             errors["base"] = "cannot_connect"
-        except (YarboTimeoutError, asyncio.TimeoutError):
+        except TimeoutError:
             errors["base"] = "no_telemetry"
-        except Exception:  # noqa: BLE001 - library may raise decode errors
+        except Exception:
             _LOGGER.exception("Failed to decode Yarbo telemetry")
             errors["base"] = "decode_error"
         finally:
@@ -205,25 +207,17 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             data[CONF_BROKER_PORT] = self._broker_port
             if self._discovered_mac:
                 data[CONF_BROKER_MAC] = self._discovered_mac
-            self.hass.config_entries.async_update_entry(
-                self._reconfigure_entry, data=data
-            )
-            await self.hass.config_entries.async_reload(
-                self._reconfigure_entry.entry_id
-            )
+            self.hass.config_entries.async_update_entry(self._reconfigure_entry, data=data)
+            await self.hass.config_entries.async_reload(self._reconfigure_entry.entry_id)
             return self.async_abort(reason="reconfigure_successful")
 
         return await self.async_step_name()
 
-    async def async_step_reconfigure(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle reconfiguration to update the broker host."""
         if self._reconfigure_entry is None and "entry_id" in self.context:
             entry_id = self.context["entry_id"]
-            self._reconfigure_entry = self.hass.config_entries.async_get_entry(
-                entry_id
-            )
+            self._reconfigure_entry = self.hass.config_entries.async_get_entry(entry_id)
 
         if self._reconfigure_entry is None:
             return self.async_abort(reason="reconfigure_failed")
@@ -243,17 +237,13 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Optional(
                     CONF_BROKER_PORT,
                     default=self._broker_port
-                    or self._reconfigure_entry.data.get(
-                        CONF_BROKER_PORT, DEFAULT_BROKER_PORT
-                    ),
+                    or self._reconfigure_entry.data.get(CONF_BROKER_PORT, DEFAULT_BROKER_PORT),
                 ): int,
             }
         )
         return self.async_show_form(step_id="reconfigure", data_schema=schema)
 
-    async def async_step_name(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_name(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Prompt for an optional friendly name."""
         if not self._robot_serial:
             return self.async_abort(reason="no_telemetry")

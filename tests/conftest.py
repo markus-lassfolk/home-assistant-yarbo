@@ -84,7 +84,7 @@ def mock_yarbo_client() -> Generator[MagicMock, None, None]:
         yield client
 
 
-async def _async_gen(items: list[Any]) -> AsyncGenerator[Any, None]:  # type: ignore[return]
+async def _async_gen(items: list[Any]) -> AsyncGenerator[Any, None]:
     """Yield items from a list as an async generator."""
     for item in items:
         yield item

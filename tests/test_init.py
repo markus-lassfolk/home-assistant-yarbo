@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
-
 import pytest
 from homeassistant.core import HomeAssistant
 
@@ -24,8 +22,8 @@ class TestAsyncSetupEntry:
     async def test_setup_entry_success(
         self,
         hass: HomeAssistant,
-        mock_yarbo_client: MagicMock,
-        mock_config_entry: MagicMock,
+        mock_yarbo_client: object,
+        mock_config_entry: object,
     ) -> None:
         """Test successful integration setup."""
         # TODO: Implement when async_setup_entry calls YarboClient
@@ -39,8 +37,8 @@ class TestAsyncSetupEntry:
     async def test_setup_entry_connection_failure(
         self,
         hass: HomeAssistant,
-        mock_yarbo_client: MagicMock,
-        mock_config_entry: MagicMock,
+        mock_yarbo_client: object,
+        mock_config_entry: object,
     ) -> None:
         """Test that connection failure raises ConfigEntryNotReady."""
         # TODO: Implement
@@ -53,8 +51,8 @@ class TestAsyncSetupEntry:
     async def test_unload_entry(
         self,
         hass: HomeAssistant,
-        mock_yarbo_client: MagicMock,
-        mock_config_entry: MagicMock,
+        mock_yarbo_client: object,
+        mock_config_entry: object,
     ) -> None:
         """Test that unload disconnects the client."""
         # TODO: Implement

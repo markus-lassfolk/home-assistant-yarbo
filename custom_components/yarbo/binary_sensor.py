@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DATA_COORDINATOR, DOMAIN
+from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 
 
@@ -32,7 +33,7 @@ async def async_setup_entry(
 class YarboBinarySensor(YarboEntity, BinarySensorEntity):
     """Base binary sensor for Yarbo."""
 
-    def __init__(self, coordinator, entity_key: str) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator, entity_key: str) -> None:
         super().__init__(coordinator, entity_key)
 
 
@@ -41,7 +42,7 @@ class YarboChargingSensor(YarboBinarySensor):
 
     _attr_device_class = BinarySensorDeviceClass.BATTERY_CHARGING
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "charging")
 
     @property
@@ -57,7 +58,7 @@ class YarboProblemSensor(YarboBinarySensor):
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "problem")
 
     @property

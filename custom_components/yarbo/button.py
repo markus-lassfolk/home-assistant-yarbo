@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DATA_COORDINATOR, DOMAIN
+from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 
 
@@ -35,7 +36,7 @@ async def async_setup_entry(
 class YarboButton(YarboEntity, ButtonEntity):
     """Base button for Yarbo commands."""
 
-    def __init__(self, coordinator, entity_key: str) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator, entity_key: str) -> None:
         super().__init__(coordinator, entity_key)
 
     async def _send_command(self, command: str, payload: dict[str, Any]) -> None:
@@ -47,7 +48,7 @@ class YarboButton(YarboEntity, ButtonEntity):
 class YarboBeepButton(YarboButton):
     """Beep the robot."""
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "beep")
 
     async def async_press(self) -> None:
@@ -59,7 +60,7 @@ class YarboBeepButton(YarboButton):
 class YarboReturnToDockButton(YarboButton):
     """Send the robot back to the dock."""
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "return_to_dock")
 
     async def async_press(self) -> None:
@@ -69,7 +70,7 @@ class YarboReturnToDockButton(YarboButton):
 class YarboPauseButton(YarboButton):
     """Pause the current plan."""
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "pause")
 
     async def async_press(self) -> None:
@@ -79,7 +80,7 @@ class YarboPauseButton(YarboButton):
 class YarboResumeButton(YarboButton):
     """Resume a paused plan."""
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "resume")
 
     async def async_press(self) -> None:
@@ -89,7 +90,7 @@ class YarboResumeButton(YarboButton):
 class YarboStopButton(YarboButton):
     """Stop the robot gracefully."""
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "stop")
 
     async def async_press(self) -> None:
@@ -101,7 +102,7 @@ class YarboEmergencyStopButton(YarboButton):
 
     _attr_entity_registry_enabled_default = False
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "emergency_stop")
 
     async def async_press(self) -> None:
