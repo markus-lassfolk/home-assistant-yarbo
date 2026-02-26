@@ -53,7 +53,7 @@ condition:
     value_template: >
       {% set device_id = device_id(trigger.entity_id) %}
       {% set charging_entity = 'binary_sensor.' ~ device_attr(device_id, 'name') | slugify ~ '_charging' %}
-      {{ is_state(charging_entity, 'off') }}
+      {{ not is_state(charging_entity, 'on') }}
 
 action:
   - service: !input notify_service
