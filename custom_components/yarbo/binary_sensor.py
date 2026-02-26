@@ -51,7 +51,7 @@ class YarboChargingSensor(YarboBinarySensor):
         """Return True when charging."""
         if not self.telemetry:
             return None
-        return self.telemetry.charging_status == 2
+        return self.telemetry.charging_status in (1, 2, 3)
 
 
 class YarboProblemSensor(YarboBinarySensor):

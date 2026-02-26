@@ -7,6 +7,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.loader import async_get_integration
 
 from yarbo import YarboLocalClient
 from yarbo.exceptions import YarboConnectionError
@@ -29,12 +30,20 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Yarbo from a config entry."""
+    # Get actual integration version from manifest
+    integration_version = "unknown"
+    try:
+        integration = await async_get_integration(hass, DOMAIN)
+        integration_version = integration.manifest.get("version", "unknown") or "unknown"
+    except Exception:
+        pass
+
     # Opt-in error reporting: only active if YARBO_SENTRY_DSN env var is set
     _serial = entry.data.get(CONF_ROBOT_SERIAL, "unknown")
     init_error_reporting(
         tags={
             "integration": DOMAIN,
-            "integration_version": str(entry.version) if hasattr(entry, "version") else "unknown",
+            "integration_version": integration_version,
             "robot_serial": f"****{_serial[-4:]}" if len(_serial) > 4 else _serial,
             "ha_version": str(hass.config.as_dict().get("version", "unknown")),
         }
