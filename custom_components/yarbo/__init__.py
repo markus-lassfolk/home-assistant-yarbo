@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import __version__
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.loader import async_get_integration
@@ -45,7 +46,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "integration": DOMAIN,
             "integration_version": integration_version,
             "robot_serial": f"****{_serial[-4:]}" if len(_serial) > 4 else _serial,
-            "ha_version": str(hass.config.version),
+            "ha_version": __version__,
         }
     )
 
