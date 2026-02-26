@@ -14,7 +14,7 @@ from homeassistant.util import dt as dt_util
 
 from yarbo import YarboTelemetry
 
-from .const import CONF_ROBOT_SERIAL, DATA_COORDINATOR, DOMAIN
+from .const import CONF_ROBOT_SERIAL, DATA_COORDINATOR, DOMAIN, get_activity_state
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 
@@ -28,27 +28,6 @@ EVENT_TYPES: Final[list[str]] = [
     "controller_lost",
     "docked",
 ]
-
-
-def _activity_state(telemetry: YarboTelemetry) -> str:
-    """Compute activity state string from telemetry.
-
-    Single source of truth — also imported by sensor.py to avoid duplication.
-    """
-    if telemetry.error_code != 0:
-        return "error"
-    if telemetry.charging_status in (1, 2, 3):
-        return "charging"
-    state = telemetry.state
-    if state in (1, 7, 8):
-        return "working"
-    if state == 2:
-        return "returning"
-    if state == 5:
-        return "paused"
-    if state == 6:
-        return "error"
-    return "idle"
 
 
 async def async_setup_entry(
@@ -100,8 +79,8 @@ class YarboEventEntity(YarboEntity, EventEntity):
             )
             return
 
-        previous_activity = _activity_state(previous)
-        current_activity = _activity_state(telemetry)
+        previous_activity = get_activity_state(previous)
+        current_activity = get_activity_state(telemetry)
         device_id = self._device_id_for_event()
         robot_sn = telemetry.serial_number
         now = dt_util.utcnow().isoformat()
@@ -217,6 +196,7 @@ class YarboEventEntity(YarboEntity, EventEntity):
     def _fire_event(self, event_type: str, data: dict) -> None:  # type: ignore[type-arg]
         self.hass.bus.async_fire(f"yarbo_{event_type}", data)
         self._trigger_event(event_type, data)  # Fixed: was async_trigger (wrong method name)
+        self.async_write_ha_state()
 
     def _logbook(self, message: str) -> None:
         async_log_entry(

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from yarbo import YarboTelemetry
+
 DOMAIN = "yarbo"
 
 # Platforms to load
@@ -68,6 +70,31 @@ TELEMETRY_RETRY_DELAY_SECONDS = 30
 # hass.data storage keys
 DATA_COORDINATOR = "coordinator"
 DATA_CLIENT = "client"
+
+
+def get_activity_state(telemetry: YarboTelemetry) -> str:
+    """Map telemetry to activity state string.
+
+    Args:
+        telemetry: YarboTelemetry object
+
+    Returns:
+        Activity state: "error", "charging", "working", "returning", "paused", or "idle"
+    """
+    if telemetry.error_code != 0:
+        return "error"
+    if telemetry.charging_status in (1, 2, 3):
+        return "charging"
+    if telemetry.state in (1, 7, 8):
+        return "working"
+    if telemetry.state == 2:
+        return "returning"
+    if telemetry.state == 5:
+        return "paused"
+    if telemetry.state == 6:
+        return "error"
+    return "idle"
+
 
 # Light channel names (for LED control)
 LIGHT_CHANNEL_HEAD = "led_head"

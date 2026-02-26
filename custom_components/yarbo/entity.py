@@ -33,6 +33,7 @@ class YarboEntity(CoordinatorEntity[YarboDataCoordinator]):
         super().__init__(coordinator)
         robot_sn = coordinator._entry.data.get(CONF_ROBOT_SERIAL, "unknown")
         self._attr_unique_id = f"{robot_sn}_{entity_key}"
+        self._attr_translation_key = entity_key
         self._entity_key = entity_key
 
     @property
