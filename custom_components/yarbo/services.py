@@ -28,7 +28,7 @@ SERVICE_SEND_COMMAND_SCHEMA = vol.Schema(
     {
         vol.Required("device_id"): str,
         vol.Required("command"): str,
-        vol.Optional("payload", default={}): dict,
+        vol.Optional("payload"): dict,
     }
 )
 
@@ -89,7 +89,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         """Handle yarbo.send_command — publish arbitrary MQTT command."""
         device_id: str = call.data["device_id"]
         command: str = call.data["command"]
-        payload: dict[str, Any] = call.data.get("payload", {})
+        payload: dict[str, Any] = call.data.get("payload") or {}
         _LOGGER.debug(
             "yarbo.send_command: device=%s command=%s payload=%s", device_id, command, payload
         )
@@ -148,6 +148,13 @@ def async_register_services(hass: HomeAssistant) -> None:
                     tail_right_r=call.data.get("tail_right_r", brightness),
                 )
             )
+            coordinator.light_state["led_head"] = call.data.get("led_head", brightness)
+            coordinator.light_state["led_left_w"] = call.data.get("led_left_w", brightness)
+            coordinator.light_state["led_right_w"] = call.data.get("led_right_w", brightness)
+            coordinator.light_state["body_left_r"] = call.data.get("body_left_r", brightness)
+            coordinator.light_state["body_right_r"] = call.data.get("body_right_r", brightness)
+            coordinator.light_state["tail_left_r"] = call.data.get("tail_left_r", brightness)
+            coordinator.light_state["tail_right_r"] = call.data.get("tail_right_r", brightness)
 
     async def handle_set_chute_velocity(call: ServiceCall) -> None:
         """Handle yarbo.set_chute_velocity — control snow chute direction."""
