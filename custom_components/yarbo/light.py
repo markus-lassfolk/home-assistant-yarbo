@@ -98,6 +98,8 @@ class YarboAllLightsGroup(YarboLight):
                     tail_right_r=brightness,
                 )
             )
+            for channel in self.coordinator.light_state:
+                self.coordinator.light_state[channel] = brightness
         self._brightness = brightness
         self._is_on = True
         self.async_write_ha_state()
@@ -107,6 +109,8 @@ class YarboAllLightsGroup(YarboLight):
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
             await self.coordinator.client.set_lights(YarboLightState.all_off())
+            for channel in self.coordinator.light_state:
+                self.coordinator.light_state[channel] = 0
         self._brightness = 0
         self._is_on = False
         self.async_write_ha_state()
@@ -125,7 +129,10 @@ class YarboChannelLight(YarboLight):
         brightness: int = kwargs.get(ATTR_BRIGHTNESS, 255)
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.set_lights(YarboLightState(**{self._channel: brightness}))
+            state_dict = self.coordinator.light_state.copy()
+            state_dict[self._channel] = brightness
+            await self.coordinator.client.set_lights(YarboLightState(**state_dict))
+            self.coordinator.light_state[self._channel] = brightness
         self._brightness = brightness
         self._is_on = True
         self.async_write_ha_state()
@@ -134,7 +141,10 @@ class YarboChannelLight(YarboLight):
         """Turn off this LED channel."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.set_lights(YarboLightState(**{self._channel: 0}))
+            state_dict = self.coordinator.light_state.copy()
+            state_dict[self._channel] = 0
+            await self.coordinator.client.set_lights(YarboLightState(**state_dict))
+            self.coordinator.light_state[self._channel] = 0
         self._brightness = 0
         self._is_on = False
         self.async_write_ha_state()

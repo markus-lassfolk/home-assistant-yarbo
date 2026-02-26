@@ -51,7 +51,9 @@ trigger:
 condition:
   - condition: template
     value_template: >
-      {{ state_attr(trigger.entity_id, 'device_class') == 'battery' }}
+      {% set device_id = device_id(trigger.entity_id) %}
+      {% set charging_entity = 'binary_sensor.' ~ device_attr(device_id, 'name') | lower | replace(' ', '_') ~ '_charging' %}
+      {{ is_state(charging_entity, 'off') }}
 
 action:
   - service: !input notify_service

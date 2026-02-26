@@ -69,6 +69,15 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         )
         self._update_count: int = 0
         self.command_lock = asyncio.Lock()
+        self.light_state: dict[str, int] = {
+            "led_head": 0,
+            "led_left_w": 0,
+            "led_right_w": 0,
+            "body_left_r": 0,
+            "body_right_r": 0,
+            "tail_left_r": 0,
+            "tail_right_r": 0,
+        }
 
     async def _async_setup(self) -> None:
         """Start the telemetry listener task."""
