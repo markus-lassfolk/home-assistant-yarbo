@@ -101,12 +101,26 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             discovery_info.hostname,
         )
 
+        existing_entry = next(
+            (
+                entry
+                for entry in self._async_current_entries()
+                if entry.data.get(CONF_BROKER_MAC) == discovery_info.macaddress
+            ),
+            None,
+        )
+        if existing_entry is not None:
+            if existing_entry.data.get(CONF_BROKER_HOST) != discovery_info.ip:
+                self._reconfigure_entry = existing_entry
+                self._broker_host = discovery_info.ip
+                self._broker_port = existing_entry.data.get(
+                    CONF_BROKER_PORT, DEFAULT_BROKER_PORT
+                )
+                return await self.async_step_reconfigure()
+            return self.async_abort(reason="already_configured")
+
         self._discovered_host = discovery_info.ip
         self._discovered_mac = discovery_info.macaddress
-
-        # TODO: Check for existing config entries with this MAC
-        # await self.async_set_unique_id(discovery_info.macaddress)
-        # self._abort_if_unique_id_configured()
 
         return await self.async_step_confirm()
 
@@ -182,7 +196,60 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors={"base": "no_telemetry"},
             )
 
+        if self._reconfigure_entry is not None:
+            if self._robot_serial != self._reconfigure_entry.data.get(CONF_ROBOT_SERIAL):
+                return self.async_abort(reason="wrong_device")
+
+            data = dict(self._reconfigure_entry.data)
+            data[CONF_BROKER_HOST] = self._broker_host
+            data[CONF_BROKER_PORT] = self._broker_port
+            if self._discovered_mac:
+                data[CONF_BROKER_MAC] = self._discovered_mac
+            self.hass.config_entries.async_update_entry(
+                self._reconfigure_entry, data=data
+            )
+            await self.hass.config_entries.async_reload(
+                self._reconfigure_entry.entry_id
+            )
+            return self.async_abort(reason="reconfigure_successful")
+
         return await self.async_step_name()
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle reconfiguration to update the broker host."""
+        if self._reconfigure_entry is None and "entry_id" in self.context:
+            entry_id = self.context["entry_id"]
+            self._reconfigure_entry = self.hass.config_entries.async_get_entry(
+                entry_id
+            )
+
+        if self._reconfigure_entry is None:
+            return self.async_abort(reason="reconfigure_failed")
+
+        if user_input is not None:
+            self._broker_host = user_input[CONF_BROKER_HOST]
+            self._broker_port = user_input.get(CONF_BROKER_PORT, DEFAULT_BROKER_PORT)
+            return await self.async_step_mqtt_test()
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_BROKER_HOST,
+                    default=self._broker_host
+                    or self._reconfigure_entry.data.get(CONF_BROKER_HOST, ""),
+                ): str,
+                vol.Optional(
+                    CONF_BROKER_PORT,
+                    default=self._broker_port
+                    or self._reconfigure_entry.data.get(
+                        CONF_BROKER_PORT, DEFAULT_BROKER_PORT
+                    ),
+                ): int,
+            }
+        )
+        return self.async_show_form(step_id="reconfigure", data_schema=schema)
 
     async def async_step_name(
         self, user_input: dict[str, Any] | None = None

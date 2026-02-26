@@ -17,6 +17,14 @@
         "title": "Connecting to Yarbo",
         "description": "Testing MQTT connection and waiting for telemetry from your robot..."
       },
+      "reconfigure": {
+        "title": "Reconfigure Yarbo",
+        "description": "Update the IP address of your Yarbo base station.",
+        "data": {
+          "broker_host": "Base Station IP Address",
+          "broker_port": "MQTT Port"
+        }
+      },
       "name": {
         "title": "Name Your Robot",
         "description": "Choose a name for your Yarbo robot. This will be used for all entity names.",
@@ -38,7 +46,10 @@
       "cannot_connect": "Cannot connect to MQTT broker at {host}:1883. Is the base station powered on and reachable?",
       "no_telemetry": "Connected but no robot telemetry received within 10 seconds. Is the robot powered on?",
       "decode_error": "Received data but cannot decode it. Firmware may be incompatible.",
-      "not_implemented": "Configuration flow not yet implemented."
+      "not_implemented": "Configuration flow not yet implemented.",
+      "wrong_device": "The discovered device does not match this Yarbo robot.",
+      "reconfigure_successful": "Reconfiguration completed successfully.",
+      "reconfigure_failed": "Reconfiguration failed."
     },
     "error": {
       "cannot_connect": "Cannot connect",
