@@ -7,6 +7,15 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
+from .const import (
+    CONF_CLOUD_REFRESH_TOKEN,
+    CONF_CLOUD_USERNAME,
+    CONF_ROBOT_SERIAL,
+    DATA_CLIENT,
+    DATA_COORDINATOR,
+    DOMAIN,
+)
+
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
@@ -21,31 +30,27 @@ async def async_get_config_entry_diagnostics(
 
     TODO: Implement in v0.1.0
     """
-    # TODO: Implement when coordinator is available
-    # data = hass.data[DOMAIN][entry.entry_id]
-    # coordinator = data[DATA_COORDINATOR]
-    # client = data[DATA_CLIENT]
+    data = hass.data[DOMAIN][entry.entry_id]
+    coordinator = data[DATA_COORDINATOR]
+    client = data[DATA_CLIENT]
+
+    raw = coordinator.data.raw if coordinator.data else {}
 
     return {
-        "config_entry": {
-            "broker": entry.data.get("broker_host", "unknown"),
-            "port": entry.data.get("broker_port", 1883),
-            "sn": _redact_sn(entry.data.get("robot_serial", "")),
-            "cloud_enabled": bool(entry.data.get("cloud_username")),
-        },
+        "config_entry": _redact_config(entry.data),
         "coordinator": {
-            # TODO: "last_update_success": coordinator.last_update_success,
-            # TODO: "update_count": coordinator._update_count,
-            "status": "not_implemented",
+            "last_update_success": coordinator.last_update_success,
+            "update_count": coordinator._update_count,
+            "last_seen": coordinator._last_seen,
+            "throttle_interval": coordinator._throttle_interval,
         },
         "telemetry": {
-            # TODO: _redact_telemetry(coordinator.data.raw if coordinator.data else {})
-            "status": "not_implemented",
+            "raw": _redact_telemetry(raw),
         },
         "connection": {
-            # TODO: "connected": client.is_connected,
-            # TODO: "controller_acquired": client._local._controller_acquired,
-            "status": "not_implemented",
+            "connected": client.is_connected,
+            "controller_acquired": client.controller_acquired,
+            "serial_number": _redact_sn(getattr(client, "serial_number", "")),
         },
     }
 
@@ -57,10 +62,27 @@ def _redact_sn(sn: str) -> str:
     return sn[:6] + "***"
 
 
+def _redact_config(config: dict[str, Any]) -> dict[str, Any]:
+    """Redact sensitive config fields."""
+    redacted = dict(config)
+    if CONF_ROBOT_SERIAL in redacted:
+        redacted[CONF_ROBOT_SERIAL] = _redact_sn(redacted[CONF_ROBOT_SERIAL])
+    if CONF_CLOUD_USERNAME in redacted:
+        redacted[CONF_CLOUD_USERNAME] = "[REDACTED]"
+    if CONF_CLOUD_REFRESH_TOKEN in redacted:
+        redacted[CONF_CLOUD_REFRESH_TOKEN] = "[REDACTED]"
+    return redacted
+
+
 def _redact_telemetry(raw: dict[str, Any]) -> dict[str, Any]:
     """Remove GPS coordinates and serial numbers from telemetry."""
     redacted = dict(raw)
     redacted.pop("rtk_base_data", None)  # Contains exact GPS coordinates
+    redacted.pop("gps", None)
+    redacted.pop("gps_lat", None)
+    redacted.pop("gps_lon", None)
+    redacted.pop("latitude", None)
+    redacted.pop("longitude", None)
     if "HeadSerialMsg" in redacted:
         redacted["HeadSerialMsg"] = {"head_sn": "***"}
     return redacted
