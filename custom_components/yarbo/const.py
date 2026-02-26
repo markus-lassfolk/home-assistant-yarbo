@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from yarbo import YarboTelemetry
+
 DOMAIN = "yarbo"
 
 # Platforms to load
@@ -61,12 +63,12 @@ DATA_COORDINATOR = "coordinator"
 DATA_CLIENT = "client"
 
 
-def get_activity_state(telemetry) -> str:
+def get_activity_state(telemetry: YarboTelemetry) -> str:
     """Map telemetry to activity state string.
-    
+
     Args:
         telemetry: YarboTelemetry object
-        
+
     Returns:
         Activity state: "error", "charging", "working", "returning", "paused", or "idle"
     """
