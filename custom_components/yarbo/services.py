@@ -148,6 +148,13 @@ def async_register_services(hass: HomeAssistant) -> None:
                     tail_right_r=call.data.get("tail_right_r", brightness),
                 )
             )
+            coordinator.light_state["led_head"] = call.data.get("led_head", brightness)
+            coordinator.light_state["led_left_w"] = call.data.get("led_left_w", brightness)
+            coordinator.light_state["led_right_w"] = call.data.get("led_right_w", brightness)
+            coordinator.light_state["body_left_r"] = call.data.get("body_left_r", brightness)
+            coordinator.light_state["body_right_r"] = call.data.get("body_right_r", brightness)
+            coordinator.light_state["tail_left_r"] = call.data.get("tail_left_r", brightness)
+            coordinator.light_state["tail_right_r"] = call.data.get("tail_right_r", brightness)
 
     async def handle_set_chute_velocity(call: ServiceCall) -> None:
         """Handle yarbo.set_chute_velocity — control snow chute direction."""

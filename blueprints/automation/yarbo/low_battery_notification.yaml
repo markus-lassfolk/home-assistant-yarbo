@@ -52,7 +52,7 @@ condition:
   - condition: template
     value_template: >
       {% set device_id = device_id(trigger.entity_id) %}
-      {% set charging_entity = 'binary_sensor.' ~ device_attr(device_id, 'name') | lower | replace(' ', '_') ~ '_charging' %}
+      {% set charging_entity = 'binary_sensor.' ~ device_attr(device_id, 'name') | slugify ~ '_charging' %}
       {{ is_state(charging_entity, 'off') }}
 
 action:
