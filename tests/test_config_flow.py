@@ -2,17 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
-from homeassistant import config_entries
-from homeassistant.components import dhcp
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResultType
-
-from custom_components.yarbo.const import CONF_BROKER_HOST, CONF_BROKER_PORT, DOMAIN
-
-from .conftest import MOCK_BROKER_HOST, MOCK_BROKER_MAC, MOCK_ROBOT_SERIAL
 
 
 class TestManualConfigFlow:
@@ -103,9 +94,7 @@ class TestDhcpDiscoveryFlow:
         pass
 
     @pytest.mark.skip(reason="Stub — implement in v0.1.0")
-    async def test_dhcp_discovery_already_configured(
-        self, hass: HomeAssistant
-    ) -> None:
+    async def test_dhcp_discovery_already_configured(self, hass: HomeAssistant) -> None:
         """Test that DHCP discovery aborts if robot is already configured."""
         pass
 

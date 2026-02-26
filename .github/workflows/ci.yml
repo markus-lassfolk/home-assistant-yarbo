@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: home-assistant/actions/hassfest@main
+      - uses: home-assistant/actions/hassfest@master
 
   hacs-validate:
     name: hacs-validate
@@ -22,6 +22,8 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+          # brands check requires submitting to hacs/brands repo first; skip for now
+          ignore: brands
 
   lint:
     name: lint

@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-from homeassistant import config_entries
 from homeassistant.components import dhcp
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.core import callback
@@ -14,16 +13,11 @@ from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
     CONF_BROKER_HOST,
-    CONF_BROKER_MAC,
     CONF_BROKER_PORT,
-    CONF_CLOUD_REFRESH_TOKEN,
-    CONF_CLOUD_USERNAME,
-    CONF_ROBOT_NAME,
-    CONF_ROBOT_SERIAL,
-    DEFAULT_BROKER_PORT,
-    DEFAULT_AUTO_CONTROLLER,
-    DEFAULT_CLOUD_ENABLED,
     DEFAULT_ACTIVITY_PERSONALITY,
+    DEFAULT_AUTO_CONTROLLER,
+    DEFAULT_BROKER_PORT,
+    DEFAULT_CLOUD_ENABLED,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
     OPT_ACTIVITY_PERSONALITY,
@@ -65,9 +59,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         self._broker_host: str | None = None
         self._broker_port: int = DEFAULT_BROKER_PORT
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step — manual IP entry.
 
         TODO: Implement in v0.1.0
@@ -88,9 +80,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_dhcp(
-        self, discovery_info: dhcp.DhcpServiceInfo
-    ) -> FlowResult:
+    async def async_step_dhcp(self, discovery_info: dhcp.DhcpServiceInfo) -> FlowResult:
         """Handle DHCP discovery.
 
         Triggered when a device with MAC OUI C8:FE:0F:* appears on the network.
@@ -117,9 +107,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return await self.async_step_confirm()
 
-    async def async_step_confirm(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Confirm DHCP-discovered device.
 
         TODO: Implement in v0.1.0
@@ -136,9 +124,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             description_placeholders={"host": self._discovered_host or "unknown"},
         )
 
-    async def async_step_mqtt_test(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_mqtt_test(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Validate MQTT connection and extract robot serial number.
 
         TODO: Implement in v0.1.0
@@ -188,9 +174,7 @@ class YarboOptionsFlow(OptionsFlow):
         """Initialize options flow."""
         self._config_entry = config_entry
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage options.
 
         TODO: Implement in v0.1.0

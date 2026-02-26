@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -84,7 +84,7 @@ def mock_yarbo_client() -> Generator[MagicMock, None, None]:
         yield client
 
 
-async def _async_gen(items: list[Any]):  # type: ignore[return]
+async def _async_gen(items: list[Any]) -> AsyncGenerator[Any, None]:  # type: ignore[return]
     """Yield items from a list as an async generator."""
     for item in items:
         yield item
