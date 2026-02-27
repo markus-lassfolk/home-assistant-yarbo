@@ -108,3 +108,4 @@ jobs:
                 console.log(`  ❌ Merge failed: ${e.message}`);
               }
             }
+  issues: write
