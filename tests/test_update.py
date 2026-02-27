@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from custom_components.yarbo.const import (
+    CONF_CLOUD_REFRESH_TOKEN,
+    CONF_CLOUD_USERNAME,
     DEFAULT_CLOUD_ENABLED,
     OPT_CLOUD_ENABLED,
 )
@@ -149,3 +153,55 @@ class TestEntityMetadata:
     def test_auto_update_is_false(self) -> None:
         stored = YarboFirmwareUpdate.__dict__.get("__attr_auto_update")
         assert stored is False
+
+
+class TestAsyncUpdate:
+    """Tests for YarboFirmwareUpdate.async_update — firmwareVersion null/missing."""
+
+    def _make_cloud_enabled_entity(self) -> tuple[YarboFirmwareUpdate, MagicMock]:
+        """Return entity and coordinator configured for cloud update with pre-cached version."""
+        coordinator = _make_coordinator(options={OPT_CLOUD_ENABLED: True})
+        coordinator.entry.data = {
+            "robot_serial": MOCK_ROBOT_SERIAL,
+            "robot_name": "TestBot",
+            CONF_CLOUD_REFRESH_TOKEN: "test-refresh-token",
+            CONF_CLOUD_USERNAME: "user@example.com",
+        }
+        coordinator.latest_firmware_version = "1.0.0"
+        entity = _make_entity(coordinator)
+        entity._latest_version = "1.0.0"
+        return entity, coordinator
+
+    @pytest.mark.asyncio
+    async def test_clears_cached_version_when_firmware_version_is_null(self) -> None:
+        """firmwareVersion: null in cloud response clears coordinator and entity cached version."""
+        entity, coordinator = self._make_cloud_enabled_entity()
+
+        mock_client = MagicMock()
+        mock_client.connect = AsyncMock()
+        mock_client.disconnect = AsyncMock()
+        mock_client.get_latest_version = AsyncMock(return_value={"firmwareVersion": None})
+        mock_client.auth = MagicMock()
+
+        with patch("custom_components.yarbo.update.YarboCloudClient", return_value=mock_client):
+            await entity.async_update()
+
+        assert entity._latest_version is None
+        assert coordinator.latest_firmware_version is None
+
+    @pytest.mark.asyncio
+    async def test_clears_cached_version_when_firmware_version_key_missing(self) -> None:
+        """Missing firmwareVersion key clears coordinator and entity cached version."""
+        entity, coordinator = self._make_cloud_enabled_entity()
+
+        mock_client = MagicMock()
+        mock_client.connect = AsyncMock()
+        mock_client.disconnect = AsyncMock()
+        mock_client.get_latest_version = AsyncMock(return_value={})
+        mock_client.auth = MagicMock()
+
+        with patch("custom_components.yarbo.update.YarboCloudClient", return_value=mock_client):
+            await entity.async_update()
+
+        assert entity._latest_version is None
+        assert coordinator.latest_firmware_version is None
