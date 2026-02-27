@@ -36,6 +36,8 @@ class YarboChuteVelocityNumber(YarboEntity, NumberEntity):
     _attr_native_step = 1.0
     _attr_mode = NumberMode.SLIDER
     _attr_native_unit_of_measurement = None
+    _attr_entity_registry_enabled_default = False
+    _attr_icon = "mdi:rotate-right"
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "chute_velocity")

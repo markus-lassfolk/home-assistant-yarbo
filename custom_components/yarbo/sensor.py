@@ -104,6 +104,13 @@ async def async_setup_entry(
             YarboHeadingSensor(coordinator),
             YarboChuteAngleSensor(coordinator),
             YarboRainSensor(coordinator),
+            YarboSatelliteCountSensor(coordinator),
+            YarboChargingPowerSensor(coordinator),
+            YarboOdomConfidenceSensor(coordinator),
+            YarboRtcmAgeSensor(coordinator),
+            YarboChargeVoltageSensor(coordinator),
+            YarboChargeCurrentSensor(coordinator),
+            YarboMqttAgeSensor(coordinator),
         ]
     )
 
@@ -187,6 +194,7 @@ class YarboErrorCodeSensor(YarboSensor):
     """Diagnostic sensor for raw error codes."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
     _attr_translation_key = "error_code"
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
@@ -205,6 +213,7 @@ class YarboRtkStatusSensor(YarboSensor):
 
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = RTK_STATUS_OPTIONS
+    _attr_entity_registry_enabled_default = False
     _attr_translation_key = "rtk_status"
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
@@ -226,6 +235,7 @@ class YarboHeadingSensor(YarboSensor):
 
     _attr_native_unit_of_measurement = "°"
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
     _attr_translation_key = "heading"
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
@@ -244,6 +254,7 @@ class YarboChuteAngleSensor(YarboSensor):
 
     _attr_native_unit_of_measurement = "°"
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
     _attr_translation_key = "chute_angle"
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
@@ -270,6 +281,7 @@ class YarboRainSensor(YarboSensor):
     """Rain sensor reading."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
     _attr_translation_key = "rain_sensor"
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
@@ -281,3 +293,153 @@ class YarboRainSensor(YarboSensor):
         if not self.telemetry:
             return None
         return getattr(self.telemetry, "rain_sensor", None)
+
+
+class YarboSatelliteCountSensor(YarboSensor):
+    """GNSS satellite count sensor."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "satellite_count"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "satellite_count")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return number of visible satellites."""
+        if not self.telemetry:
+            return None
+        return getattr(self.telemetry, "satellite_count", None)
+
+
+class YarboChargingPowerSensor(YarboSensor):
+    """Wireless charging power sensor (output_voltage_mV x output_current_mA / 1_000_000 = W)."""
+
+    _attr_device_class = SensorDeviceClass.POWER
+    _attr_native_unit_of_measurement = "W"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "charging_power"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "charging_power")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return wireless charging power in watts."""
+        if not self.telemetry:
+            return None
+        voltage_mv = getattr(self.telemetry, "charge_voltage_mv", None)
+        current_ma = getattr(self.telemetry, "charge_current_ma", None)
+        if voltage_mv is None or current_ma is None:
+            return None
+        return round(voltage_mv * current_ma / 1_000_000, 2)
+
+
+class YarboOdomConfidenceSensor(YarboSensor):
+    """Odometry confidence diagnostic sensor."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "odom_confidence"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "odom_confidence")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return odometry confidence."""
+        if not self.telemetry:
+            return None
+        return getattr(self.telemetry, "odom_confidence", None)
+
+
+class YarboRtcmAgeSensor(YarboSensor):
+    """RTCM correction age diagnostic sensor."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_native_unit_of_measurement = "s"
+    # No state_class: value grows unbounded when base station is unavailable, which
+    # breaks long-term statistics. state_class=None avoids polluting the statistics DB.
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "rtcm_age"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "rtcm_age")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return RTCM correction data age in seconds."""
+        if not self.telemetry:
+            return None
+        return getattr(self.telemetry, "rtcm_age", None)
+
+
+class YarboChargeVoltageSensor(YarboSensor):
+    """Charging voltage diagnostic sensor."""
+
+    _attr_device_class = SensorDeviceClass.VOLTAGE
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # HA expects V for SensorDeviceClass.VOLTAGE to enable unit conversion
+    _attr_native_unit_of_measurement = "V"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "charge_voltage"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "charge_voltage")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return charging voltage in volts (MQTT payload is mV)."""
+        if not self.telemetry:
+            return None
+        mv = getattr(self.telemetry, "charge_voltage_mv", None)
+        return round(mv / 1000, 3) if mv is not None else None
+
+
+class YarboChargeCurrentSensor(YarboSensor):
+    """Charging current diagnostic sensor."""
+
+    _attr_device_class = SensorDeviceClass.CURRENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # HA expects A for SensorDeviceClass.CURRENT to enable unit conversion
+    _attr_native_unit_of_measurement = "A"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "charge_current"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "charge_current")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return charging current in amperes (MQTT payload is mA)."""
+        if not self.telemetry:
+            return None
+        ma = getattr(self.telemetry, "charge_current_ma", None)
+        return round(ma / 1000, 3) if ma is not None else None
+
+
+class YarboMqttAgeSensor(YarboSensor):
+    """MQTT message age diagnostic sensor — seconds since last telemetry."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_native_unit_of_measurement = "s"
+    # No state_class: value grows unbounded when robot is offline, which breaks
+    # long-term statistics. state_class=None avoids polluting the statistics DB.
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "mqtt_age"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "mqtt_age")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return seconds since last MQTT telemetry message."""
+        if not self.telemetry:
+            return None
+        return getattr(self.telemetry, "mqtt_age", None)

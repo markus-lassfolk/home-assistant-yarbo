@@ -34,9 +34,16 @@
       },
       "cloud": {
         "title": "Cloud Features (Optional)",
-        "description": "Optionally connect to the Yarbo cloud for firmware updates and device info. Not required for local control.",
+        "description": "Optionally connect to the Yarbo cloud for firmware updates and device info. Not required for local control. Leave blank to skip.",
         "data": {
           "cloud_username": "Yarbo Account Email",
+          "cloud_password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate Yarbo Cloud",
+        "description": "Your Yarbo cloud session for **{username}** has expired. Enter your password to reconnect.",
+        "data": {
           "cloud_password": "Password"
         }
       }
@@ -49,12 +56,15 @@
       "not_implemented": "Configuration flow not yet implemented.",
       "wrong_device": "The discovered device does not match this Yarbo robot.",
       "reconfigure_successful": "Reconfiguration completed successfully.",
-      "reconfigure_failed": "Reconfiguration failed."
+      "reconfigure_failed": "Reconfiguration failed.",
+      "reauth_successful": "Re-authentication successful."
     },
     "error": {
       "cannot_connect": "Cannot connect",
       "no_telemetry": "No telemetry received",
-      "decode_error": "Decode error"
+      "decode_error": "Decode error",
+      "cloud_auth_failed": "Cloud authentication failed — check your email and password",
+      "cloud_not_available": "Cloud client not available — update python-yarbo"
     }
   },
   "options": {
@@ -125,6 +135,27 @@
       },
       "error_code": {
         "name": "Error Code"
+      },
+      "satellite_count": {
+        "name": "Satellite Count"
+      },
+      "charging_power": {
+        "name": "Charging Power"
+      },
+      "odom_confidence": {
+        "name": "Odometry Confidence"
+      },
+      "rtcm_age": {
+        "name": "RTCM Age"
+      },
+      "charge_voltage": {
+        "name": "Charge Voltage"
+      },
+      "charge_current": {
+        "name": "Charge Current"
+      },
+      "mqtt_age": {
+        "name": "MQTT Message Age"
       }
     },
     "binary_sensor": {
@@ -233,6 +264,25 @@
     "telemetry_timeout": {
       "title": "Yarbo telemetry not received",
       "description": "No telemetry has been received from **{name}** for at least 60 seconds. Check that the base station is powered on and connected to the network."
+    },
+    "mqtt_disconnect": {
+      "title": "Yarbo base station unreachable",
+      "description": "No telemetry has been received from **{name}** for at least 60 seconds. The robot may be out of range or the base station may be powered off.\n\n**Steps to resolve:**\n1. Check that the Yarbo Data Center (base station) is powered on.\n2. Verify that the base station is connected to your local network.\n3. Confirm that Home Assistant can reach the base station IP address.\n\nThis issue will resolve automatically when telemetry resumes."
+    },
+    "controller_lost": {
+      "title": "Yarbo controller session lost",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Re-acquire controller",
+            "description": "The Yarbo app or another client has taken the controller session for **{name}**, preventing Home Assistant from sending commands.\n\nPress **Submit** to re-acquire the controller session."
+          }
+        },
+        "abort": {
+          "cannot_connect": "Could not re-acquire the controller session. Check that the Yarbo base station is reachable and try again.",
+          "unknown": "An unexpected error occurred while re-acquiring the controller session."
+        }
+      }
     }
   },
   "services": {
