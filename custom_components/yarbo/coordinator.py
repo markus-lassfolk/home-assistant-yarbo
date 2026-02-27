@@ -125,6 +125,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def _async_setup(self) -> None:
         """Start the telemetry listener task."""
+        # Clean up legacy telemetry_timeout issue from versions before the rename
+        from homeassistant.helpers import issue_registry as ir
+
+        ir.async_delete_issue(self.hass, DOMAIN, f"telemetry_timeout_{self._entry.entry_id}")
+
         if self._telemetry_task is None:
             self._telemetry_task = asyncio.create_task(self._telemetry_loop())
         if self._watchdog_task is None:

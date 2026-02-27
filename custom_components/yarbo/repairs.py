@@ -9,7 +9,7 @@ Three actionable repair conditions are supported:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.core import HomeAssistant
@@ -17,7 +17,9 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 
 from .const import DATA_COORDINATOR, DOMAIN
-from .coordinator import YarboDataCoordinator
+
+if TYPE_CHECKING:
+    from .coordinator import YarboDataCoordinator
 
 # Issue ID constants — combined with entry_id to create a unique key per device
 ISSUE_MQTT_DISCONNECT = "mqtt_disconnect"
