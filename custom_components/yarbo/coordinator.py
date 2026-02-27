@@ -206,7 +206,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         next_host,
                     )
                     try:
-                        new_client = YarboLocalClient(host=next_host, port=port)
+                        new_client = YarboLocalClient(broker=next_host, port=port)
                         # Acquire command_lock to prevent commands in-flight during swap
                         async with self.command_lock:
                             await new_client.connect()

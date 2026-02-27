@@ -304,7 +304,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         if self._broker_host is None:
             return self.async_abort(reason="cannot_connect")
 
-        client = YarboLocalClient(host=self._broker_host, port=self._broker_port)
+        client = YarboLocalClient(broker=self._broker_host, port=self._broker_port)
         telemetry = None
         async_gen = None
         try:
