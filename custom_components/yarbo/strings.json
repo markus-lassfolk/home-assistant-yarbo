@@ -233,6 +233,26 @@
     "telemetry_timeout": {
       "title": "Yarbo telemetry not received",
       "description": "No telemetry has been received from **{name}** for at least 60 seconds. Check that the base station is powered on and connected to the network."
+    },
+    "mqtt_disconnect": {
+      "title": "Yarbo base station unreachable",
+      "description": "No telemetry has been received from **{name}** for at least 60 seconds. The robot may be out of range or the base station may be powered off.\n\n**Steps to resolve:**\n1. Check that the Yarbo Data Center (base station) is powered on.\n2. Verify that the base station is connected to your local network.\n3. Confirm that Home Assistant can reach the base station IP address.\n\nThis issue will resolve automatically when telemetry resumes."
+    },
+    "controller_lost": {
+      "title": "Yarbo controller session lost",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Re-acquire controller",
+            "description": "The Yarbo app or another client has taken the controller session for **{name}**, preventing Home Assistant from sending commands.\n\nPress **Submit** to re-acquire the controller session."
+          }
+        }
+      },
+      "description": "The Yarbo app or another client has taken the controller session for **{name}**. Home Assistant cannot send commands until the session is re-acquired.\n\nUse the **Fix** button to re-acquire the controller, or open the Yarbo app and close it to release the session."
+    },
+    "cloud_token_expired": {
+      "title": "Yarbo cloud authentication expired",
+      "description": "The cloud authentication token for **{name}** has expired (HTTP 401/403). Cloud features such as firmware version checks are unavailable.\n\n**To resolve:**\n1. Go to **Settings → Devices & Services → Yarbo**.\n2. Select **Reconfigure** and re-enter your Yarbo cloud credentials.\n\nLocal MQTT control is not affected."
     }
   },
   "services": {
