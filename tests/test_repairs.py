@@ -7,10 +7,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from custom_components.yarbo.repairs import (
+    ISSUE_CLOUD_TOKEN_EXPIRED,
     ISSUE_CONTROLLER_LOST,
     ISSUE_MQTT_DISCONNECT,
+    async_create_cloud_token_expired_issue,
     async_create_controller_lost_issue,
+    async_create_fix_flow,
     async_create_mqtt_disconnect_issue,
+    async_delete_cloud_token_expired_issue,
     async_delete_controller_lost_issue,
     async_delete_mqtt_disconnect_issue,
 )
@@ -32,6 +36,9 @@ class TestIssueConstants:
 
     def test_controller_lost_constant(self) -> None:
         assert ISSUE_CONTROLLER_LOST == "controller_lost"
+
+    def test_cloud_token_expired_constant(self) -> None:
+        assert ISSUE_CLOUD_TOKEN_EXPIRED == "cloud_token_expired"
 
 
 class TestMqttDisconnectRepair:
@@ -172,3 +179,53 @@ class TestCoordinatorRepairIntegration:
         ) as mock_delete:
             coord.resolve_controller_lost()  # type: ignore[attr-defined]
             mock_delete.assert_not_called()
+
+
+class TestCloudTokenExpiredRepair:
+    """Tests for cloud token expired repair issue helpers (#27)."""
+
+    def test_create_calls_async_create_issue(self, mock_hass: MagicMock) -> None:
+        with patch("custom_components.yarbo.repairs.ir.async_create_issue") as mock_create:
+            async_create_cloud_token_expired_issue(mock_hass, ENTRY_ID, ROBOT_NAME)
+            mock_create.assert_called_once()
+            args = mock_create.call_args[0]
+            assert args[2] == f"{ISSUE_CLOUD_TOKEN_EXPIRED}_{ENTRY_ID}"
+
+    def test_create_uses_warning_severity(self, mock_hass: MagicMock) -> None:
+        from homeassistant.helpers import issue_registry as ir
+
+        with patch("custom_components.yarbo.repairs.ir.async_create_issue") as mock_create:
+            async_create_cloud_token_expired_issue(mock_hass, ENTRY_ID, ROBOT_NAME)
+            call_kwargs = mock_create.call_args[1]
+            assert call_kwargs["severity"] == ir.IssueSeverity.WARNING
+
+    def test_create_is_fixable(self, mock_hass: MagicMock) -> None:
+        with patch("custom_components.yarbo.repairs.ir.async_create_issue") as mock_create:
+            async_create_cloud_token_expired_issue(mock_hass, ENTRY_ID, ROBOT_NAME)
+            call_kwargs = mock_create.call_args[1]
+            assert call_kwargs["is_fixable"] is True
+
+    def test_create_uses_translation_key(self, mock_hass: MagicMock) -> None:
+        with patch("custom_components.yarbo.repairs.ir.async_create_issue") as mock_create:
+            async_create_cloud_token_expired_issue(mock_hass, ENTRY_ID, ROBOT_NAME)
+            call_kwargs = mock_create.call_args[1]
+            assert call_kwargs["translation_key"] == ISSUE_CLOUD_TOKEN_EXPIRED
+            assert call_kwargs["translation_placeholders"] == {"name": ROBOT_NAME}
+
+    def test_delete_calls_async_delete_issue(self, mock_hass: MagicMock) -> None:
+        with patch("custom_components.yarbo.repairs.ir.async_delete_issue") as mock_delete:
+            async_delete_cloud_token_expired_issue(mock_hass, ENTRY_ID)
+            mock_delete.assert_called_once()
+            args = mock_delete.call_args[0]
+            assert args[2] == f"{ISSUE_CLOUD_TOKEN_EXPIRED}_{ENTRY_ID}"
+
+
+class TestCreateFixFlow:
+    """Tests for async_create_fix_flow (#27)."""
+
+    @pytest.mark.asyncio
+    async def test_returns_repair_flow(self, mock_hass: MagicMock) -> None:
+        flow = await async_create_fix_flow(mock_hass, "mqtt_disconnect_test_id", None)
+        from custom_components.yarbo.repairs import YarboRepairFlow
+
+        assert isinstance(flow, YarboRepairFlow)
