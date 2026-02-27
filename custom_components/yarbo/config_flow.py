@@ -350,6 +350,17 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             data[CONF_BROKER_HOST] = self._broker_host
             if self._broker_endpoints_ordered:
                 data[CONF_BROKER_ENDPOINTS] = self._broker_endpoints_ordered
+            else:
+                # Preserve existing endpoints, updating the primary host
+                existing = list(data.get(CONF_BROKER_ENDPOINTS, []))
+                old_host = self._reconfigure_entry.data.get(CONF_BROKER_HOST)
+                if old_host in existing:
+                    existing[existing.index(old_host)] = self._broker_host
+                elif existing:
+                    existing[0] = self._broker_host
+                else:
+                    existing = [self._broker_host]
+                data[CONF_BROKER_ENDPOINTS] = existing
             data[CONF_BROKER_PORT] = self._broker_port
             if self._discovered_mac:
                 data[CONF_BROKER_MAC] = self._discovered_mac

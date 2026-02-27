@@ -218,12 +218,12 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                             # Persist current host so next failover uses it
                             new_data = dict(self._entry.data)
                             new_data[CONF_BROKER_HOST] = next_host
-                            # Update connection path label for sensor display
-                            alt = self._entry.data.get(CONF_ALTERNATE_BROKER_HOST)
-                            if alt and next_host == alt:
-                                new_data[CONF_CONNECTION_PATH] = "dc"
-                            elif alt:
+                            # Update connection path: swap current label on failover
+                            current_path = self._entry.data.get(CONF_CONNECTION_PATH, "")
+                            if current_path == "dc":
                                 new_data[CONF_CONNECTION_PATH] = "rover"
+                            elif current_path == "rover":
+                                new_data[CONF_CONNECTION_PATH] = "dc"
                             self.hass.config_entries.async_update_entry(self._entry, data=new_data)
                             # Disconnect old client; suppress errors to avoid leaking
                             with contextlib.suppress(Exception):
