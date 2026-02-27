@@ -32,6 +32,10 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Yarbo from a config entry."""
+    # Migrate config entry to version 2 (issue #50: alternate host, connection path, rover_ip)
+    if entry.version < 2:
+        hass.config_entries.async_update_entry(entry, version=2)
+
     # Get actual integration version from manifest
     integration_version = "unknown"
     try:

@@ -94,7 +94,8 @@ The integration acquires the controller role by publishing to `get_controller` o
 ```python
 from python_yarbo import YarboClient, YarboTelemetry
 
-client = YarboClient(host="192.168.1.50", port=1883)
+# Use your discovered or configured broker IP (never hardcode in production)
+client = YarboClient(host="<broker-ip>", port=1883)
 await client.connect()
 await client.subscribe(sn="YB2024XXXXXXXX")
 

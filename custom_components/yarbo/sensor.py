@@ -15,6 +15,9 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    CONF_BROKER_HOST,
+    CONF_CONNECTION_PATH,
+    CONF_ROVER_IP,
     DATA_COORDINATOR,
     DEFAULT_ACTIVITY_PERSONALITY,
     DOMAIN,
@@ -96,6 +99,7 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
     async_add_entities(
         [
+            YarboConnectionSensor(coordinator),
             YarboBatterySensor(coordinator),
             YarboActivitySensor(coordinator),
             YarboHeadTypeSensor(coordinator),
@@ -120,6 +124,39 @@ class YarboSensor(YarboEntity, SensorEntity):
 
     def __init__(self, coordinator: YarboDataCoordinator, entity_key: str) -> None:
         super().__init__(coordinator, entity_key)
+
+
+class YarboConnectionSensor(YarboSensor):
+    """Shows connection path (Data Center vs Rover) and Rover IP for device panel (issue #50)."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_translation_key = "connection"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "connection")
+
+    @property
+    def native_value(self) -> str:
+        """Return connection path label with IP, e.g. 'Data Center (<dc-ip>)'."""
+        entry = self.coordinator._entry
+        host = entry.data.get(CONF_BROKER_HOST) or ""
+        path = entry.data.get(CONF_CONNECTION_PATH) or ""
+        if path == "dc":
+            label = "Data Center"
+        elif path == "rover":
+            label = "Rover"
+        else:
+            label = "MQTT"
+        return f"{label} ({host})" if host else label
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return rover_ip when known (other endpoint for info)."""
+        entry = self.coordinator._entry
+        rover_ip = entry.data.get(CONF_ROVER_IP)
+        if not rover_ip:
+            return {}
+        return {"rover_ip": rover_ip}
 
 
 class YarboBatterySensor(YarboSensor):

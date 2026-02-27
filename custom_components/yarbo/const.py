@@ -28,6 +28,15 @@ CONF_BROKER_MAC = "broker_mac"
 CONF_ROBOT_NAME = "robot_name"
 CONF_CLOUD_USERNAME = "cloud_username"
 CONF_CLOUD_REFRESH_TOKEN = "cloud_refresh_token"
+# Rover vs DC endpoint selection (issue #50)
+CONF_ALTERNATE_BROKER_HOST = "alternate_broker_host"  # other endpoint for failover
+CONF_CONNECTION_PATH = "connection_path"  # "dc" | "rover"
+CONF_ROVER_IP = "rover_ip"  # rover IP for device info when known
+
+# Endpoint types for discovery
+ENDPOINT_TYPE_DC = "dc"
+ENDPOINT_TYPE_ROVER = "rover"
+ENDPOINT_TYPE_UNKNOWN = "unknown"
 
 # Options keys
 OPT_TELEMETRY_THROTTLE = "telemetry_throttle"

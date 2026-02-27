@@ -21,24 +21,30 @@ except ImportError:  # pragma: no cover
     YarboCloudClient = None
 
 from .const import (
+    CONF_ALTERNATE_BROKER_HOST,
     CONF_BROKER_HOST,
     CONF_BROKER_MAC,
     CONF_BROKER_PORT,
     CONF_CLOUD_REFRESH_TOKEN,
     CONF_CLOUD_USERNAME,
+    CONF_CONNECTION_PATH,
     CONF_ROBOT_NAME,
     CONF_ROBOT_SERIAL,
+    CONF_ROVER_IP,
     DEFAULT_ACTIVITY_PERSONALITY,
     DEFAULT_AUTO_CONTROLLER,
     DEFAULT_BROKER_PORT,
     DEFAULT_CLOUD_ENABLED,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
+    ENDPOINT_TYPE_DC,
+    ENDPOINT_TYPE_ROVER,
     OPT_ACTIVITY_PERSONALITY,
     OPT_AUTO_CONTROLLER,
     OPT_CLOUD_ENABLED,
     OPT_TELEMETRY_THROTTLE,
 )
+from .discovery import YarboEndpoint, async_discover_endpoints
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -75,12 +81,16 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
     - Re-authentication when cloud token expires (async_step_reauth)
     """
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         """Initialize the config flow."""
         self._discovered_host: str | None = None
         self._discovered_mac: str | None = None
+        self._discovered_endpoints: list[YarboEndpoint] = []
+        self._connection_path: str = ""
+        self._alternate_host: str | None = None
+        self._rover_ip: str | None = None
         self._robot_serial: str | None = None
         self._broker_host: str | None = None
         self._broker_port: int = DEFAULT_BROKER_PORT
@@ -88,17 +98,60 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         self._pending_data: dict[str, Any] = {}
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Handle the initial step — manual IP entry."""
+        """Handle the initial step — try discovery first, then manual IP/port if needed."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             self._broker_host = user_input[CONF_BROKER_HOST]
             port = user_input.get(CONF_BROKER_PORT)
             self._broker_port = DEFAULT_BROKER_PORT if port in (None, "") else int(port)
+            # Discover other endpoints (e.g. YARBO hostname); if multiple, show selection
+            self._discovered_endpoints = await async_discover_endpoints(
+                seed_host=self._broker_host,
+                port=self._broker_port,
+            )
+            if len(self._discovered_endpoints) > 1:
+                return await self.async_step_select_endpoint()
+            if self._discovered_endpoints:
+                ep = self._discovered_endpoints[0]
+                self._broker_host = ep.host
+                self._connection_path = ep.endpoint_type
+                self._rover_ip = ep.host if ep.endpoint_type == ENDPOINT_TYPE_ROVER else None
+                self._alternate_host = None
             return await self.async_step_mqtt_test()
 
+        # No user input yet: try python-yarbo discovery (no seed)
+        self._discovered_endpoints = await async_discover_endpoints(
+            seed_host=None,
+            port=DEFAULT_BROKER_PORT,
+        )
+        if len(self._discovered_endpoints) == 0:
+            # No devices found — offer manual IP/port entry
+            return await self.async_step_manual()
+        if len(self._discovered_endpoints) == 1:
+            ep = self._discovered_endpoints[0]
+            self._broker_host = ep.host
+            self._broker_port = ep.port
+            self._connection_path = ep.endpoint_type
+            self._rover_ip = ep.host if ep.endpoint_type == ENDPOINT_TYPE_ROVER else None
+            self._alternate_host = None
+            return await self.async_step_mqtt_test()
+        # Multiple endpoints — show selection
+        return await self.async_step_select_endpoint()
+
+    async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Manual IP/port entry when discovery found no devices."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            self._broker_host = user_input[CONF_BROKER_HOST]
+            port = user_input.get(CONF_BROKER_PORT)
+            self._broker_port = DEFAULT_BROKER_PORT if port in (None, "") else int(port)
+            self._connection_path = ""
+            self._alternate_host = None
+            self._rover_ip = None
+            return await self.async_step_mqtt_test()
         return self.async_show_form(
-            step_id="user",
+            step_id="manual",
             data_schema=STEP_USER_SCHEMA,
             errors=errors,
         )
@@ -137,17 +190,92 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         self._discovered_host = discovery_info.ip
         self._discovered_mac = discovery_info.macaddress
 
+        # Discover all endpoints (this + e.g. YARBO); if multiple, show selection
+        self._discovered_endpoints = await async_discover_endpoints(
+            seed_host=discovery_info.ip,
+            seed_mac=discovery_info.macaddress,
+            port=DEFAULT_BROKER_PORT,
+        )
+        if not self._discovered_endpoints:
+            # Fallback: single endpoint from DHCP (type/recommended from library only)
+            self._discovered_endpoints = [
+                YarboEndpoint(
+                    host=discovery_info.ip,
+                    port=DEFAULT_BROKER_PORT,
+                    mac=discovery_info.macaddress,
+                    endpoint_type=ENDPOINT_TYPE_UNKNOWN,
+                    recommended=False,
+                )
+            ]
+        if len(self._discovered_endpoints) > 1:
+            return await self.async_step_select_endpoint()
+        # Single endpoint
+        ep = self._discovered_endpoints[0]
+        self._broker_host = ep.host
+        self._connection_path = ep.endpoint_type
+        self._rover_ip = ep.host if ep.endpoint_type == ENDPOINT_TYPE_ROVER else None
+        self._alternate_host = None
         return await self.async_step_confirm()
+
+    async def async_step_select_endpoint(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Let user choose which MQTT endpoint to use (DC recommended)."""
+        if user_input is not None:
+            chosen_host = user_input.get("selected_endpoint")
+            chosen: YarboEndpoint | None = None
+            for ep in self._discovered_endpoints:
+                if ep.host == chosen_host:
+                    chosen = ep
+                    break
+            if chosen:
+                self._broker_host = chosen.host
+                self._connection_path = chosen.endpoint_type
+                others = [e for e in self._discovered_endpoints if e.host != chosen.host]
+                self._alternate_host = others[0].host if others else None
+                self._rover_ip = next(
+                    (e.host for e in self._discovered_endpoints if e.endpoint_type == ENDPOINT_TYPE_ROVER),
+                    None,
+                )
+            return await self.async_step_mqtt_test()
+
+        # Build options: DC first and recommended (pre-select)
+        options: dict[str, str] = {}
+        default: str | None = None
+        for ep in self._discovered_endpoints:
+            label = f"{ep.host} — {ep.label}"
+            if ep.recommended:
+                label += " ⭐ Recommended"
+                default = ep.host
+            options[ep.host] = label
+        if default is None and self._discovered_endpoints:
+            default = self._discovered_endpoints[0].host
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    "selected_endpoint",
+                    default=default,
+                ): vol.In(options),
+            }
+        )
+        return self.async_show_form(
+            step_id="select_endpoint",
+            data_schema=schema,
+            description_placeholders={
+                "count": str(len(self._discovered_endpoints)),
+            },
+        )
 
     async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Confirm DHCP-discovered device."""
         if user_input is not None:
-            self._broker_host = self._discovered_host
+            self._broker_host = self._broker_host or self._discovered_host
             return await self.async_step_mqtt_test()
 
         return self.async_show_form(
             step_id="confirm",
-            description_placeholders={"host": self._discovered_host or "unknown"},
+            description_placeholders={"host": self._broker_host or self._discovered_host or "unknown"},
         )
 
     async def async_step_mqtt_test(self, user_input: dict[str, Any] | None = None) -> FlowResult:
@@ -264,6 +392,12 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             }
             if self._discovered_mac:
                 self._pending_data[CONF_BROKER_MAC] = self._discovered_mac
+            if self._connection_path:
+                self._pending_data[CONF_CONNECTION_PATH] = self._connection_path
+            if self._alternate_host:
+                self._pending_data[CONF_ALTERNATE_BROKER_HOST] = self._alternate_host
+            if self._rover_ip:
+                self._pending_data[CONF_ROVER_IP] = self._rover_ip
 
             # Proceed to optional cloud authentication step
             return await self.async_step_cloud()

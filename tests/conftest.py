@@ -43,7 +43,8 @@ from custom_components.yarbo.const import (
 # ---------------------------------------------------------------------------
 
 MOCK_ROBOT_SERIAL = "2440011234567890"
-MOCK_BROKER_HOST = "192.168.1.11"
+# RFC 5737 documentation address; no real private IPs in tests
+MOCK_BROKER_HOST = "192.0.2.1"
 MOCK_BROKER_MAC = "c8:fe:0f:aa:bb:cc"
 MOCK_ROBOT_NAME = "TestBot"
 

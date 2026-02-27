@@ -9,9 +9,24 @@
           "broker_port": "MQTT Port"
         }
       },
+      "manual": {
+        "title": "Enter connection details",
+        "description": "No Yarbo devices were found on the network. Enter the base station IP address and MQTT port manually.",
+        "data": {
+          "broker_host": "Base Station IP Address",
+          "broker_port": "MQTT Port"
+        }
+      },
       "confirm": {
         "title": "Yarbo Discovered",
         "description": "A Yarbo base station was discovered at **{host}**. Proceed to connect?"
+      },
+      "select_endpoint": {
+        "title": "Choose MQTT Endpoint",
+        "description": "We found **{count}** path(s) to your Yarbo mower. Both connect to the same broker — the Data Center path is recommended for reliability.",
+        "data": {
+          "selected_endpoint": "Endpoint"
+        }
       },
       "mqtt_test": {
         "title": "Connecting to Yarbo",
@@ -132,6 +147,9 @@
       },
       "rain_sensor": {
         "name": "Rain Sensor"
+      },
+      "connection": {
+        "name": "Connection"
       },
       "error_code": {
         "name": "Error Code"

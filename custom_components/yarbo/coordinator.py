@@ -12,11 +12,16 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from yarbo import YarboTelemetry
+from yarbo import YarboLocalClient, YarboTelemetry
 from yarbo.exceptions import YarboConnectionError
 
 from .const import (
+    CONF_ALTERNATE_BROKER_HOST,
+    CONF_BROKER_HOST,
+    CONF_BROKER_PORT,
     CONF_ROBOT_NAME,
+    DATA_CLIENT,
+    DEFAULT_BROKER_PORT,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
     HEARTBEAT_TIMEOUT_SECONDS,
@@ -170,12 +175,37 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 _LOGGER.debug("Telemetry loop cancelled")
                 raise
             except YarboConnectionError as err:
-                _LOGGER.warning(
-                    "Yarbo telemetry connection error: %s — retrying in %ds",
-                    err,
-                    TELEMETRY_RETRY_DELAY_SECONDS,
-                )
                 self.last_update_success = False
+                alternate = self._entry.data.get(CONF_ALTERNATE_BROKER_HOST)
+                port = self._entry.data.get(CONF_BROKER_PORT) or DEFAULT_BROKER_PORT
+                if alternate:
+                    _LOGGER.warning(
+                        "Yarbo connection error: %s — failing over to alternate endpoint %s",
+                        err,
+                        alternate,
+                    )
+                    try:
+                        new_client = YarboLocalClient(host=alternate, port=port)
+                        await new_client.connect()
+                        await self.client.disconnect()
+                        self.client = new_client
+                        if DOMAIN in self.hass.data and self._entry.entry_id in self.hass.data[DOMAIN]:
+                            self.hass.data[DOMAIN][self._entry.entry_id][DATA_CLIENT] = new_client
+                        _LOGGER.info("Failover to alternate endpoint %s succeeded", alternate)
+                        continue
+                    except Exception as connect_err:
+                        _LOGGER.warning(
+                            "Failover to %s failed: %s — retrying primary in %ds",
+                            alternate,
+                            connect_err,
+                            TELEMETRY_RETRY_DELAY_SECONDS,
+                        )
+                else:
+                    _LOGGER.warning(
+                        "Yarbo telemetry connection error: %s — retrying in %ds",
+                        err,
+                        TELEMETRY_RETRY_DELAY_SECONDS,
+                    )
                 await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
                 try:
                     await self.client.disconnect()
