@@ -105,7 +105,11 @@ async def _async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    from .repairs import async_delete_controller_lost_issue, async_delete_mqtt_disconnect_issue
+    from .repairs import (
+    async_delete_cloud_token_expired_issue,
+    async_delete_controller_lost_issue,
+    async_delete_mqtt_disconnect_issue,
+)
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
@@ -117,6 +121,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Clean up any active repair issues to prevent orphaned issues
         async_delete_mqtt_disconnect_issue(hass, entry.entry_id)
         async_delete_controller_lost_issue(hass, entry.entry_id)
+        async_delete_cloud_token_expired_issue(hass, entry.entry_id)
         if not hass.data[DOMAIN]:
             hass.data.pop(DOMAIN)
             async_unregister_services(hass)

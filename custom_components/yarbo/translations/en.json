@@ -301,6 +301,21 @@
           "unknown": "An unexpected error occurred while re-acquiring the controller session."
         }
       }
+    },
+    "cloud_token_expired": {
+      "title": "Yarbo cloud session expired",
+      "description": "The Yarbo cloud session for **{name}** has expired (401/403). Re-authenticate to restore cloud features (e.g. firmware version check).",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Re-authenticate cloud",
+            "description": "Your Yarbo cloud token for **{name}** has expired. Press **Submit** to open the re-authentication flow and enter your password again."
+          }
+        },
+        "abort": {
+          "unknown": "Could not start re-authentication flow."
+        }
+      }
     }
   },
   "services": {

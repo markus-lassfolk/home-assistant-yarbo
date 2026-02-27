@@ -45,6 +45,7 @@ from .const import (
     OPT_TELEMETRY_THROTTLE,
 )
 from .discovery import YarboEndpoint, async_discover_endpoints
+from .repairs import async_delete_cloud_token_expired_issue
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -487,6 +488,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                     new_data = dict(reauth_entry.data)
                     new_data[CONF_CLOUD_REFRESH_TOKEN] = refresh_token
                     self.hass.config_entries.async_update_entry(reauth_entry, data=new_data)
+                    async_delete_cloud_token_expired_issue(self.hass, reauth_entry.entry_id)
                     await self.hass.config_entries.async_reload(reauth_entry.entry_id)
                     return self.async_abort(reason="reauth_successful")
                 except Exception as err:
