@@ -128,9 +128,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     try:
-        # Run connect in executor to avoid blocking-call warnings from paho
-        await hass.async_add_executor_job(client.connect_sync)
-        # Note: get_controller() is deferred to first command — not needed for telemetry
+        await client.connect()
     except YarboConnectionError as err:
         await client.disconnect()
         raise ConfigEntryNotReady(f"Cannot connect to Yarbo: {err}") from err
