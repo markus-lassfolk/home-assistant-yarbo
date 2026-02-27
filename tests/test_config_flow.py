@@ -304,7 +304,7 @@ class TestDhcpDiscoveryFlow:
             hostname="yarbo-dc",
         )
         with patch.object(
-            YarboConfigFlow, "_probe_serial_number", return_value=MOCK_ROBOT_SERIAL,
+            YarboConfigFlow, "_probe_robot_identity", return_value=(MOCK_ROBOT_SERIAL, "MyYarbo"),
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN,
@@ -333,8 +333,8 @@ class TestDhcpDiscoveryFlow:
             return_value=mock_client,
         ), patch.object(
             YarboConfigFlow,
-            "_probe_serial_number",
-            return_value=MOCK_ROBOT_SERIAL,
+            "_probe_robot_identity",
+            return_value=(MOCK_ROBOT_SERIAL, "MyYarbo"),
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN,
@@ -379,7 +379,7 @@ class TestDhcpDiscoveryFlow:
             hostname="yarbo-dc",
         )
         with patch.object(
-            YarboConfigFlow, "_probe_serial_number", return_value=MOCK_ROBOT_SERIAL,
+            YarboConfigFlow, "_probe_robot_identity", return_value=(MOCK_ROBOT_SERIAL, "MyYarbo"),
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN,
@@ -414,7 +414,7 @@ class TestDhcpDiscoveryFlow:
             hostname="yarbo-dc",
         )
         with patch.object(
-            YarboConfigFlow, "_probe_serial_number", return_value=MOCK_ROBOT_SERIAL,
+            YarboConfigFlow, "_probe_robot_identity", return_value=(MOCK_ROBOT_SERIAL, "MyYarbo"),
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN,

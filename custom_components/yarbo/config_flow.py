@@ -93,6 +93,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         self._alternate_host: str | None = None
         self._rover_ip: str | None = None
         self._robot_serial: str | None = None
+        self._robot_name: str | None = None
         self._broker_host: str | None = None
         self._broker_port: int = DEFAULT_BROKER_PORT
         self._reconfigure_entry: ConfigEntry | None = None
@@ -165,12 +166,14 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
 
-    async def _probe_serial_number(self, host: str, port: int, timeout: float = 8.0) -> str | None:
-        """Quick MQTT probe to discover the robot serial number.
+    async def _probe_robot_identity(
+        self, host: str, port: int, timeout: float = 8.0
+    ) -> tuple[str | None, str | None]:
+        """Quick MQTT probe to discover the robot serial number and name.
 
         Connects with empty SN (wildcard subscription), waits for first
-        telemetry or heartbeat, extracts SN from topic, then disconnects.
-        Returns None if no message received within timeout.
+        telemetry, extracts SN and bot name, then disconnects.
+        Returns (serial_number, bot_name) — either may be None.
         """
         try:
             client = YarboLocalClient(broker=host, port=port)
@@ -179,15 +182,16 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                 async_gen = client.watch_telemetry()
                 telemetry = await asyncio.wait_for(async_gen.__anext__(), timeout=timeout)
                 sn = telemetry.serial_number if telemetry else None
+                bot_name = telemetry.name if telemetry else None
                 if not sn:
-                    sn = client.serial_number  # May have been set by wildcard discovery
+                    sn = client.serial_number
                 await async_gen.aclose()
-                return sn or None
+                return (sn or None, bot_name or None)
             finally:
                 await client.disconnect()
         except Exception:
-            _LOGGER.debug("SN probe failed for %s:%d", host, port)
-            return None
+            _LOGGER.debug("Robot identity probe failed for %s:%d", host, port)
+            return (None, None)
 
     async def async_step_dhcp(self, discovery_info: dhcp.DhcpServiceInfo) -> FlowResult:
         """Handle DHCP discovery (issue #2).
@@ -204,11 +208,12 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
         # Probe MQTT to discover the robot serial number for unique identification
-        sn = await self._probe_serial_number(
+        sn, bot_name = await self._probe_robot_identity(
             discovery_info.ip, DEFAULT_BROKER_PORT, timeout=8.0
         )
         if sn:
             self._robot_serial = sn
+            self._robot_name = bot_name
             await self.async_set_unique_id(sn)
             self._abort_if_unique_id_configured(
                 updates={CONF_BROKER_HOST: discovery_info.ip}
@@ -346,13 +351,12 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                 return await self.async_step_name()
             return await self.async_step_mqtt_test()
 
-        title = f"Yarbo {self._robot_serial}" if self._robot_serial else "Yarbo"
+        display_name = self._robot_name or self._robot_serial or "unknown"
         return self.async_show_form(
             step_id="confirm",
             description_placeholders={
                 "host": self._broker_host or self._discovered_host or "unknown",
-                "serial": self._robot_serial or "unknown",
-                "title": title,
+                "name": display_name,
             },
         )
 
@@ -469,7 +473,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         if not self._robot_serial:
             return self.async_abort(reason="no_telemetry")
 
-        default_name = f"Yarbo {self._robot_serial[-4:]}"
+        default_name = self._robot_name or f"Yarbo {self._robot_serial[-4:]}"
         # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             # Use robot serial as unique ID and abort if already configured
