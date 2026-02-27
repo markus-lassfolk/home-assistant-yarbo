@@ -16,7 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 
-from .const import DATA_COORDINATOR, DOMAIN
+from .const import CONF_ROBOT_NAME, DATA_COORDINATOR, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -120,12 +120,12 @@ class YarboRepairFlow(RepairsFlow):
 
         # Extract entry_id and get robot name for description placeholder
         issue_id = self.issue_id
-        robot_name = "unknown"
+        robot_name = "Yarbo"
         if issue_id.startswith(f"{ISSUE_CONTROLLER_LOST}_"):
             entry_id = issue_id[len(f"{ISSUE_CONTROLLER_LOST}_") :]
             entry = self.hass.config_entries.async_get_entry(entry_id)
             if entry:
-                robot_name = entry.data.get("robot_name", "unknown")
+                robot_name = entry.data.get(CONF_ROBOT_NAME, "Yarbo")
 
         # Show the confirmation form
         return self.async_show_form(
