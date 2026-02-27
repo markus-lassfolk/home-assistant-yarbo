@@ -129,7 +129,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     try:
         await client.connect()
-        await client.get_controller(timeout=5.0)
+        await client.get_controller()
     except YarboConnectionError as err:
         await client.disconnect()
         raise ConfigEntryNotReady(f"Cannot connect to Yarbo: {err}") from err
