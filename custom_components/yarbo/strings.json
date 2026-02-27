@@ -80,8 +80,7 @@
       "decode_error": "Decode error",
       "cloud_auth_failed": "Cloud authentication failed — check your email and password",
       "cloud_not_available": "Cloud client not available — update python-yarbo"
-    },
-    "flow_title": "Yarbo · {name}"
+    }
   },
   "options": {
     "step": {

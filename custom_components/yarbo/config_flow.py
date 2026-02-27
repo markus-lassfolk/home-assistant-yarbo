@@ -270,14 +270,14 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         if sn:
             self._robot_serial = sn
             self._robot_name = bot_name
-            self.context["title_placeholders"] = {"name": sn}
+            self.context["title_placeholders"] = {"name": f"Yarbo · {sn}"}
             await self.async_set_unique_id(sn)
             self._abort_if_unique_id_configured(
                 updates={CONF_BROKER_HOST: ip}
             )
         else:
             # Fallback: use MAC as unique_id if MQTT probe fails (robot sleeping)
-            self.context["title_placeholders"] = {"name": ip}
+            self.context["title_placeholders"] = {"name": f"Yarbo · {ip}"}
             await self.async_set_unique_id(mac)
             self._abort_if_unique_id_configured(
                 updates={CONF_BROKER_HOST: ip}
