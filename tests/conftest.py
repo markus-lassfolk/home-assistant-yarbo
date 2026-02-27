@@ -6,14 +6,22 @@ import os
 import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
+
 # homeassistant.components.dhcp transitively imports several packages
 # (aiodhcpwatcher, aiodiscover, cached_ipaddress, …) that are not available
 # in the test environment.  Stub the entire dhcp component module so
 # config_flow.py can import dhcp.DhcpServiceInfo without pulling in those deps.
+class _DhcpServiceInfo:
+    """Stub for DhcpServiceInfo with ip, macaddress, hostname."""
+
+    def __init__(self, ip: str = "", macaddress: str = "", hostname: str = "") -> None:
+        self.ip = ip
+        self.macaddress = macaddress
+        self.hostname = hostname
+
+
 _dhcp_mock = MagicMock()
-_dhcp_mock.DhcpServiceInfo = type(
-    "DhcpServiceInfo", (), {"ip": "", "macaddress": "", "hostname": ""}
-)
+_dhcp_mock.DhcpServiceInfo = _DhcpServiceInfo
 sys.modules.setdefault("homeassistant.components.dhcp", _dhcp_mock)
 
 # Disable Sentry/GlitchTip error reporting during tests.
@@ -43,7 +51,8 @@ from custom_components.yarbo.const import (
 # ---------------------------------------------------------------------------
 
 MOCK_ROBOT_SERIAL = "2440011234567890"
-MOCK_BROKER_HOST = "192.168.1.11"
+# RFC 5737 documentation address; no real private IPs in tests
+MOCK_BROKER_HOST = "192.0.2.1"
 MOCK_BROKER_MAC = "c8:fe:0f:aa:bb:cc"
 MOCK_ROBOT_NAME = "TestBot"
 

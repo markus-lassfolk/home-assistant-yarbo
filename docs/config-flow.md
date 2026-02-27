@@ -87,7 +87,7 @@ If the SN from the new IP does not match the stored SN, the flow aborts with err
 ```python
 # config_entry.data (persisted, encrypted)
 {
-    "host": "192.168.1.50",
+    "host": "<broker-ip>",
     "sn": "YB2024XXXXXXXX",
     "dc_sn": "DC2024XXXXXXXX",
     "name": "Yarbo Front Yard",

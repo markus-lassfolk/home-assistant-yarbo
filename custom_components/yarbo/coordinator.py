@@ -12,11 +12,18 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from yarbo import YarboTelemetry
+from yarbo import YarboLocalClient, YarboTelemetry
 from yarbo.exceptions import YarboConnectionError
 
 from .const import (
+    CONF_ALTERNATE_BROKER_HOST,
+    CONF_BROKER_ENDPOINTS,
+    CONF_BROKER_HOST,
+    CONF_BROKER_PORT,
+    CONF_CONNECTION_PATH,
     CONF_ROBOT_NAME,
+    DATA_CLIENT,
+    DEFAULT_BROKER_PORT,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
     HEARTBEAT_TIMEOUT_SECONDS,
@@ -170,12 +177,77 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 _LOGGER.debug("Telemetry loop cancelled")
                 raise
             except YarboConnectionError as err:
-                _LOGGER.warning(
-                    "Yarbo telemetry connection error: %s — retrying in %ds",
-                    err,
-                    TELEMETRY_RETRY_DELAY_SECONDS,
-                )
                 self.last_update_success = False
+                port = self._entry.data.get(CONF_BROKER_PORT) or DEFAULT_BROKER_PORT
+                # Ordered list from discovery: Primary, Secondary, … (like DNS)
+                endpoints = self._entry.data.get(CONF_BROKER_ENDPOINTS)
+                if not endpoints and self._entry.data.get(CONF_ALTERNATE_BROKER_HOST):
+                    endpoints = [
+                        self._entry.data[CONF_BROKER_HOST],
+                        self._entry.data[CONF_ALTERNATE_BROKER_HOST],
+                    ]
+                if not endpoints:
+                    endpoints = [self._entry.data.get(CONF_BROKER_HOST)]
+                endpoints = [h for h in endpoints if h]
+
+                current_host = self._entry.data.get(CONF_BROKER_HOST)
+                try:
+                    idx = endpoints.index(current_host)
+                except (ValueError, TypeError):
+                    # Not found — start from index -1 so next_idx wraps to 0 (Primary)
+                    idx = -1
+                next_idx = (idx + 1) % len(endpoints) if len(endpoints) > 1 else idx
+                next_host = endpoints[next_idx] if endpoints else None
+
+                if next_host and next_host != current_host and len(endpoints) > 1:
+                    _LOGGER.warning(
+                        "Yarbo connection error: %s — failing over to %s",
+                        err,
+                        next_host,
+                    )
+                    try:
+                        new_client = YarboLocalClient(host=next_host, port=port)
+                        # Acquire command_lock to prevent commands in-flight during swap
+                        async with self.command_lock:
+                            await new_client.connect()
+                            old_client = self.client
+                            self.client = new_client
+                            entry_data = self.hass.data.get(DOMAIN, {})
+                            if self._entry.entry_id in entry_data:
+                                entry_data[self._entry.entry_id][DATA_CLIENT] = new_client
+                            # Persist current host so next failover uses it
+                            new_data = dict(self._entry.data)
+                            new_data[CONF_BROKER_HOST] = next_host
+                            # Update connection path: swap current label on failover
+                            current_path = self._entry.data.get(CONF_CONNECTION_PATH, "")
+                            if current_path == "dc":
+                                new_data[CONF_CONNECTION_PATH] = "rover"
+                            elif current_path == "rover":
+                                new_data[CONF_CONNECTION_PATH] = "dc"
+                            self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+                            # Disconnect old client; suppress errors to avoid leaking
+                            with contextlib.suppress(Exception):
+                                await old_client.disconnect()
+                        # Re-acquire controller on failover (matches async_setup_entry)
+                        try:
+                            await new_client.get_controller(timeout=5.0)
+                        except Exception as ctrl_err:
+                            _LOGGER.warning("Failover controller acquisition failed: %s", ctrl_err)
+                        _LOGGER.info("Failover to %s succeeded", next_host)
+                        continue
+                    except Exception as connect_err:
+                        _LOGGER.warning(
+                            "Failover to %s failed: %s — retrying current in %ds",
+                            next_host,
+                            connect_err,
+                            TELEMETRY_RETRY_DELAY_SECONDS,
+                        )
+                else:
+                    _LOGGER.warning(
+                        "Yarbo telemetry connection error: %s — retrying in %ds",
+                        err,
+                        TELEMETRY_RETRY_DELAY_SECONDS,
+                    )
                 await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
                 try:
                     await self.client.disconnect()

@@ -9,9 +9,24 @@
           "broker_port": "MQTT Port"
         }
       },
+      "manual": {
+        "title": "Enter connection details",
+        "description": "No Yarbo devices were found on the network. Enter the base station IP address and MQTT port manually.",
+        "data": {
+          "broker_host": "Base Station IP Address",
+          "broker_port": "MQTT Port"
+        }
+      },
       "confirm": {
         "title": "Yarbo Discovered",
         "description": "A Yarbo base station was discovered at **{host}**. Proceed to connect?"
+      },
+      "select_endpoint": {
+        "title": "Choose MQTT Endpoint",
+        "description": "We found **{count}** path(s) to your Yarbo mower (order from discovery: Primary, then Secondary). Both connect to the same broker. Failover will try the next in this order when the current one is unavailable.",
+        "data": {
+          "selected_endpoint": "Endpoint"
+        }
       },
       "mqtt_test": {
         "title": "Connecting to Yarbo",
@@ -71,7 +86,7 @@
     "step": {
       "init": {
         "title": "Yarbo Options",
-        "description": "Configure integration behaviour. Changes take effect after reload.",
+        "description": "Configure integration behaviour. Changes take effect immediately (no restart required).",
         "data": {
           "telemetry_throttle": "Telemetry update interval (1–10 seconds)",
           "auto_controller": "Auto-acquire controller before commands",
@@ -132,6 +147,9 @@
       },
       "rain_sensor": {
         "name": "Rain Sensor"
+      },
+      "connection": {
+        "name": "Connection"
       },
       "error_code": {
         "name": "Error Code"
@@ -281,6 +299,20 @@
         "abort": {
           "cannot_connect": "Could not re-acquire the controller session. Check that the Yarbo base station is reachable and try again.",
           "unknown": "An unexpected error occurred while re-acquiring the controller session."
+        }
+      }
+    },
+    "cloud_token_expired": {
+      "title": "Yarbo cloud session expired",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Re-authenticate cloud",
+            "description": "Your Yarbo cloud token for **{name}** has expired. Press **Submit** to open the re-authentication flow and enter your password again."
+          }
+        },
+        "abort": {
+          "unknown": "Could not start re-authentication flow."
         }
       }
     }

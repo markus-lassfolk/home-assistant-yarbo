@@ -1,9 +1,9 @@
-"""Repair issue helpers for Yarbo integration.
+"""Repair issue helpers for Yarbo integration (issue #27).
 
-Two actionable repair conditions are supported:
-
-- mqtt_disconnect: no telemetry received for > 60s (base station unreachable)
-- controller_lost: a command failed because the controller session was stolen
+Three repair conditions:
+- mqtt_disconnect: no telemetry > 60s (base station unreachable)
+- controller_lost: command failed (controller session stolen)
+- cloud_token_expired: cloud API 401/403 → triggers reauth flow
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.repairs import RepairsFlow
+from homeassistant.config_entries import SOURCE_REAUTH
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
 # Issue ID constants — combined with entry_id to create a unique key per device
 ISSUE_MQTT_DISCONNECT = "mqtt_disconnect"
 ISSUE_CONTROLLER_LOST = "controller_lost"
+ISSUE_CLOUD_TOKEN_EXPIRED = "cloud_token_expired"
 
 
 # ---------------------------------------------------------------------------
@@ -80,6 +82,32 @@ def async_delete_controller_lost_issue(hass: HomeAssistant, entry_id: str) -> No
 
 
 # ---------------------------------------------------------------------------
+# Cloud token expired (401/403 from cloud API) — triggers reauth
+# ---------------------------------------------------------------------------
+
+
+def async_create_cloud_token_expired_issue(hass: HomeAssistant, entry_id: str, name: str) -> None:
+    """Create a WARNING repair issue when cloud token expired (401/403).
+
+    Fixable: opens the reauth flow to refresh the token.
+    """
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        f"{ISSUE_CLOUD_TOKEN_EXPIRED}_{entry_id}",
+        is_fixable=True,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=ISSUE_CLOUD_TOKEN_EXPIRED,
+        translation_placeholders={"name": name},
+    )
+
+
+def async_delete_cloud_token_expired_issue(hass: HomeAssistant, entry_id: str) -> None:
+    """Remove the cloud token expired issue after reauth succeeds."""
+    ir.async_delete_issue(hass, DOMAIN, f"{ISSUE_CLOUD_TOKEN_EXPIRED}_{entry_id}")
+
+
+# ---------------------------------------------------------------------------
 # Repair flow handler for fixable issues
 # ---------------------------------------------------------------------------
 
@@ -92,42 +120,54 @@ class YarboRepairFlow(RepairsFlow):
         return await self.async_step_confirm()
 
     async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Handle the confirm step to re-acquire the controller."""
+        """Handle confirm: re-acquire controller or trigger cloud reauth."""
         if user_input is not None:
-            # Extract entry_id from the issue_id (format: "controller_lost_{entry_id}")
             issue_id = self.issue_id
+
+            # Cloud token expired → start reauth flow and close repair
+            if issue_id.startswith(f"{ISSUE_CLOUD_TOKEN_EXPIRED}_"):
+                entry_id = issue_id[len(f"{ISSUE_CLOUD_TOKEN_EXPIRED}_") :]
+                entry = self.hass.config_entries.async_get_entry(entry_id)
+                if entry:
+                    await self.hass.config_entries.flow.async_init(
+                        DOMAIN,
+                        context={"source": SOURCE_REAUTH, "entry_id": entry_id},
+                        data=entry.data,
+                    )
+                    return self.async_create_entry(data={})
+                return self.async_abort(reason="unknown")
+
+            # Controller lost → re-acquire controller
             if issue_id.startswith(f"{ISSUE_CONTROLLER_LOST}_"):
                 entry_id = issue_id[len(f"{ISSUE_CONTROLLER_LOST}_") :]
-
-                # Get the coordinator and attempt to re-acquire the controller
                 if DOMAIN in self.hass.data and entry_id in self.hass.data[DOMAIN]:
                     coordinator: YarboDataCoordinator = self.hass.data[DOMAIN][entry_id][
                         DATA_COORDINATOR
                     ]
-
                     async with coordinator.command_lock:
                         try:
-                            # Re-acquire the controller
                             await coordinator.client.get_controller(timeout=5.0)
-                            # Clear the repair issue
                             coordinator.resolve_controller_lost()
                         except Exception as err:
                             _LOGGER.warning("Failed to re-acquire Yarbo controller: %s", err)
                             return self.async_abort(reason="cannot_connect")
                     return self.async_create_entry(data={})
+                return self.async_abort(reason="unknown")
 
-            return self.async_abort(reason="unknown")
-
-        # Extract entry_id and get robot name for description placeholder
+        # Show form: get robot name for placeholder
         issue_id = self.issue_id
         robot_name = "Yarbo"
         if issue_id.startswith(f"{ISSUE_CONTROLLER_LOST}_"):
             entry_id = issue_id[len(f"{ISSUE_CONTROLLER_LOST}_") :]
+        elif issue_id.startswith(f"{ISSUE_CLOUD_TOKEN_EXPIRED}_"):
+            entry_id = issue_id[len(f"{ISSUE_CLOUD_TOKEN_EXPIRED}_") :]
+        else:
+            entry_id = None
+        if entry_id:
             entry = self.hass.config_entries.async_get_entry(entry_id)
             if entry:
                 robot_name = entry.data.get(CONF_ROBOT_NAME, "Yarbo")
 
-        # Show the confirmation form
         return self.async_show_form(
             step_id="confirm",
             description_placeholders={"name": robot_name},

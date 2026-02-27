@@ -41,7 +41,7 @@ class TestCloudConfigFlowStep:
         flow._pending_data = {
             CONF_ROBOT_NAME: "Yarbo Test",
             CONF_ROBOT_SERIAL: "TEST1234",
-            "broker_host": "192.168.1.10",
+            "broker_host": "192.0.2.1",
             "broker_port": 1883,
         }
         flow.async_create_entry = MagicMock(return_value={"type": "create_entry"})
@@ -275,6 +275,7 @@ class TestFirmwareUpdate:
         coordinator.data = None
 
         entity = YarboFirmwareUpdate(coordinator)
+        entity.hass = MagicMock()  # type: ignore[attr-defined]
 
         mock_client = _make_mock_cloud_client()
         mock_client.get_latest_version = AsyncMock(

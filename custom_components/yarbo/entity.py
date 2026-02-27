@@ -7,7 +7,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from yarbo import YarboTelemetry
 
-from .const import CONF_ROBOT_NAME, CONF_ROBOT_SERIAL, DOMAIN
+from .const import CONF_BROKER_HOST, CONF_ROBOT_NAME, CONF_ROBOT_SERIAL, DOMAIN
 from .coordinator import YarboDataCoordinator
 
 
@@ -50,12 +50,14 @@ class YarboEntity(CoordinatorEntity[YarboDataCoordinator]):
         else:
             raw = {}
 
+        broker_host = entry.data.get(CONF_BROKER_HOST)
         return DeviceInfo(
             identifiers={(DOMAIN, robot_sn)},
             name=robot_name,
             manufacturer="Yarbo (Hytech)",
             model="S1",
             sw_version=raw.get("firmware_version") if isinstance(raw, dict) else None,
+            configuration_url=f"http://{broker_host}" if broker_host else None,
         )
 
     @property

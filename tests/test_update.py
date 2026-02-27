@@ -35,6 +35,7 @@ def _make_entity(coordinator: MagicMock) -> YarboFirmwareUpdate:
     with patch.object(YarboFirmwareUpdate, "__init__", lambda self, c: None):
         entity: YarboFirmwareUpdate = object.__new__(YarboFirmwareUpdate)
     entity.coordinator = coordinator  # type: ignore[attr-defined]
+    entity.hass = MagicMock()  # type: ignore[attr-defined]
     return entity
 
 

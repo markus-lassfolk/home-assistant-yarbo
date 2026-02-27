@@ -12,7 +12,13 @@ from homeassistant.helpers import device_registry as dr
 
 from yarbo import YarboLightState
 
-from .const import DATA_CLIENT, DATA_COORDINATOR, DOMAIN
+from .const import (
+    DATA_CLIENT,
+    DATA_COORDINATOR,
+    DEFAULT_AUTO_CONTROLLER,
+    DOMAIN,
+    OPT_AUTO_CONTROLLER,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,6 +99,11 @@ async def _acquire_controller(client: Any, coordinator: Any) -> None:
     coordinator.resolve_controller_lost()
 
 
+def _should_auto_acquire_controller(coordinator: Any) -> bool:
+    """Return True if options say to auto-acquire controller before commands (#26)."""
+    return coordinator.entry.options.get(OPT_AUTO_CONTROLLER, DEFAULT_AUTO_CONTROLLER)
+
+
 def async_register_services(hass: HomeAssistant) -> None:
     """Register all Yarbo services."""
 
@@ -106,7 +117,8 @@ def async_register_services(hass: HomeAssistant) -> None:
         )
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
-            await _acquire_controller(client, coordinator)
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
             await client.publish_raw(command, payload)
 
     async def handle_start_plan(call: ServiceCall) -> None:
@@ -116,28 +128,32 @@ def async_register_services(hass: HomeAssistant) -> None:
         _LOGGER.debug("yarbo.start_plan: device=%s plan_id=%s", device_id, plan_id)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
-            await _acquire_controller(client, coordinator)
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
             await client.publish_command("start_plan", {"planId": plan_id})
 
     async def handle_pause(call: ServiceCall) -> None:
         """Handle yarbo.pause — pause current job."""
         client, coordinator = _get_client_and_coordinator(hass, call.data["device_id"])
         async with coordinator.command_lock:
-            await _acquire_controller(client, coordinator)
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
             await client.publish_command("planning_paused", {})
 
     async def handle_resume(call: ServiceCall) -> None:
         """Handle yarbo.resume — resume paused job."""
         client, coordinator = _get_client_and_coordinator(hass, call.data["device_id"])
         async with coordinator.command_lock:
-            await _acquire_controller(client, coordinator)
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
             await client.publish_command("resume", {})
 
     async def handle_return_to_dock(call: ServiceCall) -> None:
         """Handle yarbo.return_to_dock — send robot to dock."""
         client, coordinator = _get_client_and_coordinator(hass, call.data["device_id"])
         async with coordinator.command_lock:
-            await _acquire_controller(client, coordinator)
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
             await client.publish_command("cmd_recharge", {})
 
     async def handle_set_lights(call: ServiceCall) -> None:
@@ -147,7 +163,8 @@ def async_register_services(hass: HomeAssistant) -> None:
         _LOGGER.debug("yarbo.set_lights: device=%s brightness=%s", device_id, brightness)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
-            await _acquire_controller(client, coordinator)
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
             await client.set_lights(
                 YarboLightState(
                     led_head=call.data.get("led_head", brightness),
@@ -175,7 +192,8 @@ def async_register_services(hass: HomeAssistant) -> None:
         _LOGGER.debug("yarbo.set_chute_velocity: device=%s velocity=%d", device_id, velocity)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
-            await _acquire_controller(client, coordinator)
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
             await client.set_chute(vel=velocity)
 
     services = {

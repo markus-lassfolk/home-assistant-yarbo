@@ -21,24 +21,32 @@ except ImportError:  # pragma: no cover
     YarboCloudClient = None
 
 from .const import (
+    CONF_ALTERNATE_BROKER_HOST,
+    CONF_BROKER_ENDPOINTS,
     CONF_BROKER_HOST,
     CONF_BROKER_MAC,
     CONF_BROKER_PORT,
     CONF_CLOUD_REFRESH_TOKEN,
     CONF_CLOUD_USERNAME,
+    CONF_CONNECTION_PATH,
     CONF_ROBOT_NAME,
     CONF_ROBOT_SERIAL,
+    CONF_ROVER_IP,
     DEFAULT_ACTIVITY_PERSONALITY,
     DEFAULT_AUTO_CONTROLLER,
     DEFAULT_BROKER_PORT,
     DEFAULT_CLOUD_ENABLED,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
+    ENDPOINT_TYPE_ROVER,
+    ENDPOINT_TYPE_UNKNOWN,
     OPT_ACTIVITY_PERSONALITY,
     OPT_AUTO_CONTROLLER,
     OPT_CLOUD_ENABLED,
     OPT_TELEMETRY_THROTTLE,
 )
+from .discovery import YarboEndpoint, async_discover_endpoints
+from .repairs import async_delete_cloud_token_expired_issue
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,47 +75,101 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Yarbo.
 
     Supports:
-    - Manual IP entry (async_step_user)
-    - DHCP auto-discovery (async_step_dhcp)
-    - MQTT connection validation (async_step_mqtt_test)
+    - Manual IP entry (async_step_user) + MQTT validation (async_step_mqtt_test) — see #1
+    - DHCP auto-discovery (async_step_dhcp) — see #2
     - Optional cloud authentication (async_step_cloud)
     - Reconfigure flow (async_step_reconfigure)
     - Re-authentication when cloud token expires (async_step_reauth)
     """
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         """Initialize the config flow."""
         self._discovered_host: str | None = None
         self._discovered_mac: str | None = None
+        self._discovered_endpoints: list[YarboEndpoint] = []
+        self._connection_path: str = ""
+        self._alternate_host: str | None = None
+        self._rover_ip: str | None = None
         self._robot_serial: str | None = None
         self._broker_host: str | None = None
         self._broker_port: int = DEFAULT_BROKER_PORT
         self._reconfigure_entry: ConfigEntry | None = None
         self._pending_data: dict[str, Any] = {}
+        # Ordered list from python-yarbo discovery (Primary first, then Secondary, ...)
+        self._broker_endpoints_ordered: list[str] = []
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Handle the initial step — manual IP entry."""
-        errors: dict[str, str] = {}
-
+        """Handle the initial step — try discovery first, then manual IP/port if needed."""
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             self._broker_host = user_input[CONF_BROKER_HOST]
             port = user_input.get(CONF_BROKER_PORT)
             self._broker_port = DEFAULT_BROKER_PORT if port in (None, "") else int(port)
+            # Discover other endpoints (e.g. YARBO hostname); if multiple, show selection
+            self._discovered_endpoints = await async_discover_endpoints(
+                seed_host=self._broker_host,
+                port=self._broker_port,
+            )
+            if len(self._discovered_endpoints) > 1:
+                return await self.async_step_select_endpoint()
+            if self._discovered_endpoints:
+                ep = self._discovered_endpoints[0]
+                self._broker_host = ep.host
+                self._broker_port = ep.port
+                self._connection_path = ep.endpoint_type
+                self._rover_ip = ep.host if ep.endpoint_type == ENDPOINT_TYPE_ROVER else None
+                self._alternate_host = None
+                self._broker_endpoints_ordered = [e.host for e in self._discovered_endpoints]
             return await self.async_step_mqtt_test()
 
+        # No user input yet: try python-yarbo discovery (no seed)
+        self._discovered_endpoints = await async_discover_endpoints(
+            seed_host=None,
+            port=DEFAULT_BROKER_PORT,
+        )
+        if len(self._discovered_endpoints) == 0:
+            # No devices found — offer manual IP/port entry
+            return await self.async_step_manual()
+        if len(self._discovered_endpoints) == 1:
+            ep = self._discovered_endpoints[0]
+            self._broker_host = ep.host
+            self._broker_port = ep.port
+            self._connection_path = ep.endpoint_type
+            self._rover_ip = ep.host if ep.endpoint_type == ENDPOINT_TYPE_ROVER else None
+            self._alternate_host = None
+            self._broker_endpoints_ordered = [ep.host]
+            return await self.async_step_mqtt_test()
+        # Multiple endpoints — preserve library order (Primary, Secondary, ...)
+        self._broker_endpoints_ordered = [ep.host for ep in self._discovered_endpoints]
+        return await self.async_step_select_endpoint()
+
+    async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Manual IP/port entry when discovery found no devices."""
+        errors: dict[str, str] = {}
+        # Defensive: HA may call async_step_user with form data in edge cases
+        if user_input is not None:
+            self._broker_host = user_input[CONF_BROKER_HOST]
+            port = user_input.get(CONF_BROKER_PORT)
+            self._broker_port = DEFAULT_BROKER_PORT if port in (None, "") else int(port)
+            self._connection_path = ""
+            self._alternate_host = None
+            self._rover_ip = None
+            self._broker_endpoints_ordered = [self._broker_host]
+            return await self.async_step_mqtt_test()
         return self.async_show_form(
-            step_id="user",
+            step_id="manual",
             data_schema=STEP_USER_SCHEMA,
             errors=errors,
         )
 
     async def async_step_dhcp(self, discovery_info: dhcp.DhcpServiceInfo) -> FlowResult:
-        """Handle DHCP discovery.
+        """Handle DHCP discovery (issue #2).
 
         Triggered when a device with MAC OUI C8:FE:0F:* appears on the network.
-        This is the Yarbo Data Center (base station).
+        Stores IP/MAC, shows confirm form; on confirm runs MQTT validation.
+        If same MAC gets new IP (lease change), reconfigures broker_host.
         """
         _LOGGER.debug(
             "DHCP discovery: IP=%s MAC=%s hostname=%s",
@@ -137,17 +199,103 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         self._discovered_host = discovery_info.ip
         self._discovered_mac = discovery_info.macaddress
 
+        # Discover all endpoints (this + e.g. YARBO); if multiple, show selection
+        self._discovered_endpoints = await async_discover_endpoints(
+            seed_host=discovery_info.ip,
+            seed_mac=discovery_info.macaddress,
+            port=DEFAULT_BROKER_PORT,
+        )
+        if not self._discovered_endpoints:
+            # Fallback: single endpoint from DHCP (type/recommended from library only)
+            self._discovered_endpoints = [
+                YarboEndpoint(
+                    host=discovery_info.ip,
+                    port=DEFAULT_BROKER_PORT,
+                    mac=discovery_info.macaddress,
+                    endpoint_type=ENDPOINT_TYPE_UNKNOWN,
+                    recommended=False,
+                )
+            ]
+
+        if len(self._discovered_endpoints) > 1:
+            self._broker_endpoints_ordered = [ep.host for ep in self._discovered_endpoints]
+            return await self.async_step_select_endpoint()
+
+        # Single endpoint
+        ep = self._discovered_endpoints[0]
+        self._broker_host = ep.host
+        self._broker_port = ep.port
+        self._connection_path = ep.endpoint_type
+        self._rover_ip = ep.host if ep.endpoint_type == ENDPOINT_TYPE_ROVER else None
+        self._alternate_host = None
+        self._broker_endpoints_ordered = [ep.host]
         return await self.async_step_confirm()
+
+    async def async_step_select_endpoint(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Let user choose initial endpoint. Order is from python-yarbo (Primary, Secondary)."""
+        # Defensive: HA may call async_step_user with form data in edge cases
+        if user_input is not None:
+            chosen_host = user_input.get("selected_endpoint")
+            chosen: YarboEndpoint | None = None
+            for ep in self._discovered_endpoints:
+                if ep.host == chosen_host:
+                    chosen = ep
+                    break
+            if chosen:
+                self._broker_host = chosen.host
+                self._broker_port = chosen.port
+                self._connection_path = chosen.endpoint_type
+                others = [e for e in self._discovered_endpoints if e.host != chosen.host]
+                self._alternate_host = others[0].host if others else None
+                self._rover_ip = next(
+                    (
+                        e.host
+                        for e in self._discovered_endpoints
+                        if e.endpoint_type == ENDPOINT_TYPE_ROVER
+                    ),
+                    None,
+                )
+                # Keep discovery order for failover (Primary → Secondary → Primary …)
+                self._broker_endpoints_ordered = [ep.host for ep in self._discovered_endpoints]
+            return await self.async_step_mqtt_test()
+
+        # Build options in library order; label first as Primary, second as Secondary (like DNS)
+        options: dict[str, str] = {}
+        for i, ep in enumerate(self._discovered_endpoints):
+            role = "Primary" if i == 0 else "Secondary" if i == 1 else f"Endpoint {i + 1}"
+            options[ep.host] = f"{ep.host} — {ep.label} ({role})"
+        default = self._discovered_endpoints[0].host if self._discovered_endpoints else None
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    "selected_endpoint",
+                    default=default,
+                ): vol.In(options),
+            }
+        )
+        return self.async_show_form(
+            step_id="select_endpoint",
+            data_schema=schema,
+            description_placeholders={
+                "count": str(len(self._discovered_endpoints)),
+            },
+        )
 
     async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Confirm DHCP-discovered device."""
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
-            self._broker_host = self._discovered_host
+            self._broker_host = self._broker_host or self._discovered_host
             return await self.async_step_mqtt_test()
 
         return self.async_show_form(
             step_id="confirm",
-            description_placeholders={"host": self._discovered_host or "unknown"},
+            description_placeholders={
+                "host": self._broker_host or self._discovered_host or "unknown"
+            },
         )
 
     async def async_step_mqtt_test(self, user_input: dict[str, Any] | None = None) -> FlowResult:
@@ -200,6 +348,19 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
             data = dict(self._reconfigure_entry.data)
             data[CONF_BROKER_HOST] = self._broker_host
+            if self._broker_endpoints_ordered:
+                data[CONF_BROKER_ENDPOINTS] = self._broker_endpoints_ordered
+            else:
+                # Preserve existing endpoints, updating the primary host
+                existing = list(data.get(CONF_BROKER_ENDPOINTS, []))
+                old_host = self._reconfigure_entry.data.get(CONF_BROKER_HOST)
+                if old_host in existing:
+                    existing[existing.index(old_host)] = self._broker_host
+                elif existing:
+                    existing[0] = self._broker_host
+                else:
+                    existing = [self._broker_host]
+                data[CONF_BROKER_ENDPOINTS] = existing
             data[CONF_BROKER_PORT] = self._broker_port
             if self._discovered_mac:
                 data[CONF_BROKER_MAC] = self._discovered_mac
@@ -218,6 +379,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         if self._reconfigure_entry is None:
             return self.async_abort(reason="reconfigure_failed")
 
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             self._broker_host = user_input[CONF_BROKER_HOST]
             port = user_input.get(CONF_BROKER_PORT)
@@ -250,6 +412,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="no_telemetry")
 
         default_name = f"Yarbo {self._robot_serial[-4:]}"
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             # Use robot serial as unique ID and abort if already configured
             await self.async_set_unique_id(self._robot_serial)
@@ -264,6 +427,17 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             }
             if self._discovered_mac:
                 self._pending_data[CONF_BROKER_MAC] = self._discovered_mac
+            if self._connection_path:
+                self._pending_data[CONF_CONNECTION_PATH] = self._connection_path
+            if self._alternate_host:
+                self._pending_data[CONF_ALTERNATE_BROKER_HOST] = self._alternate_host
+            if self._rover_ip:
+                self._pending_data[CONF_ROVER_IP] = self._rover_ip
+            # Ordered list from discovery for Primary/Secondary failover (library order)
+            endpoints_ordered = getattr(self, "_broker_endpoints_ordered", None) or (
+                [self._broker_host] + ([self._alternate_host] if self._alternate_host else [])
+            )
+            self._pending_data[CONF_BROKER_ENDPOINTS] = endpoints_ordered
 
             # Proceed to optional cloud authentication step
             return await self.async_step_cloud()
@@ -284,6 +458,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         """
         errors: dict[str, str] = {}
 
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             username = (user_input.get(CONF_CLOUD_USERNAME) or "").strip()
             password = (user_input.get("cloud_password") or "").strip()
@@ -341,6 +516,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         reauth_entry = self._get_reauth_entry()
         username = reauth_entry.data.get(CONF_CLOUD_USERNAME, "")
 
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             password = user_input.get("cloud_password", "")
             if YarboCloudClient is None:
@@ -353,6 +529,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                     new_data = dict(reauth_entry.data)
                     new_data[CONF_CLOUD_REFRESH_TOKEN] = refresh_token
                     self.hass.config_entries.async_update_entry(reauth_entry, data=new_data)
+                    async_delete_cloud_token_expired_issue(self.hass, reauth_entry.entry_id)
                     await self.hass.config_entries.async_reload(reauth_entry.entry_id)
                     return self.async_abort(reason="reauth_successful")
                 except Exception as err:
@@ -376,13 +553,10 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class YarboOptionsFlow(OptionsFlow):
-    """Handle options for the Yarbo integration.
+    """Handle options for the Yarbo integration (issue #26).
 
-    Options:
-    - telemetry_throttle: debounce interval (seconds)
-    - auto_controller: auto-acquire controller before commands
-    - cloud_enabled: enable cloud REST features
-    - activity_personality: fun personality descriptions (boolean toggle)
+    Options: telemetry_throttle (float, 1.0s default), auto_controller (bool),
+    cloud_enabled (bool), activity_personality (bool). Applied without restart.
     """
 
     def __init__(self, config_entry: ConfigEntry) -> None:
@@ -391,6 +565,7 @@ class YarboOptionsFlow(OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage options."""
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
