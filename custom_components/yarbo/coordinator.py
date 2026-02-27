@@ -138,6 +138,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         # watchdog starts with a clean slate and re-raises if needed.
         async_delete_mqtt_disconnect_issue(self.hass, self._entry.entry_id)
         self._issue_active = False
+        # Reset any stale controller_lost issue from before a restart
+        async_delete_controller_lost_issue(self.hass, self._entry.entry_id)
+        self._controller_lost_active = False
 
         if self._telemetry_task is None:
             self._telemetry_task = asyncio.create_task(self._telemetry_loop())
