@@ -8,6 +8,7 @@ Two actionable repair conditions are supported:
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.repairs import RepairsFlow
@@ -16,6 +17,8 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import issue_registry as ir
 
 from .const import DATA_COORDINATOR, DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from .coordinator import YarboDataCoordinator
@@ -102,15 +105,16 @@ class YarboRepairFlow(RepairsFlow):
                         DATA_COORDINATOR
                     ]
 
-                    try:
-                        # Re-acquire the controller
-                        await coordinator.client.get_controller(timeout=5.0)
-                        # Clear the repair issue
-                        coordinator.resolve_controller_lost()
-                        return self.async_create_entry(data={})
-                    except Exception:
-                        # If re-acquisition fails, show an error
-                        return self.async_abort(reason="cannot_connect")
+                    async with coordinator.command_lock:
+                        try:
+                            # Re-acquire the controller
+                            await coordinator.client.get_controller(timeout=5.0)
+                            # Clear the repair issue
+                            coordinator.resolve_controller_lost()
+                        except Exception as err:
+                            _LOGGER.warning("Failed to re-acquire Yarbo controller: %s", err)
+                            return self.async_abort(reason="cannot_connect")
+                    return self.async_create_entry(data={})
 
             return self.async_abort(reason="unknown")
 

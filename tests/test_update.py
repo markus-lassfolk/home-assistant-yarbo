@@ -22,6 +22,7 @@ def _make_coordinator(data: Any = None, options: dict | None = None) -> MagicMoc
     entry.data = {"robot_serial": MOCK_ROBOT_SERIAL, "robot_name": "TestBot"}
     entry.options = options or {}
     coordinator._entry = entry
+    coordinator.entry = entry
     return coordinator
 
 
@@ -132,12 +133,12 @@ class TestEntityMetadata:
     used at runtime.
     """
 
-    def test_entity_category_is_config(self) -> None:
+    def test_entity_category_is_diagnostic(self) -> None:
         from homeassistant.helpers.entity import EntityCategory
 
         # HA metaclass stores the value at __attr_entity_category
         stored = YarboFirmwareUpdate.__dict__.get("__attr_entity_category")
-        assert stored == EntityCategory.CONFIG
+        assert stored == EntityCategory.DIAGNOSTIC
 
     def test_no_install_feature(self) -> None:
         from homeassistant.components.update import UpdateEntityFeature

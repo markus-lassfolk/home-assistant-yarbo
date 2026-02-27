@@ -45,7 +45,7 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
     """
 
     _attr_translation_key = "firmware"
-    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     # No INSTALL feature — OTA is triggered via the robot's own update mechanism
     _attr_supported_features = UpdateEntityFeature(0)
     _attr_auto_update = False
@@ -104,7 +104,7 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
         or when the cloud has not yet reported a version.
         Populated by coordinator.latest_firmware_version once cloud auth is set up.
         """
-        cloud_enabled: bool = self.coordinator._entry.options.get(
+        cloud_enabled: bool = self.coordinator.entry.options.get(
             OPT_CLOUD_ENABLED, DEFAULT_CLOUD_ENABLED
         )
         if not cloud_enabled:

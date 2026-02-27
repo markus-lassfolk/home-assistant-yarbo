@@ -123,12 +123,21 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         async_delete_controller_lost_issue(self.hass, self._entry.entry_id)
         self._controller_lost_active = False
 
+    @property
+    def entry(self) -> ConfigEntry:
+        """Return the config entry (public accessor)."""
+        return self._entry
+
     async def _async_setup(self) -> None:
         """Start the telemetry listener task."""
-        # Clean up legacy telemetry_timeout issue from versions before the rename
         from homeassistant.helpers import issue_registry as ir
 
+        # Clean up legacy telemetry_timeout issue from versions before the rename
         ir.async_delete_issue(self.hass, DOMAIN, f"telemetry_timeout_{self._entry.entry_id}")
+        # Reset any stale mqtt_disconnect issue from before a restart so the
+        # watchdog starts with a clean slate and re-raises if needed.
+        async_delete_mqtt_disconnect_issue(self.hass, self._entry.entry_id)
+        self._issue_active = False
 
         if self._telemetry_task is None:
             self._telemetry_task = asyncio.create_task(self._telemetry_loop())

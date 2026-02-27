@@ -246,13 +246,12 @@
             "title": "Re-acquire controller",
             "description": "The Yarbo app or another client has taken the controller session for **{name}**, preventing Home Assistant from sending commands.\n\nPress **Submit** to re-acquire the controller session."
           }
+        },
+        "abort": {
+          "cannot_connect": "Could not re-acquire the controller session. Check that the Yarbo base station is reachable and try again.",
+          "unknown": "An unexpected error occurred while re-acquiring the controller session."
         }
-      },
-      "description": "The Yarbo app or another client has taken the controller session for **{name}**. Home Assistant cannot send commands until the session is re-acquired.\n\nUse the **Fix** button to re-acquire the controller, or open the Yarbo app and close it to release the session."
-    },
-    "cloud_token_expired": {
-      "title": "Yarbo cloud authentication expired",
-      "description": "The cloud authentication token for **{name}** has expired (HTTP 401/403). Cloud features such as firmware version checks are unavailable.\n\n**To resolve:**\n1. Go to **Settings → Devices & Services → Yarbo**.\n2. Select **Reconfigure** and re-enter your Yarbo cloud credentials.\n\nLocal MQTT control is not affected."
+      }
     }
   },
   "services": {
