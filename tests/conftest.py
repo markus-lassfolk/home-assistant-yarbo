@@ -2,6 +2,14 @@
 
 from __future__ import annotations
 
+import os
+
+# Disable Sentry/GlitchTip error reporting during tests.
+# python-yarbo calls init_error_reporting() at module import time; the Sentry SDK
+# starts a BackgroundWorker thread when the first event is captured, which causes
+# pytest-homeassistant-custom-component's strict thread-leak checker to fail.
+os.environ.setdefault("YARBO_SENTRY_DSN", "")
+
 from collections.abc import AsyncGenerator, Generator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch

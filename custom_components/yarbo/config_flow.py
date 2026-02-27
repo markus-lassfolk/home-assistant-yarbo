@@ -15,6 +15,11 @@ from homeassistant.data_entry_flow import FlowResult
 from yarbo import YarboLocalClient
 from yarbo.exceptions import YarboConnectionError
 
+try:
+    from yarbo.cloud import YarboCloudClient
+except ImportError:  # pragma: no cover
+    YarboCloudClient = None
+
 from .const import (
     CONF_BROKER_HOST,
     CONF_BROKER_MAC,
@@ -290,24 +295,22 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                     data=self._pending_data,
                 )
 
-            # Attempt Auth0 login via python-yarbo cloud client
-            try:
-                from yarbo.cloud import YarboCloudClient  # noqa: PLC0415
-
-                cloud_client = YarboCloudClient()
-                token_data: dict[str, Any] = await cloud_client.login(
-                    username=username,
-                    password=password,
-                )
-                self._pending_data[CONF_CLOUD_USERNAME] = username
-                self._pending_data[CONF_CLOUD_REFRESH_TOKEN] = token_data["refresh_token"]
-                _LOGGER.debug("Cloud auth succeeded for %s", username)
-            except ImportError:
+            # Attempt login via python-yarbo cloud client
+            if YarboCloudClient is None:
                 _LOGGER.warning("python-yarbo cloud client not available")
                 errors["base"] = "cloud_not_available"
-            except Exception:
-                _LOGGER.exception("Cloud authentication failed for %s", username)
-                errors["base"] = "cloud_auth_failed"
+            else:
+                try:
+                    cloud_client = YarboCloudClient(username=username, password=password)
+                    await cloud_client.connect()
+                    refresh_token = cloud_client.auth.refresh_token
+                    await cloud_client.disconnect()
+                    self._pending_data[CONF_CLOUD_USERNAME] = username
+                    self._pending_data[CONF_CLOUD_REFRESH_TOKEN] = refresh_token
+                    _LOGGER.debug("Cloud auth succeeded for %s", username)
+                except Exception:
+                    _LOGGER.exception("Cloud authentication failed for %s", username)
+                    errors["base"] = "cloud_auth_failed"
 
             if not errors:
                 return self.async_create_entry(
@@ -337,24 +340,22 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             password = user_input.get("cloud_password", "")
-            try:
-                from yarbo.cloud import YarboCloudClient  # noqa: PLC0415
-
-                cloud_client = YarboCloudClient()
-                token_data: dict[str, Any] = await cloud_client.login(
-                    username=username,
-                    password=password,
-                )
-                new_data = dict(reauth_entry.data)
-                new_data[CONF_CLOUD_REFRESH_TOKEN] = token_data["refresh_token"]
-                self.hass.config_entries.async_update_entry(reauth_entry, data=new_data)
-                await self.hass.config_entries.async_reload(reauth_entry.entry_id)
-                return self.async_abort(reason="reauth_successful")
-            except ImportError:
+            if YarboCloudClient is None:
                 errors["base"] = "cloud_not_available"
-            except Exception:
-                _LOGGER.exception("Re-authentication failed for %s", username)
-                errors["base"] = "cloud_auth_failed"
+            else:
+                try:
+                    cloud_client = YarboCloudClient(username=username, password=password)
+                    await cloud_client.connect()
+                    refresh_token = cloud_client.auth.refresh_token
+                    await cloud_client.disconnect()
+                    new_data = dict(reauth_entry.data)
+                    new_data[CONF_CLOUD_REFRESH_TOKEN] = refresh_token
+                    self.hass.config_entries.async_update_entry(reauth_entry, data=new_data)
+                    await self.hass.config_entries.async_reload(reauth_entry.entry_id)
+                    return self.async_abort(reason="reauth_successful")
+                except Exception:
+                    _LOGGER.exception("Re-authentication failed for %s", username)
+                    errors["base"] = "cloud_auth_failed"
 
         return self.async_show_form(
             step_id="reauth_confirm",

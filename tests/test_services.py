@@ -9,7 +9,7 @@ import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 
-from custom_components.yarbo.const import DATA_CLIENT, DATA_COORDINATOR, DOMAIN
+from custom_components.yarbo.const import DOMAIN
 from custom_components.yarbo.services import async_register_services, async_unregister_services
 
 
@@ -103,9 +103,7 @@ class TestStartPlanService:
                 )
                 client.publish_raw.assert_awaited_once_with("start_plan", {"planId": plan_id})
 
-    async def test_start_plan_raises_for_unknown_device(
-        self, hass: HomeAssistant
-    ) -> None:
+    async def test_start_plan_raises_for_unknown_device(self, hass: HomeAssistant) -> None:
         """start_plan raises ServiceValidationError for unknown device_id."""
         async_register_services(hass)
         with pytest.raises(ServiceValidationError):
@@ -154,16 +152,19 @@ class TestGetClientAndCoordinator:
 
     async def test_device_not_in_domain_data_raises(self, hass: HomeAssistant) -> None:
         """Raises ServiceValidationError when device found but not in hass.data."""
+        from unittest.mock import MagicMock
+
         from homeassistant.helpers import device_registry as dr
 
         from custom_components.yarbo.services import _get_client_and_coordinator
 
-        # Create a device entry without yarbo integration data in hass.data
+        # Mock a device with a config entry that is NOT in hass.data[DOMAIN]
         dev_reg = dr.async_get(hass)
-        device = dev_reg.async_get_or_create(
-            config_entry_id="orphan-entry",
-            identifiers={(DOMAIN, "TEST_SERIAL_ORPHAN")},
-        )
-        # hass.data[DOMAIN] is empty — no entry registered
-        with pytest.raises(ServiceValidationError):
-            _get_client_and_coordinator(hass, device.id)
+        mock_device = MagicMock()
+        mock_device.config_entries = {"unknown-entry-id"}
+        mock_device.id = "mock-device-id"
+
+        with patch.object(dev_reg, "async_get", return_value=mock_device):
+            # hass.data[DOMAIN] does not have "unknown-entry-id"
+            with pytest.raises(ServiceValidationError):
+                _get_client_and_coordinator(hass, "mock-device-id")
