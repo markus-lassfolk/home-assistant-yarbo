@@ -167,7 +167,7 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
             cloud_client.auth.refresh_token = refresh_token
             await cloud_client.connect()
             result = await cloud_client.get_latest_version()
-            if isinstance(result, dict) and "firmwareVersion" in result:
+            if isinstance(result, dict) and result.get("firmwareVersion"):
                 self._latest_version = str(result["firmwareVersion"])
                 self.coordinator.latest_firmware_version = self._latest_version
                 _LOGGER.debug("Latest Yarbo firmware from cloud: %s", self._latest_version)
