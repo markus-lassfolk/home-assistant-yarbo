@@ -137,9 +137,12 @@ class YarboConnectionSensor(YarboSensor):
 
     @property
     def native_value(self) -> str:
-        """Return connection path label with IP, e.g. 'Data Center (<dc-ip>)'."""
+        """Return connection path label with active IP, e.g. 'Data Center (<dc-ip>)'."""
         entry = self.coordinator._entry
-        host = entry.data.get(CONF_BROKER_HOST) or ""
+        # Prefer the active client's host (reflects failover); fall back to entry data
+        host = (
+            getattr(self.coordinator.client, "host", None) or entry.data.get(CONF_BROKER_HOST) or ""
+        )
         path = entry.data.get(CONF_CONNECTION_PATH) or ""
         if path == "dc":
             label = "Data Center"

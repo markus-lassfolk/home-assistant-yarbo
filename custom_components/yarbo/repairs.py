@@ -86,9 +86,7 @@ def async_delete_controller_lost_issue(hass: HomeAssistant, entry_id: str) -> No
 # ---------------------------------------------------------------------------
 
 
-def async_create_cloud_token_expired_issue(
-    hass: HomeAssistant, entry_id: str, name: str
-) -> None:
+def async_create_cloud_token_expired_issue(hass: HomeAssistant, entry_id: str, name: str) -> None:
     """Create a WARNING repair issue when cloud token expired (401/403).
 
     Fixable: opens the reauth flow to refresh the token.
@@ -131,7 +129,7 @@ class YarboRepairFlow(RepairsFlow):
                 entry_id = issue_id[len(f"{ISSUE_CLOUD_TOKEN_EXPIRED}_") :]
                 entry = self.hass.config_entries.async_get_entry(entry_id)
                 if entry:
-                    self.hass.config_entries.flow.async_init(
+                    await self.hass.config_entries.flow.async_init(
                         DOMAIN,
                         context={"source": SOURCE_REAUTH, "entry_id": entry_id},
                         data=entry.data,

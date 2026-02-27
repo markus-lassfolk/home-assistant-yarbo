@@ -275,6 +275,7 @@ class TestFirmwareUpdate:
         coordinator.data = None
 
         entity = YarboFirmwareUpdate(coordinator)
+        entity.hass = MagicMock()  # type: ignore[attr-defined]
 
         mock_client = _make_mock_cloud_client()
         mock_client.get_latest_version = AsyncMock(

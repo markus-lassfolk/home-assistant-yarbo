@@ -194,16 +194,19 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
             _LOGGER.warning("Failed to fetch latest Yarbo firmware version: %s", err)
             # 401/403 → cloud token expired repair (issue #27)
             err_str = str(err).lower()
-            if "401" in err_str or "403" in err_str or "unauthorized" in err_str or "forbidden" in err_str:
+            if (
+                "401" in err_str
+                or "403" in err_str
+                or "unauthorized" in err_str
+                or "forbidden" in err_str
+            ):
                 name = self.coordinator.entry.data.get(CONF_ROBOT_NAME, "Yarbo")
                 async_create_cloud_token_expired_issue(
                     self.hass, self.coordinator.entry.entry_id, name
                 )
         else:
             # Success: clear cloud token expired issue if it was raised
-            async_delete_cloud_token_expired_issue(
-                self.hass, self.coordinator.entry.entry_id
-            )
+            async_delete_cloud_token_expired_issue(self.hass, self.coordinator.entry.entry_id)
         finally:
             if cloud_client is not None:
                 await cloud_client.disconnect()

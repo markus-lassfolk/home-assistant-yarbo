@@ -178,7 +178,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             except YarboConnectionError as err:
                 self.last_update_success = False
                 port = self._entry.data.get(CONF_BROKER_PORT) or DEFAULT_BROKER_PORT
-                # Ordered list from discovery: Primary, Secondary, … (like DNS); try next on failover
+                # Ordered list from discovery: Primary, Secondary, … (like DNS)
                 endpoints = self._entry.data.get(CONF_BROKER_ENDPOINTS)
                 if not endpoints and self._entry.data.get(CONF_ALTERNATE_BROKER_HOST):
                     endpoints = [
@@ -193,31 +193,35 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 try:
                     idx = endpoints.index(current_host)
                 except (ValueError, TypeError):
-                    idx = 0
+                    # Not found — start from index -1 so next_idx wraps to 0 (Primary)
+                    idx = -1
                 next_idx = (idx + 1) % len(endpoints) if len(endpoints) > 1 else idx
                 next_host = endpoints[next_idx] if endpoints else None
 
                 if next_host and next_host != current_host and len(endpoints) > 1:
                     _LOGGER.warning(
-                        "Yarbo connection error: %s — failing over to next endpoint %s (Primary/Secondary order)",
+                        "Yarbo connection error: %s — failing over to %s",
                         err,
                         next_host,
                     )
                     try:
                         new_client = YarboLocalClient(host=next_host, port=port)
-                        await new_client.connect()
-                        await self.client.disconnect()
-                        self.client = new_client
-                        if DOMAIN in self.hass.data and self._entry.entry_id in self.hass.data[DOMAIN]:
-                            self.hass.data[DOMAIN][self._entry.entry_id][DATA_CLIENT] = new_client
-                        # Persist current host so device info and next failover use it
-                        new_data = dict(self._entry.data)
-                        new_data[CONF_BROKER_HOST] = next_host
-                        self.hass.config_entries.async_update_entry(self._entry, data=new_data)
-                        _LOGGER.info(
-                            "Failover to %s succeeded; will only try Primary again when this one fails",
-                            next_host,
-                        )
+                        # Acquire command_lock to prevent commands in-flight during swap
+                        async with self.command_lock:
+                            await new_client.connect()
+                            old_client = self.client
+                            self.client = new_client
+                            entry_data = self.hass.data.get(DOMAIN, {})
+                            if self._entry.entry_id in entry_data:
+                                entry_data[self._entry.entry_id][DATA_CLIENT] = new_client
+                            # Persist current host so next failover uses it
+                            new_data = dict(self._entry.data)
+                            new_data[CONF_BROKER_HOST] = next_host
+                            self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+                            # Disconnect old client; suppress errors to avoid leaking
+                            with contextlib.suppress(Exception):
+                                await old_client.disconnect()
+                        _LOGGER.info("Failover to %s succeeded", next_host)
                         continue
                     except Exception as connect_err:
                         _LOGGER.warning(

@@ -32,12 +32,26 @@ from .services import async_register_services, async_unregister_services
 _LOGGER = logging.getLogger(__name__)
 
 
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Migrate old config entry to the latest version."""
+    _LOGGER.debug("Migrating Yarbo config entry from version %s", config_entry.version)
+
+    if config_entry.version == 1:
+        # v1 → v2: add CONF_BROKER_ENDPOINTS list for Primary/Secondary failover
+        new_data = dict(config_entry.data)
+        primary = new_data.get(CONF_BROKER_HOST)
+        alternate = new_data.get(CONF_ALTERNATE_BROKER_HOST)
+        if CONF_BROKER_ENDPOINTS not in new_data:
+            endpoints = [primary, alternate] if alternate and alternate != primary else [primary]
+            new_data[CONF_BROKER_ENDPOINTS] = [h for h in endpoints if h]
+        hass.config_entries.async_update_entry(config_entry, data=new_data, version=2)
+        _LOGGER.info("Migrated Yarbo config entry to version 2")
+
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Yarbo from a config entry."""
-    # Migrate config entry to version 2 (issue #50: alternate host, connection path, rover_ip)
-    if entry.version < 2:
-        hass.config_entries.async_update_entry(entry, version=2)
-
     # Ensure ordered endpoints list for Primary/Secondary failover (from discovery order)
     if CONF_BROKER_ENDPOINTS not in entry.data:
         data = dict(entry.data)
@@ -119,10 +133,10 @@ async def _async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     from .repairs import (
-    async_delete_cloud_token_expired_issue,
-    async_delete_controller_lost_issue,
-    async_delete_mqtt_disconnect_issue,
-)
+        async_delete_cloud_token_expired_issue,
+        async_delete_controller_lost_issue,
+        async_delete_mqtt_disconnect_issue,
+    )
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 

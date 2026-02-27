@@ -304,7 +304,6 @@
     },
     "cloud_token_expired": {
       "title": "Yarbo cloud session expired",
-      "description": "The Yarbo cloud session for **{name}** has expired (401/403). Re-authenticate to restore cloud features (e.g. firmware version check).",
       "fix_flow": {
         "step": {
           "confirm": {

@@ -38,8 +38,8 @@ from .const import (
     DEFAULT_CLOUD_ENABLED,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
-    ENDPOINT_TYPE_DC,
     ENDPOINT_TYPE_ROVER,
+    ENDPOINT_TYPE_UNKNOWN,
     OPT_ACTIVITY_PERSONALITY,
     OPT_AUTO_CONTROLLER,
     OPT_CLOUD_ENABLED,
@@ -102,8 +102,6 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step — try discovery first, then manual IP/port if needed."""
-        errors: dict[str, str] = {}
-
         if user_input is not None:
             self._broker_host = user_input[CONF_BROKER_HOST]
             port = user_input.get(CONF_BROKER_PORT)
@@ -132,15 +130,15 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         if len(self._discovered_endpoints) == 0:
             # No devices found — offer manual IP/port entry
             return await self.async_step_manual()
-            if len(self._discovered_endpoints) == 1:
-                ep = self._discovered_endpoints[0]
-                self._broker_host = ep.host
-                self._broker_port = ep.port
-                self._connection_path = ep.endpoint_type
-                self._rover_ip = ep.host if ep.endpoint_type == ENDPOINT_TYPE_ROVER else None
-                self._alternate_host = None
-                self._broker_endpoints_ordered = [ep.host]
-                return await self.async_step_mqtt_test()
+        if len(self._discovered_endpoints) == 1:
+            ep = self._discovered_endpoints[0]
+            self._broker_host = ep.host
+            self._broker_port = ep.port
+            self._connection_path = ep.endpoint_type
+            self._rover_ip = ep.host if ep.endpoint_type == ENDPOINT_TYPE_ROVER else None
+            self._alternate_host = None
+            self._broker_endpoints_ordered = [ep.host]
+            return await self.async_step_mqtt_test()
         # Multiple endpoints — preserve library order (Primary, Secondary, ...)
         self._broker_endpoints_ordered = [ep.host for ep in self._discovered_endpoints]
         return await self.async_step_select_endpoint()
@@ -215,17 +213,19 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                     recommended=False,
                 )
             ]
-            if len(self._discovered_endpoints) > 1:
-                self._broker_endpoints_ordered = [ep.host for ep in self._discovered_endpoints]
-                return await self.async_step_select_endpoint()
-            # Single endpoint
-            ep = self._discovered_endpoints[0]
-            self._broker_host = ep.host
-            self._connection_path = ep.endpoint_type
-            self._rover_ip = ep.host if ep.endpoint_type == ENDPOINT_TYPE_ROVER else None
-            self._alternate_host = None
-            self._broker_endpoints_ordered = [ep.host]
-            return await self.async_step_confirm()
+
+        if len(self._discovered_endpoints) > 1:
+            self._broker_endpoints_ordered = [ep.host for ep in self._discovered_endpoints]
+            return await self.async_step_select_endpoint()
+
+        # Single endpoint
+        ep = self._discovered_endpoints[0]
+        self._broker_host = ep.host
+        self._connection_path = ep.endpoint_type
+        self._rover_ip = ep.host if ep.endpoint_type == ENDPOINT_TYPE_ROVER else None
+        self._alternate_host = None
+        self._broker_endpoints_ordered = [ep.host]
+        return await self.async_step_confirm()
 
     async def async_step_select_endpoint(
         self, user_input: dict[str, Any] | None = None
@@ -240,11 +240,16 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                     break
             if chosen:
                 self._broker_host = chosen.host
+                self._broker_port = chosen.port
                 self._connection_path = chosen.endpoint_type
                 others = [e for e in self._discovered_endpoints if e.host != chosen.host]
                 self._alternate_host = others[0].host if others else None
                 self._rover_ip = next(
-                    (e.host for e in self._discovered_endpoints if e.endpoint_type == ENDPOINT_TYPE_ROVER),
+                    (
+                        e.host
+                        for e in self._discovered_endpoints
+                        if e.endpoint_type == ENDPOINT_TYPE_ROVER
+                    ),
                     None,
                 )
                 # Keep discovery order for failover (Primary → Secondary → Primary …)
@@ -282,7 +287,9 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="confirm",
-            description_placeholders={"host": self._broker_host or self._discovered_host or "unknown"},
+            description_placeholders={
+                "host": self._broker_host or self._discovered_host or "unknown"
+            },
         )
 
     async def async_step_mqtt_test(self, user_input: dict[str, Any] | None = None) -> FlowResult:

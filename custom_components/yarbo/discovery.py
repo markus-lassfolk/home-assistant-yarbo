@@ -40,30 +40,41 @@ class YarboEndpoint:
         return "MQTT endpoint"
 
 
+def _normalize_endpoint_type(raw_type: object) -> str:
+    """Normalize the endpoint type string from the library to a canonical value."""
+    if not raw_type:
+        return ENDPOINT_TYPE_UNKNOWN
+    t = str(raw_type).lower().strip()
+    if t in ("dc", "data_center", "datacenter"):
+        return ENDPOINT_TYPE_DC
+    if t in ("rover", "direct", "wifi"):
+        return ENDPOINT_TYPE_ROVER
+    return ENDPOINT_TYPE_UNKNOWN
+
+
 def _from_library_result(r: object, port: int) -> YarboEndpoint | None:
     """Map a single result from python-yarbo discover() to YarboEndpoint."""
     if isinstance(r, dict):
         h = r.get("host") or r.get("ip")
         p = r.get("port", port)
         mac = r.get("mac")
-        t = r.get("type") or r.get("endpoint_type") or ENDPOINT_TYPE_UNKNOWN
-        rec = bool(r.get("recommended", (t or "").lower() in ("dc", "data_center")))
+        raw_type = r.get("type") or r.get("endpoint_type")
+        rec = bool(r.get("recommended", False))
     else:
         h = getattr(r, "host", None) or getattr(r, "ip", None)
         p = getattr(r, "port", port)
         mac = getattr(r, "mac", None)
-        t = getattr(r, "type", None) or getattr(r, "endpoint_type", None) or ENDPOINT_TYPE_UNKNOWN
-        rec = getattr(r, "recommended", None)
-        if rec is None:
-            rec = (str(t).lower() if t else "") in ("dc", "data_center")
+        raw_type = getattr(r, "type", None) or getattr(r, "endpoint_type", None)
+        rec = bool(getattr(r, "recommended", False))
     if not h:
         return None
+    endpoint_type = _normalize_endpoint_type(raw_type)
     return YarboEndpoint(
         host=str(h),
         port=int(p),
         mac=str(mac) if mac else None,
-        endpoint_type=str(t) if t else ENDPOINT_TYPE_UNKNOWN,
-        recommended=bool(rec),
+        endpoint_type=endpoint_type,
+        recommended=rec,
     )
 
 
@@ -125,7 +136,16 @@ async def async_discover_endpoints(
         ep = _from_library_result(r, port)
         if ep:
             out.append(ep)
-    return out if out else (
-        [YarboEndpoint(host=seed_host, port=port, mac=seed_mac, endpoint_type=ENDPOINT_TYPE_UNKNOWN, recommended=False)]
-        if seed_host else []
-    )
+    if out:
+        return out
+    if seed_host:
+        return [
+            YarboEndpoint(
+                host=seed_host,
+                port=port,
+                mac=seed_mac,
+                endpoint_type=ENDPOINT_TYPE_UNKNOWN,
+                recommended=False,
+            )
+        ]
+    return []
