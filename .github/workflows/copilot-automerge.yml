@@ -18,7 +18,7 @@ jobs:
       github.event.check_suite.conclusion == 'success' ||
       github.event_name == 'pull_request'
     steps:
-      - name: Find eligible Copilot fix PRs
+      - name: Auto-merge eligible bot fix PRs
         uses: actions/github-script@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -26,35 +26,40 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
-            // Get open PRs
+            // Bot authors that are allowed to auto-merge
+            const BOT_AUTHORS = new Set([
+              'copilot[bot]',
+              'cursor[bot]',
+              'cursor-agent',
+              'github-actions[bot]',
+            ]);
+
+            // Branch prefixes eligible for auto-merge (only when authored by bots)
+            const FIX_PREFIXES = [
+              'copilot-fix/', 'cursor-agent/',
+              'bugfix/', 'fix/', 'hotfix/',
+            ];
+
             const { data: pulls } = await github.rest.pulls.list({
               owner, repo, state: 'open', per_page: 50
             });
 
-            // Filter to Copilot/Cursor fix branches
-            const fixPRs = pulls.filter(pr => {
+            const eligible = pulls.filter(pr => {
               const branch = pr.head.ref;
               const author = pr.user.login;
-              return (
-                // Copilot autofix branches
-                branch.startsWith('copilot-fix/') ||
-                branch.startsWith('cursor-agent/') ||
-                // Or authored by known bot accounts
-                author === 'copilot[bot]' ||
-                author === 'github-actions[bot]' ||
-                (author === 'cursor-agent' || author === 'cursor[bot]')
-              );
+              const isBotAuthor = BOT_AUTHORS.has(author);
+              const isFixBranch = FIX_PREFIXES.some(p => branch.startsWith(p));
+              return isBotAuthor && isFixBranch;
             });
 
-            if (fixPRs.length === 0) {
-              console.log('No Copilot/Cursor fix PRs found');
+            if (eligible.length === 0) {
+              console.log('No eligible bot fix PRs found');
               return;
             }
 
-            for (const pr of fixPRs) {
-              console.log(`Checking PR #${pr.number}: ${pr.title} (${pr.head.ref})`);
+            for (const pr of eligible) {
+              console.log(`Checking PR #${pr.number}: ${pr.title} (${pr.head.ref}) by ${pr.user.login}`);
 
-              // Check if all status checks passed
               const { data: checks } = await github.rest.checks.listForRef({
                 owner, repo, ref: pr.head.sha
               });
@@ -70,7 +75,10 @@ jobs:
 
               const pending = allChecks.filter(c => c.status !== 'completed');
               const failed = allChecks.filter(
-                c => c.status === 'completed' && c.conclusion !== 'success' && c.conclusion !== 'neutral' && c.conclusion !== 'skipped'
+                c => c.status === 'completed' &&
+                     c.conclusion !== 'success' &&
+                     c.conclusion !== 'neutral' &&
+                     c.conclusion !== 'skipped'
               );
 
               if (pending.length > 0) {
@@ -80,7 +88,6 @@ jobs:
 
               if (failed.length > 0) {
                 console.log(`  ${failed.length} checks failed: ${failed.map(c => c.name).join(', ')}`);
-                // Comment on the PR about failure
                 await github.rest.issues.createComment({
                   owner, repo, issue_number: pr.number,
                   body: `⚠️ Auto-merge skipped — ${failed.length} check(s) failed: ${failed.map(c => '`' + c.name + '`').join(', ')}.\n\nPlease fix manually or close this PR.`
@@ -88,14 +95,13 @@ jobs:
                 continue;
               }
 
-              // All checks passed — squash merge
               console.log(`  All ${allChecks.length} checks passed, squash-merging...`);
               try {
                 await github.rest.pulls.merge({
                   owner, repo, pull_number: pr.number,
                   merge_method: 'squash',
                   commit_title: `${pr.title} (#${pr.number})`,
-                  commit_message: `Auto-merged Copilot fix.\n\nCo-authored-by: ${pr.user.login}`
+                  commit_message: `Auto-merged bot fix PR.\n\nCo-authored-by: ${pr.user.login}`
                 });
                 console.log(`  ✅ Merged PR #${pr.number}`);
               } catch (e) {
