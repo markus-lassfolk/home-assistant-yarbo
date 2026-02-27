@@ -57,6 +57,7 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
         "Firmware updates are managed by the Yarbo app. "
         "This entity shows the currently installed version."
     )
+    _attr_should_poll = True
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "firmware")
