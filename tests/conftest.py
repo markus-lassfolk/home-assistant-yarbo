@@ -10,10 +10,17 @@ from unittest.mock import AsyncMock, MagicMock, patch
 # (aiodhcpwatcher, aiodiscover, cached_ipaddress, …) that are not available
 # in the test environment.  Stub the entire dhcp component module so
 # config_flow.py can import dhcp.DhcpServiceInfo without pulling in those deps.
+class _DhcpServiceInfo:
+    """Stub for DhcpServiceInfo with ip, macaddress, hostname."""
+
+    def __init__(self, ip: str = "", macaddress: str = "", hostname: str = "") -> None:
+        self.ip = ip
+        self.macaddress = macaddress
+        self.hostname = hostname
+
+
 _dhcp_mock = MagicMock()
-_dhcp_mock.DhcpServiceInfo = type(
-    "DhcpServiceInfo", (), {"ip": "", "macaddress": "", "hostname": ""}
-)
+_dhcp_mock.DhcpServiceInfo = _DhcpServiceInfo
 sys.modules.setdefault("homeassistant.components.dhcp", _dhcp_mock)
 
 # Disable Sentry/GlitchTip error reporting during tests.
