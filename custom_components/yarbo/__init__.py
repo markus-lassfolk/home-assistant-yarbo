@@ -83,7 +83,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     client = YarboLocalClient(
-        host=entry.data[CONF_BROKER_HOST],
+        broker=entry.data[CONF_BROKER_HOST],
         port=entry.data[CONF_BROKER_PORT],
     )
 

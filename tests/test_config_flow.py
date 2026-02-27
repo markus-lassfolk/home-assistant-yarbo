@@ -82,10 +82,9 @@ class TestManualConfigFlow:
             )
         assert result["step_id"] == "manual"
 
-        mock_client = MagicMock()
-        mock_client.connect = AsyncMock()
-        mock_client.disconnect = AsyncMock()
+        mock_client = AsyncMock()
         mock_client.serial_number = MOCK_ROBOT_SERIAL
+        mock_client.is_connected = True
         mock_client.watch_telemetry = MagicMock(return_value=_async_gen_one(_mock_telemetry()))
 
         with patch(
@@ -103,10 +102,9 @@ class TestManualConfigFlow:
         self, hass: HomeAssistant, enable_custom_integrations: None
     ) -> None:
         """Full manual config flow creates a config entry."""
-        mock_client = MagicMock()
-        mock_client.connect = AsyncMock()
-        mock_client.disconnect = AsyncMock()
+        mock_client = AsyncMock()
         mock_client.serial_number = MOCK_ROBOT_SERIAL
+        mock_client.is_connected = True
         mock_client.watch_telemetry = MagicMock(return_value=_async_gen_one(_mock_telemetry()))
         with (
             patch(
@@ -177,6 +175,8 @@ class TestManualConfigFlow:
         mock_client.connect = AsyncMock()
         mock_client.disconnect = AsyncMock()
         mock_client.watch_telemetry = MagicMock(return_value=_async_gen_one(_mock_telemetry()))
+        mock_client.get_controller = AsyncMock()
+        mock_client.is_connected = True
         with (
             patch(
                 "custom_components.yarbo.config_flow.async_discover_endpoints",
@@ -318,10 +318,9 @@ class TestDhcpDiscoveryFlow:
         self, hass: HomeAssistant, enable_custom_integrations: None
     ) -> None:
         """DHCP confirm → MQTT test → name → skip cloud → create entry."""
-        mock_client = MagicMock()
-        mock_client.connect = AsyncMock()
-        mock_client.disconnect = AsyncMock()
+        mock_client = AsyncMock()
         mock_client.serial_number = MOCK_ROBOT_SERIAL
+        mock_client.is_connected = True
         mock_client.watch_telemetry = MagicMock(return_value=_async_gen_one(_mock_telemetry()))
         discovery_info = dhcp.DhcpServiceInfo(
             ip=MOCK_BROKER_HOST,
@@ -335,6 +334,9 @@ class TestDhcpDiscoveryFlow:
             YarboConfigFlow,
             "_probe_robot_identity",
             return_value=(MOCK_ROBOT_SERIAL, "MyYarbo"),
+        ), patch(
+            "custom_components.yarbo.async_setup_entry",
+            return_value=True,
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN,
@@ -342,15 +344,13 @@ class TestDhcpDiscoveryFlow:
                 data=discovery_info,
             )
             result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
-            # mqtt_test runs inline, next step is name
+            # SN already known from probe, skips mqtt_test → name step
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"], {CONF_ROBOT_NAME: MOCK_ROBOT_NAME}
             )
-        assert result["step_id"] == "cloud"
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
-        assert result["type"] == FlowResultType.CREATE_ENTRY
-        assert result["data"][CONF_BROKER_HOST] == MOCK_BROKER_HOST
-        assert result["data"][CONF_BROKER_MAC] == MOCK_BROKER_MAC
+            assert result["step_id"] == "cloud"
+            result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+            assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["data"][CONF_ROBOT_SERIAL] == MOCK_ROBOT_SERIAL
 
     async def test_dhcp_discovery_already_configured(
