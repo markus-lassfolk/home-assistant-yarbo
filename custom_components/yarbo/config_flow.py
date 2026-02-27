@@ -174,8 +174,15 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         Connects with empty SN (wildcard subscription), waits for first
         telemetry, extracts SN and bot name, then disconnects.
         Returns (serial_number, bot_name) — either may be None.
+
+        Runs the initial import + connect in an executor to avoid
+        blocking-call warnings from HA's event loop detector.
         """
         try:
+            # Import paho-mqtt off the event loop to avoid blocking-call warnings
+            await asyncio.get_running_loop().run_in_executor(
+                None, __import__, "paho.mqtt.client"
+            )
             client = YarboLocalClient(broker=host, port=port)
             await client.connect()
             try:
