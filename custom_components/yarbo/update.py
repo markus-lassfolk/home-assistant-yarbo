@@ -132,7 +132,7 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
             self._latest_version = None
             # Surface auth failures as ConfigEntryAuthFailed so HA triggers reauth.
             err_str = str(err).lower()
-            if any(kw in err_str for kw in ("401", "403", "unauthorized", "forbidden", "token")):
+            if any(kw in err_str for kw in ("401", "403", "unauthorized", "forbidden")):
                 _LOGGER.warning("Cloud auth expired for %s — triggering reauth", robot_serial)
                 raise ConfigEntryAuthFailed(f"Cloud token expired for {robot_serial}") from err
             _LOGGER.warning(

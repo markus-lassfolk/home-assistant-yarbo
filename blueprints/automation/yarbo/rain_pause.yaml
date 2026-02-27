@@ -83,7 +83,7 @@ action:
           - delay: !input dry_delay
           - condition: state
             entity_id: !input activity_sensor
-            state: charging
+            state: paused
           - service: yarbo.resume
             data:
               device_id: !input yarbo_device
