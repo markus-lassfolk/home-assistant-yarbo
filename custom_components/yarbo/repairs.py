@@ -1,10 +1,9 @@
 """Repair issue helpers for Yarbo integration.
 
-Three actionable repair conditions are supported:
+Two actionable repair conditions are supported:
 
 - mqtt_disconnect: no telemetry received for > 60s (base station unreachable)
 - controller_lost: a command failed because the controller session was stolen
-- cloud_token_expired: cloud API returned 401/403 (token must be refreshed)
 """
 
 from __future__ import annotations
@@ -24,7 +23,6 @@ if TYPE_CHECKING:
 # Issue ID constants — combined with entry_id to create a unique key per device
 ISSUE_MQTT_DISCONNECT = "mqtt_disconnect"
 ISSUE_CONTROLLER_LOST = "controller_lost"
-ISSUE_CLOUD_TOKEN_EXPIRED = "cloud_token_expired"
 
 
 # ---------------------------------------------------------------------------
@@ -76,32 +74,6 @@ def async_create_controller_lost_issue(hass: HomeAssistant, entry_id: str, name:
 def async_delete_controller_lost_issue(hass: HomeAssistant, entry_id: str) -> None:
     """Remove the controller lost repair issue after re-acquisition succeeds."""
     ir.async_delete_issue(hass, DOMAIN, f"{ISSUE_CONTROLLER_LOST}_{entry_id}")
-
-
-# ---------------------------------------------------------------------------
-# Cloud token expired (HTTP 401/403 from cloud API)
-# ---------------------------------------------------------------------------
-
-
-def async_create_cloud_token_expired_issue(hass: HomeAssistant, entry_id: str, name: str) -> None:
-    """Create a WARNING repair issue when the cloud auth token has expired.
-
-    The issue description guides the user to the reauth flow.
-    """
-    ir.async_create_issue(
-        hass,
-        DOMAIN,
-        f"{ISSUE_CLOUD_TOKEN_EXPIRED}_{entry_id}",
-        is_fixable=False,
-        severity=ir.IssueSeverity.WARNING,
-        translation_key=ISSUE_CLOUD_TOKEN_EXPIRED,
-        translation_placeholders={"name": name},
-    )
-
-
-def async_delete_cloud_token_expired_issue(hass: HomeAssistant, entry_id: str) -> None:
-    """Remove the cloud token expired repair issue after successful re-auth."""
-    ir.async_delete_issue(hass, DOMAIN, f"{ISSUE_CLOUD_TOKEN_EXPIRED}_{entry_id}")
 
 
 # ---------------------------------------------------------------------------
