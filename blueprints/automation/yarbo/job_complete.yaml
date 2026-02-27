@@ -1,0 +1,44 @@
+blueprint:
+  name: Yarbo Job Complete Notification
+  description: >
+    Send a notification when the Yarbo robot completes a work plan.
+    The notification includes the robot's friendly name so you know which
+    robot finished when managing multiple devices.
+  domain: automation
+  author: markus-lassfolk
+  source_url: https://github.com/markus-lassfolk/home-assistant-yarbo
+
+  input:
+    yarbo_event:
+      name: Yarbo Events Entity
+      description: >
+        The Yarbo events entity for this robot
+        (domain: event, from the Yarbo integration).
+      selector:
+        entity:
+          integration: yarbo
+          domain: event
+
+    notify_target:
+      name: Notification Target
+      description: >
+        Notification service to use (e.g. notify.mobile_app_phone).
+      selector:
+        text:
+          multiline: false
+
+trigger:
+  - platform: state
+    entity_id: !input yarbo_event
+    attribute: event_type
+    to: job_completed
+
+action:
+  - service: !input notify_target
+    data:
+      title: "Yarbo Job Complete"
+      message: >
+        {{ state_attr(trigger.entity_id, 'friendly_name') | default('Yarbo') }} has completed its job.
+
+mode: queued
+max: 10
