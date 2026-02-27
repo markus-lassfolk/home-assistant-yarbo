@@ -73,9 +73,8 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Yarbo.
 
     Supports:
-    - Manual IP entry (async_step_user)
-    - DHCP auto-discovery (async_step_dhcp)
-    - MQTT connection validation (async_step_mqtt_test)
+    - Manual IP entry (async_step_user) + MQTT validation (async_step_mqtt_test) — see #1
+    - DHCP auto-discovery (async_step_dhcp) — see #2
     - Optional cloud authentication (async_step_cloud)
     - Reconfigure flow (async_step_reconfigure)
     - Re-authentication when cloud token expires (async_step_reauth)
