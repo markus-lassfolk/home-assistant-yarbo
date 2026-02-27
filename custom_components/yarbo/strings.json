@@ -19,7 +19,7 @@
       },
       "confirm": {
         "title": "Yarbo Discovered",
-        "description": "A Yarbo base station was discovered at **{host}**. Proceed to connect?"
+        "description": "A Yarbo robot ({serial}) was discovered at **{host}**. Proceed to connect?"
       },
       "select_endpoint": {
         "title": "Choose MQTT Endpoint",

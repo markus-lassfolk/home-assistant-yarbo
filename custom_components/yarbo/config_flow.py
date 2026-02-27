@@ -164,6 +164,31 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+
+    async def _probe_serial_number(self, host: str, port: int, timeout: float = 8.0) -> str | None:
+        """Quick MQTT probe to discover the robot serial number.
+
+        Connects with empty SN (wildcard subscription), waits for first
+        telemetry or heartbeat, extracts SN from topic, then disconnects.
+        Returns None if no message received within timeout.
+        """
+        try:
+            client = YarboLocalClient(broker=host, port=port)
+            await client.connect()
+            try:
+                async_gen = client.watch_telemetry()
+                telemetry = await asyncio.wait_for(async_gen.__anext__(), timeout=timeout)
+                sn = telemetry.serial_number if telemetry else None
+                if not sn:
+                    sn = client.serial_number  # May have been set by wildcard discovery
+                await async_gen.aclose()
+                return sn or None
+            finally:
+                await client.disconnect()
+        except Exception:
+            _LOGGER.debug("SN probe failed for %s:%d", host, port)
+            return None
+
     async def async_step_dhcp(self, discovery_info: dhcp.DhcpServiceInfo) -> FlowResult:
         """Handle DHCP discovery (issue #2).
 
@@ -177,6 +202,23 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             discovery_info.macaddress,
             discovery_info.hostname,
         )
+
+        # Probe MQTT to discover the robot serial number for unique identification
+        sn = await self._probe_serial_number(
+            discovery_info.ip, DEFAULT_BROKER_PORT, timeout=8.0
+        )
+        if sn:
+            self._robot_serial = sn
+            await self.async_set_unique_id(sn)
+            self._abort_if_unique_id_configured(
+                updates={CONF_BROKER_HOST: discovery_info.ip}
+            )
+        else:
+            # Fallback: use MAC as unique_id if MQTT probe fails (robot sleeping)
+            await self.async_set_unique_id(discovery_info.macaddress)
+            self._abort_if_unique_id_configured(
+                updates={CONF_BROKER_HOST: discovery_info.ip}
+            )
 
         # Check by MAC address for IP changes (reconfigure)
         existing_entry = next(
@@ -291,10 +333,13 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             self._broker_host = self._broker_host or self._discovered_host
             return await self.async_step_mqtt_test()
 
+        title = f"Yarbo {self._robot_serial}" if self._robot_serial else "Yarbo"
         return self.async_show_form(
             step_id="confirm",
             description_placeholders={
-                "host": self._broker_host or self._discovered_host or "unknown"
+                "host": self._broker_host or self._discovered_host or "unknown",
+                "serial": self._robot_serial or "unknown",
+                "title": title,
             },
         )
 

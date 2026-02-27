@@ -11,6 +11,7 @@ from homeassistant.components import dhcp
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
+from custom_components.yarbo.config_flow import YarboConfigFlow
 from custom_components.yarbo.const import (
     CONF_BROKER_HOST,
     CONF_BROKER_MAC,
@@ -296,17 +297,20 @@ class TestDhcpDiscoveryFlow:
     async def test_dhcp_discovery_shows_confirm(
         self, hass: HomeAssistant, enable_custom_integrations: None
     ) -> None:
-        """DHCP discovery shows a confirmation form."""
+        """DHCP discovery shows a confirmation form with serial number."""
         discovery_info = dhcp.DhcpServiceInfo(
             ip=MOCK_BROKER_HOST,
             macaddress=MOCK_BROKER_MAC,
             hostname="yarbo-dc",
         )
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN,
-            context={"source": config_entries.SOURCE_DHCP},
-            data=discovery_info,
-        )
+        with patch.object(
+            YarboConfigFlow, "_probe_serial_number", return_value=MOCK_ROBOT_SERIAL,
+        ):
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN,
+                context={"source": config_entries.SOURCE_DHCP},
+                data=discovery_info,
+            )
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "confirm"
 
@@ -327,6 +331,10 @@ class TestDhcpDiscoveryFlow:
         with patch(
             "custom_components.yarbo.config_flow.YarboLocalClient",
             return_value=mock_client,
+        ), patch.object(
+            YarboConfigFlow,
+            "_probe_serial_number",
+            return_value=MOCK_ROBOT_SERIAL,
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN,
@@ -370,11 +378,14 @@ class TestDhcpDiscoveryFlow:
             macaddress=MOCK_BROKER_MAC,
             hostname="yarbo-dc",
         )
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN,
-            context={"source": config_entries.SOURCE_DHCP},
-            data=discovery_info,
-        )
+        with patch.object(
+            YarboConfigFlow, "_probe_serial_number", return_value=MOCK_ROBOT_SERIAL,
+        ):
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN,
+                context={"source": config_entries.SOURCE_DHCP},
+                data=discovery_info,
+            )
         assert result["type"] == FlowResultType.ABORT
         assert result["reason"] == "already_configured"
 
@@ -402,13 +413,17 @@ class TestDhcpDiscoveryFlow:
             macaddress=MOCK_BROKER_MAC,
             hostname="yarbo-dc",
         )
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN,
-            context={"source": config_entries.SOURCE_DHCP},
-            data=discovery_info,
-        )
-        assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == "reconfigure"
+        with patch.object(
+            YarboConfigFlow, "_probe_serial_number", return_value=MOCK_ROBOT_SERIAL,
+        ):
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN,
+                context={"source": config_entries.SOURCE_DHCP},
+                data=discovery_info,
+            )
+        # _abort_if_unique_id_configured auto-updates broker_host and aborts
+        assert result["type"] == FlowResultType.ABORT
+        assert result["reason"] == "already_configured"
 
 
 class TestOptionsFlow:
