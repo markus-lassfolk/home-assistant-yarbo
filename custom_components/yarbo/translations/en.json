@@ -86,7 +86,7 @@
     "step": {
       "init": {
         "title": "Yarbo Options",
-        "description": "Configure integration behaviour. Changes take effect after reload.",
+        "description": "Configure integration behaviour. Changes take effect immediately (no restart required).",
         "data": {
           "telemetry_throttle": "Telemetry update interval (1–10 seconds)",
           "auto_controller": "Auto-acquire controller before commands",
