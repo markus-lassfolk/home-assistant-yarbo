@@ -1,0 +1,93 @@
+name: Auto-create PRs for Bot Branches
+
+on:
+  push:
+    branches:
+      - 'bugfix/**'
+      - 'fix/**'
+      - 'hotfix/**'
+      - 'copilot-fix/**'
+      - 'cursor-agent/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create PR if missing
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const branch = context.ref.replace('refs/heads/', '');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const actor = context.actor;
+
+            console.log(`Pushed branch: ${branch} by ${actor}`);
+
+            // Only act if the author is a known bot/agent
+            const BOT_AUTHORS = new Set([
+              'copilot',
+              'cursor',
+              'cursor-agent',
+              'github-actions'
+            ]);
+
+            // context.actor for apps is often the app name without the [bot] suffix
+            const isBotAuthor = BOT_AUTHORS.has(actor) || actor.endsWith('[bot]');
+            
+            if (!isBotAuthor) {
+              console.log('Author is not a bot. Skipping auto-PR creation.');
+              return;
+            }
+
+            // Check if a PR already exists for this branch
+            const { data: pulls } = await github.rest.pulls.list({
+              owner,
+              repo,
+              head: `${owner}:${branch}`,
+              state: 'open'
+            });
+
+            if (pulls.length > 0) {
+              console.log(`PR already exists for branch ${branch}: #${pulls[0].number}`);
+              return;
+            }
+
+            // Get default branch to target
+            const { data: repoInfo } = await github.rest.repos.get({ owner, repo });
+            const defaultBranch = repoInfo.default_branch;
+            
+            // Format title from branch name (e.g. bugfix/autofix-test -> Bugfix/autofix test)
+            let title = branch.split('/').pop().replace(/-/g, ' ');
+            title = title.charAt(0).toUpperCase() + title.slice(1);
+            
+            if (branch.startsWith('bugfix/') || branch.startsWith('fix/')) {
+              title = `Fix: ${title}`;
+            }
+
+            console.log(`Creating PR for branch ${branch} targeting ${defaultBranch}`);
+            
+            try {
+              const { data: newPr } = await github.rest.pulls.create({
+                owner,
+                repo,
+                title: title,
+                head: branch,
+                base: defaultBranch,
+                body: `🤖 **Auto-created PR**\n\nThis branch (\`${branch}\`) was pushed by an AI agent/bot (\`${actor}\`), but no PR was opened. This PR was automatically created so CI can run and the \`copilot-automerge\` workflow can process it.`
+              });
+              
+              console.log(`✅ Created PR #${newPr.number}`);
+            } catch (error) {
+              console.error(`❌ Failed to create PR: ${error.message}`);
+              if (error.status === 422) {
+                 console.log("This usually means there are no commits between the base branch and the head branch.");
+              } else {
+                 throw error;
+              }
+            }
