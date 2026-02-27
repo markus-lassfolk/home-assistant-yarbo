@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import logging
 
-import aiohttp
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -90,8 +90,10 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
     async def async_update(self) -> None:
         """Fetch latest firmware version from cloud when cloud auth is enabled.
 
-        Uses the stored refresh_token to get a new access_token without requiring
-        the user's password. Falls back gracefully if cloud is unavailable.
+        Uses the stored refresh_token to obtain a valid session via the cloud
+        client's public connect()/disconnect() lifecycle. Falls back gracefully
+        if cloud is unavailable, and raises ConfigEntryAuthFailed when the
+        token is expired so HA can prompt the user to re-authenticate.
         """
         entry = self.coordinator._entry
         cloud_enabled = entry.options.get(OPT_CLOUD_ENABLED, False)
@@ -104,33 +106,39 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
         username = entry.data.get(CONF_CLOUD_USERNAME, "")
         robot_serial = entry.data.get(CONF_ROBOT_SERIAL, "")
 
+        # Use the library's public lifecycle — no private attribute access.
+        cloud_client = YarboCloudClient(username=username)
+        cloud_client.auth.refresh_token = refresh_token
         try:
-            async with aiohttp.ClientSession(
-                headers={"Content-Type": "application/json"}
-            ) as session:
-                cloud_client = YarboCloudClient(username=username)
-                cloud_client._session = session
-                cloud_client.auth._session = session
-                cloud_client.auth.refresh_token = refresh_token
-                await cloud_client.auth.refresh()
-                new_refresh_token = cloud_client.auth.refresh_token
-                if new_refresh_token != refresh_token:
-                    new_data = dict(entry.data)
-                    new_data[CONF_CLOUD_REFRESH_TOKEN] = new_refresh_token
-                    self.hass.config_entries.async_update_entry(entry, data=new_data)
-                    _LOGGER.debug("Refresh token rotated for %s", robot_serial)
-                version_data: dict[str, str] = await cloud_client.get_latest_version()
-                self._latest_version = version_data.get("firmwareVersion")
+            await cloud_client.connect()
+            # Persist any rotated refresh token returned by the server.
+            new_refresh_token = cloud_client.auth.refresh_token
+            if new_refresh_token and new_refresh_token != refresh_token:
+                new_data = dict(entry.data)
+                new_data[CONF_CLOUD_REFRESH_TOKEN] = new_refresh_token
+                self.hass.config_entries.async_update_entry(entry, data=new_data)
+                _LOGGER.debug("Refresh token rotated for %s", robot_serial)
+            version_data: dict[str, str] = await cloud_client.get_latest_version()
+            self._latest_version = version_data.get("firmwareVersion")
             _LOGGER.debug(
                 "Cloud firmware check for %s: latest=%s installed=%s",
                 robot_serial,
                 self._latest_version,
                 self.installed_version,
             )
-        except Exception:
+        except ConfigEntryAuthFailed:
+            raise
+        except Exception as err:
             self._latest_version = None
+            # Surface auth failures as ConfigEntryAuthFailed so HA triggers reauth.
+            err_str = str(err).lower()
+            if any(kw in err_str for kw in ("401", "403", "unauthorized", "forbidden", "token")):
+                _LOGGER.warning("Cloud auth expired for %s — triggering reauth", robot_serial)
+                raise ConfigEntryAuthFailed(f"Cloud token expired for {robot_serial}") from err
             _LOGGER.warning(
-                "Failed to fetch firmware version from cloud for %s — token may be expired",
+                "Failed to fetch firmware version from cloud for %s",
                 robot_serial,
                 exc_info=True,
             )
+        finally:
+            await cloud_client.disconnect()

@@ -27,6 +27,11 @@ ignore = [
   "ANN401",  # Dynamically typed expressions (Any) disallowed
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# conftest.py must manipulate sys.modules/os.environ before HA imports to prevent
+# transitive dependencies (aiodhcpwatcher, aiodiscover, …) from being pulled in.
+"tests/conftest.py" = ["E402"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["custom_components.yarbo"]
 

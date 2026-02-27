@@ -280,15 +280,7 @@ class TestFirmwareUpdate:
             return_value={"firmwareVersion": "3.11.0", "appVersion": "3.16.3"}
         )
 
-        with (
-            patch("custom_components.yarbo.update.YarboCloudClient", return_value=mock_client),
-            patch("custom_components.yarbo.update.aiohttp.ClientSession") as mock_session_cls,
-        ):
-            mock_session = AsyncMock()
-            mock_session.__aenter__ = AsyncMock(return_value=mock_session)
-            mock_session.__aexit__ = AsyncMock(return_value=None)
-            mock_session_cls.return_value = mock_session
-
+        with patch("custom_components.yarbo.update.YarboCloudClient", return_value=mock_client):
             await entity.async_update()
 
         assert entity._latest_version == "3.11.0"

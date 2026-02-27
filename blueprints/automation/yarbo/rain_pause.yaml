@@ -20,7 +20,8 @@ blueprint:
       name: Rain Sensor
       description: >
         Binary sensor that indicates rain (on = raining, off = dry).
-        Can be the Yarbo built-in rain binary sensor or any HA rain/weather sensor.
+        Use any HA binary rain sensor or a Template helper that converts
+        a numeric rain sensor (such as the Yarbo rain sensor) to binary.
       selector:
         entity:
           domain: binary_sensor
@@ -82,7 +83,7 @@ action:
           - delay: !input dry_delay
           - condition: state
             entity_id: !input activity_sensor
-            state: paused
+            state: charging
           - service: yarbo.resume
             data:
               device_id: !input yarbo_device

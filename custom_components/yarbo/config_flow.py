@@ -290,9 +290,10 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
             if not username or not password:
                 # User skipped cloud — create entry without cloud credentials
+                entry_data, self._pending_data = self._pending_data, {}
                 return self.async_create_entry(
-                    title=self._pending_data[CONF_ROBOT_NAME],
-                    data=self._pending_data,
+                    title=entry_data[CONF_ROBOT_NAME],
+                    data=entry_data,
                 )
 
             # Attempt login via python-yarbo cloud client
@@ -300,22 +301,24 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.warning("python-yarbo cloud client not available")
                 errors["base"] = "cloud_not_available"
             else:
+                cloud_client = YarboCloudClient(username=username, password=password)
                 try:
-                    cloud_client = YarboCloudClient(username=username, password=password)
                     await cloud_client.connect()
                     refresh_token = cloud_client.auth.refresh_token
-                    await cloud_client.disconnect()
                     self._pending_data[CONF_CLOUD_USERNAME] = username
                     self._pending_data[CONF_CLOUD_REFRESH_TOKEN] = refresh_token
                     _LOGGER.debug("Cloud auth succeeded for %s", username)
-                except Exception:
-                    _LOGGER.exception("Cloud authentication failed for %s", username)
+                except Exception as err:
+                    _LOGGER.exception("Cloud authentication failed for %s: %s", username, err)
                     errors["base"] = "cloud_auth_failed"
+                finally:
+                    await cloud_client.disconnect()
 
             if not errors:
+                entry_data, self._pending_data = self._pending_data, {}
                 return self.async_create_entry(
-                    title=self._pending_data[CONF_ROBOT_NAME],
-                    data=self._pending_data,
+                    title=entry_data[CONF_ROBOT_NAME],
+                    data=entry_data,
                 )
 
         return self.async_show_form(
@@ -343,19 +346,20 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             if YarboCloudClient is None:
                 errors["base"] = "cloud_not_available"
             else:
+                cloud_client = YarboCloudClient(username=username, password=password)
                 try:
-                    cloud_client = YarboCloudClient(username=username, password=password)
                     await cloud_client.connect()
                     refresh_token = cloud_client.auth.refresh_token
-                    await cloud_client.disconnect()
                     new_data = dict(reauth_entry.data)
                     new_data[CONF_CLOUD_REFRESH_TOKEN] = refresh_token
                     self.hass.config_entries.async_update_entry(reauth_entry, data=new_data)
                     await self.hass.config_entries.async_reload(reauth_entry.entry_id)
                     return self.async_abort(reason="reauth_successful")
-                except Exception:
-                    _LOGGER.exception("Re-authentication failed for %s", username)
+                except Exception as err:
+                    _LOGGER.exception("Re-authentication failed for %s: %s", username, err)
                     errors["base"] = "cloud_auth_failed"
+                finally:
+                    await cloud_client.disconnect()
 
         return self.async_show_form(
             step_id="reauth_confirm",
