@@ -54,14 +54,14 @@ class TestLowBatteryBlueprint:
         assert "description" in bp
 
     def test_required_inputs_present(self) -> None:
-        """Blueprint must have battery_sensor, threshold, and notify_target inputs."""
+        """Blueprint must have battery_sensor, threshold, and notify_service inputs."""
         path = os.path.join(BLUEPRINTS_DIR, "low_battery_notification.yaml")
         data = _load_blueprint(path)
 
         inputs = data["blueprint"]["input"]
         assert "battery_sensor" in inputs, "Missing 'battery_sensor' input"
         assert "threshold" in inputs, "Missing 'threshold' input"
-        assert "notify_service" in inputs, "Missing 'notify_target' input"
+        assert "notify_service" in inputs, "Missing 'notify_service' input"
 
     def test_battery_sensor_uses_device_class(self) -> None:
         """battery_sensor selector must use device_class=battery."""
