@@ -1,8 +1,14 @@
 blueprint:
   name: Yarbo Rain Pause & Resume
   description: >
-    Automatically pause the Yarbo robot when rain is detected, and resume after
-    rain stops (with a configurable delay to let the ground dry).
+    Automatically pause the Yarbo robot when rain is detected and send it to
+    dock, then resume after rain stops (with a configurable delay to let the
+    ground dry). When rain stops the automation re-launches the mowing job
+    regardless of whether the robot docked — this is intentional so the robot
+    resumes work automatically. The default threshold of 0.1 is chosen
+    deliberately: using 0 would break the rain-stop trigger because
+    Home Assistant's numeric_state `below: 0` only fires when the value goes
+    strictly below 0, and dry sensors read exactly 0.
   domain: automation
   author: markus-lassfolk
   source_url: https://github.com/markus-lassfolk/home-assistant-yarbo
@@ -28,7 +34,9 @@ blueprint:
       name: Rain Detection Value
       description: >
         Sensor value above which rain is considered active.
-        For the Yarbo rain sensor, use 0.1 (sensor returns 0 when dry, positive when wet).
+        For the Yarbo rain sensor, 0.1 is recommended: the sensor reads 0 when dry
+        and a positive value when wet. Setting this to 0 would break rain-stop detection
+        because `below: 0` never fires (the sensor never goes negative).
       default: 0.1
       selector:
         number:
@@ -86,6 +94,8 @@ action:
           - service: yarbo.pause
             data:
               device_id: !input yarbo_device
+          - delay:
+              seconds: 5
           - service: yarbo.return_to_dock
             data:
               device_id: !input yarbo_device
