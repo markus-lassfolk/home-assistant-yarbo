@@ -200,16 +200,17 @@ class TestFirmwareUpdate:
     async def test_latest_version_returns_installed_when_no_cloud(
         self, hass: HomeAssistant
     ) -> None:
-        """latest_version returns installed_version when cloud is not configured."""
+        """latest_version returns installed_version (None) when cloud is not configured."""
         from custom_components.yarbo.update import YarboFirmwareUpdate
 
         coordinator = MagicMock()
-        coordinator._entry = MagicMock()
-        coordinator._entry.data = {}
-        coordinator._entry.options = {}
+        coordinator.entry = MagicMock()
+        coordinator.entry.data = {}
+        coordinator.entry.options = {}
         coordinator.data = None
 
         entity = YarboFirmwareUpdate(coordinator)
+        # Cloud disabled → latest_version mirrors installed_version (both None here)
         assert entity.latest_version is None
         assert entity.installed_version is None
 
@@ -218,9 +219,9 @@ class TestFirmwareUpdate:
         from custom_components.yarbo.update import YarboFirmwareUpdate
 
         coordinator = MagicMock()
-        coordinator._entry = MagicMock()
-        coordinator._entry.data = {}
-        coordinator._entry.options = {}
+        coordinator.entry = MagicMock()
+        coordinator.entry.data = {}
+        coordinator.entry.options = {}
         mock_telemetry = MagicMock()
         mock_telemetry.raw = {"firmware_version": "1.2.3"}
         coordinator.data = mock_telemetry
@@ -233,9 +234,9 @@ class TestFirmwareUpdate:
         from custom_components.yarbo.update import YarboFirmwareUpdate
 
         coordinator = MagicMock()
-        coordinator._entry = MagicMock()
-        coordinator._entry.data = {CONF_CLOUD_REFRESH_TOKEN: "some_token"}
-        coordinator._entry.options = {"cloud_enabled": False}
+        coordinator.entry = MagicMock()
+        coordinator.entry.data = {CONF_CLOUD_REFRESH_TOKEN: "some_token"}
+        coordinator.entry.options = {"cloud_enabled": False}
         coordinator.data = None
 
         entity = YarboFirmwareUpdate(coordinator)
@@ -248,9 +249,9 @@ class TestFirmwareUpdate:
         from custom_components.yarbo.update import YarboFirmwareUpdate
 
         coordinator = MagicMock()
-        coordinator._entry = MagicMock()
-        coordinator._entry.data = {}  # no token
-        coordinator._entry.options = {"cloud_enabled": True}
+        coordinator.entry = MagicMock()
+        coordinator.entry.data = {}  # no token
+        coordinator.entry.options = {"cloud_enabled": True}
         coordinator.data = None
 
         entity = YarboFirmwareUpdate(coordinator)
@@ -264,13 +265,13 @@ class TestFirmwareUpdate:
         from custom_components.yarbo.update import YarboFirmwareUpdate
 
         coordinator = MagicMock()
-        coordinator._entry = MagicMock()
-        coordinator._entry.data = {
+        coordinator.entry = MagicMock()
+        coordinator.entry.data = {
             CONF_CLOUD_REFRESH_TOKEN: "valid_token",
             CONF_CLOUD_USERNAME: "user@example.com",
             CONF_ROBOT_SERIAL: "TEST1234",
         }
-        coordinator._entry.options = {"cloud_enabled": True}
+        coordinator.entry.options = {"cloud_enabled": True}
         coordinator.data = None
 
         entity = YarboFirmwareUpdate(coordinator)

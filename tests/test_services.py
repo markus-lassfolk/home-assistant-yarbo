@@ -62,7 +62,7 @@ class TestStartPlanService:
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """start_plan calls publish_raw with planId payload."""
+        """start_plan calls publish_command with planId payload."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -78,7 +78,7 @@ class TestStartPlanService:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_raw.assert_awaited_once_with("start_plan", {"planId": "plan-abc-123"})
+        client.publish_command.assert_awaited_once_with("start_plan", {"planId": "plan-abc-123"})
 
     async def test_start_plan_different_plan_ids(
         self,
@@ -101,7 +101,7 @@ class TestStartPlanService:
                     {"device_id": "fake-device-id", "plan_id": plan_id},
                     blocking=True,
                 )
-                client.publish_raw.assert_awaited_once_with("start_plan", {"planId": plan_id})
+                client.publish_command.assert_awaited_once_with("start_plan", {"planId": plan_id})
 
     async def test_start_plan_raises_for_unknown_device(self, hass: HomeAssistant) -> None:
         """start_plan raises ServiceValidationError for unknown device_id."""
@@ -119,11 +119,13 @@ class TestStartPlanService:
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """start_plan calls get_controller before publish_raw."""
+        """start_plan calls get_controller before publish_command."""
         client, coordinator = mock_client_and_coordinator
         call_order: list[str] = []
         client.get_controller.side_effect = lambda **_kw: call_order.append("get_controller")
-        client.publish_raw.side_effect = lambda *_a, **_kw: call_order.append("publish_raw")
+        client.publish_command.side_effect = lambda *_a, **_kw: call_order.append(
+            "publish_command"
+        )
 
         with patch(
             "custom_components.yarbo.services._get_client_and_coordinator",
@@ -137,7 +139,7 @@ class TestStartPlanService:
                 blocking=True,
             )
 
-        assert call_order == ["get_controller", "publish_raw"]
+        assert call_order == ["get_controller", "publish_command"]
 
 
 class TestGetClientAndCoordinator:

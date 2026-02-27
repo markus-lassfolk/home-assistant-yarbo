@@ -8,15 +8,31 @@ Entity: update.{name}_firmware
 
 from __future__ import annotations
 
+import logging
+
+try:
+    from yarbo.cloud import YarboCloudClient
+except ImportError:  # pragma: no cover
+    YarboCloudClient = None  # type: ignore[assignment,misc]
+
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DATA_COORDINATOR, DEFAULT_CLOUD_ENABLED, DOMAIN, OPT_CLOUD_ENABLED
+from .const import (
+    CONF_CLOUD_REFRESH_TOKEN,
+    CONF_CLOUD_USERNAME,
+    DATA_COORDINATOR,
+    DEFAULT_CLOUD_ENABLED,
+    DOMAIN,
+    OPT_CLOUD_ENABLED,
+)
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -56,6 +72,7 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "firmware")
+        self._latest_version: str | None = None
 
     @property
     def installed_version(self) -> str | None:
@@ -100,13 +117,62 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
     def latest_version(self) -> str | None:
         """Return latest available firmware version from cloud API.
 
-        Returns None when cloud features are disabled (OPT_CLOUD_ENABLED=False)
-        or when the cloud has not yet reported a version.
-        Populated by coordinator.latest_firmware_version once cloud auth is set up.
+        Falls back to installed_version when cloud is disabled or no cached
+        version is available — this prevents HA from showing an "update unknown"
+        state when the user hasn't configured cloud access.
+
+        Populated via async_update() when cloud_enabled=True and a
+        refresh_token is stored in the config entry.
         """
         cloud_enabled: bool = self.coordinator.entry.options.get(
             OPT_CLOUD_ENABLED, DEFAULT_CLOUD_ENABLED
         )
         if not cloud_enabled:
-            return None
-        return self.coordinator.latest_firmware_version
+            # Cloud disabled — mirror installed version so no update banner appears
+            return self.installed_version
+        # Cloud enabled: return coordinator-cached latest, falling back to installed
+        return self.coordinator.latest_firmware_version or self.installed_version
+
+    async def async_update(self) -> None:
+        """Fetch latest firmware version from the Yarbo cloud API.
+
+        Called by HA when the entity needs refreshing (e.g., user presses
+        refresh or the scheduled update interval fires).
+
+        Skips the cloud call when:
+        - cloud_enabled option is False
+        - No refresh_token stored in the config entry
+        - YarboCloudClient library is not available
+        """
+        cloud_enabled: bool = self.coordinator.entry.options.get(
+            OPT_CLOUD_ENABLED, DEFAULT_CLOUD_ENABLED
+        )
+        if not cloud_enabled:
+            return
+
+        refresh_token: str | None = self.coordinator.entry.data.get(CONF_CLOUD_REFRESH_TOKEN)
+        if not refresh_token:
+            return
+
+        if YarboCloudClient is None:
+            _LOGGER.debug("yarbo.cloud not available — skipping firmware version check")
+            return
+
+        username: str = self.coordinator.entry.data.get(CONF_CLOUD_USERNAME, "")
+        cloud_client = None
+        try:
+            cloud_client = YarboCloudClient(username=username, password="")
+            # Inject the stored refresh token so auth.refresh() can exchange it
+            # for a new access token without requiring the user's password again.
+            cloud_client.auth.refresh_token = refresh_token
+            await cloud_client.connect()
+            result = await cloud_client.get_latest_version()
+            if isinstance(result, dict) and "firmwareVersion" in result:
+                self._latest_version = str(result["firmwareVersion"])
+                self.coordinator.latest_firmware_version = self._latest_version
+                _LOGGER.debug("Latest Yarbo firmware from cloud: %s", self._latest_version)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Failed to fetch latest Yarbo firmware version: %s", err)
+        finally:
+            if cloud_client is not None:
+                await cloud_client.disconnect()
