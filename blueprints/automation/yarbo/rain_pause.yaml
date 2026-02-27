@@ -104,6 +104,9 @@ action:
               - condition: state
                 entity_id: !input activity_sensor
                 state: charging
+              - condition: state
+                entity_id: !input activity_sensor
+                state: paused
           - service: yarbo.resume
             data:
               device_id: !input yarbo_device
