@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from homeassistant import config_entries
 from homeassistant.components import dhcp
 from homeassistant.core import HomeAssistant
@@ -35,14 +36,14 @@ from tests.conftest import (
 )
 
 
-def _mock_telemetry(serial: str = MOCK_ROBOT_SERIAL):
+def _mock_telemetry(serial: str = MOCK_ROBOT_SERIAL) -> MagicMock:
     """Object with serial_number for config flow mqtt_test step."""
     t = MagicMock()
     t.serial_number = serial
     return t
 
 
-async def _async_gen_one(item):
+async def _async_gen_one(item: Any) -> AsyncGenerator[Any, None]:
     """Async generator yielding one item."""
     yield item
 
@@ -84,9 +85,7 @@ class TestManualConfigFlow:
         mock_client.connect = AsyncMock()
         mock_client.disconnect = AsyncMock()
         mock_client.serial_number = MOCK_ROBOT_SERIAL
-        mock_client.watch_telemetry = MagicMock(
-            return_value=_async_gen_one(_mock_telemetry())
-        )
+        mock_client.watch_telemetry = MagicMock(return_value=_async_gen_one(_mock_telemetry()))
 
         with patch(
             "custom_components.yarbo.config_flow.YarboLocalClient",
@@ -107,15 +106,16 @@ class TestManualConfigFlow:
         mock_client.connect = AsyncMock()
         mock_client.disconnect = AsyncMock()
         mock_client.serial_number = MOCK_ROBOT_SERIAL
-        mock_client.watch_telemetry = MagicMock(
-            return_value=_async_gen_one(_mock_telemetry())
-        )
-        with patch(
-            "custom_components.yarbo.config_flow.async_discover_endpoints",
-            return_value=[],
-        ), patch(
-            "custom_components.yarbo.config_flow.YarboLocalClient",
-            return_value=mock_client,
+        mock_client.watch_telemetry = MagicMock(return_value=_async_gen_one(_mock_telemetry()))
+        with (
+            patch(
+                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                return_value=[],
+            ),
+            patch(
+                "custom_components.yarbo.config_flow.YarboLocalClient",
+                return_value=mock_client,
+            ),
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -131,9 +131,7 @@ class TestManualConfigFlow:
         # Next: cloud step; submit empty to skip
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "cloud"
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], {}
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["data"][CONF_BROKER_HOST] == MOCK_BROKER_HOST
         assert result["data"][CONF_ROBOT_SERIAL] == MOCK_ROBOT_SERIAL
@@ -148,12 +146,15 @@ class TestManualConfigFlow:
         mock_client = MagicMock()
         mock_client.connect = AsyncMock(side_effect=YarboConnectionError("refused"))
         mock_client.disconnect = AsyncMock()
-        with patch(
-            "custom_components.yarbo.config_flow.async_discover_endpoints",
-            return_value=[],
-        ), patch(
-            "custom_components.yarbo.config_flow.YarboLocalClient",
-            return_value=mock_client,
+        with (
+            patch(
+                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                return_value=[],
+            ),
+            patch(
+                "custom_components.yarbo.config_flow.YarboLocalClient",
+                return_value=mock_client,
+            ),
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -162,9 +163,7 @@ class TestManualConfigFlow:
                 result["flow_id"],
                 {CONF_BROKER_HOST: MOCK_BROKER_HOST, CONF_BROKER_PORT: DEFAULT_BROKER_PORT},
             )
-            result = await hass.config_entries.flow.async_configure(
-                result["flow_id"], {}
-            )
+            result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
         assert result["type"] == FlowResultType.FORM
         assert result["errors"]["base"] == "cannot_connect"
         assert result["step_id"] == "mqtt_test"
@@ -176,18 +175,20 @@ class TestManualConfigFlow:
         mock_client = MagicMock()
         mock_client.connect = AsyncMock()
         mock_client.disconnect = AsyncMock()
-        mock_client.watch_telemetry = MagicMock(
-            return_value=_async_gen_one(_mock_telemetry())
-        )
-        with patch(
-            "custom_components.yarbo.config_flow.async_discover_endpoints",
-            return_value=[],
-        ), patch(
-            "custom_components.yarbo.config_flow.YarboLocalClient",
-            return_value=mock_client,
-        ), patch(
-            "custom_components.yarbo.config_flow.asyncio.wait_for",
-            side_effect=TimeoutError(),
+        mock_client.watch_telemetry = MagicMock(return_value=_async_gen_one(_mock_telemetry()))
+        with (
+            patch(
+                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                return_value=[],
+            ),
+            patch(
+                "custom_components.yarbo.config_flow.YarboLocalClient",
+                return_value=mock_client,
+            ),
+            patch(
+                "custom_components.yarbo.config_flow.asyncio.wait_for",
+                side_effect=TimeoutError(),
+            ),
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -196,9 +197,7 @@ class TestManualConfigFlow:
                 result["flow_id"],
                 {CONF_BROKER_HOST: MOCK_BROKER_HOST, CONF_BROKER_PORT: DEFAULT_BROKER_PORT},
             )
-            result = await hass.config_entries.flow.async_configure(
-                result["flow_id"], {}
-            )
+            result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
         assert result["type"] == FlowResultType.FORM
         assert result["errors"]["base"] == "no_telemetry"
         assert result["step_id"] == "mqtt_test"
@@ -210,15 +209,16 @@ class TestManualConfigFlow:
         mock_client = MagicMock()
         mock_client.connect = AsyncMock()
         mock_client.disconnect = AsyncMock()
-        mock_client.watch_telemetry = MagicMock(
-            side_effect=RuntimeError("decode failed")
-        )
-        with patch(
-            "custom_components.yarbo.config_flow.async_discover_endpoints",
-            return_value=[],
-        ), patch(
-            "custom_components.yarbo.config_flow.YarboLocalClient",
-            return_value=mock_client,
+        mock_client.watch_telemetry = MagicMock(side_effect=RuntimeError("decode failed"))
+        with (
+            patch(
+                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                return_value=[],
+            ),
+            patch(
+                "custom_components.yarbo.config_flow.YarboLocalClient",
+                return_value=mock_client,
+            ),
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -227,9 +227,7 @@ class TestManualConfigFlow:
                 result["flow_id"],
                 {CONF_BROKER_HOST: MOCK_BROKER_HOST, CONF_BROKER_PORT: DEFAULT_BROKER_PORT},
             )
-            result = await hass.config_entries.flow.async_configure(
-                result["flow_id"], {}
-            )
+            result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
         assert result["type"] == FlowResultType.FORM
         assert result["errors"]["base"] == "decode_error"
         assert result["step_id"] == "mqtt_test"
@@ -238,7 +236,8 @@ class TestManualConfigFlow:
         self, hass: HomeAssistant, enable_custom_integrations: None
     ) -> None:
         """Configuring the same robot SN twice aborts with already_configured."""
-        def fresh_telemetry_gen():
+
+        def fresh_telemetry_gen() -> AsyncGenerator[Any, None]:
             return _async_gen_one(_mock_telemetry())
 
         mock_client = MagicMock()
@@ -246,12 +245,15 @@ class TestManualConfigFlow:
         mock_client.disconnect = AsyncMock()
         mock_client.serial_number = MOCK_ROBOT_SERIAL
         mock_client.watch_telemetry = MagicMock(side_effect=fresh_telemetry_gen)
-        with patch(
-            "custom_components.yarbo.config_flow.async_discover_endpoints",
-            return_value=[],
-        ), patch(
-            "custom_components.yarbo.config_flow.YarboLocalClient",
-            return_value=mock_client,
+        with (
+            patch(
+                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                return_value=[],
+            ),
+            patch(
+                "custom_components.yarbo.config_flow.YarboLocalClient",
+                return_value=mock_client,
+            ),
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -264,9 +266,7 @@ class TestManualConfigFlow:
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"], {CONF_ROBOT_NAME: MOCK_ROBOT_NAME}
             )
-            result = await hass.config_entries.flow.async_configure(
-                result["flow_id"], {}
-            )
+            result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
             assert result["type"] == FlowResultType.CREATE_ENTRY
 
             # Second flow: same broker, same serial -> already_configured at name step
@@ -318,9 +318,7 @@ class TestDhcpDiscoveryFlow:
         mock_client.connect = AsyncMock()
         mock_client.disconnect = AsyncMock()
         mock_client.serial_number = MOCK_ROBOT_SERIAL
-        mock_client.watch_telemetry = MagicMock(
-            return_value=_async_gen_one(_mock_telemetry())
-        )
+        mock_client.watch_telemetry = MagicMock(return_value=_async_gen_one(_mock_telemetry()))
         discovery_info = dhcp.DhcpServiceInfo(
             ip=MOCK_BROKER_HOST,
             macaddress=MOCK_BROKER_MAC,
@@ -335,17 +333,13 @@ class TestDhcpDiscoveryFlow:
                 context={"source": config_entries.SOURCE_DHCP},
                 data=discovery_info,
             )
-            result = await hass.config_entries.flow.async_configure(
-                result["flow_id"], {}
-            )
+            result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
             # mqtt_test runs inline, next step is name
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"], {CONF_ROBOT_NAME: MOCK_ROBOT_NAME}
             )
         assert result["step_id"] == "cloud"
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], {}
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["data"][CONF_BROKER_HOST] == MOCK_BROKER_HOST
         assert result["data"][CONF_BROKER_MAC] == MOCK_BROKER_MAC

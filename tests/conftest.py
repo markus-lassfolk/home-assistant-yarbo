@@ -6,6 +6,7 @@ import os
 import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
+
 # homeassistant.components.dhcp transitively imports several packages
 # (aiodhcpwatcher, aiodiscover, cached_ipaddress, …) that are not available
 # in the test environment.  Stub the entire dhcp component module so

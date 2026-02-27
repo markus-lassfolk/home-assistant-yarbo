@@ -117,6 +117,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             if self._discovered_endpoints:
                 ep = self._discovered_endpoints[0]
                 self._broker_host = ep.host
+                self._broker_port = ep.port
                 self._connection_path = ep.endpoint_type
                 self._rover_ip = ep.host if ep.endpoint_type == ENDPOINT_TYPE_ROVER else None
                 self._alternate_host = None
@@ -346,6 +347,8 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
             data = dict(self._reconfigure_entry.data)
             data[CONF_BROKER_HOST] = self._broker_host
+            if self._broker_endpoints_ordered:
+                data[CONF_BROKER_ENDPOINTS] = self._broker_endpoints_ordered
             data[CONF_BROKER_PORT] = self._broker_port
             if self._discovered_mac:
                 data[CONF_BROKER_MAC] = self._discovered_mac

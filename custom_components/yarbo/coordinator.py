@@ -20,6 +20,7 @@ from .const import (
     CONF_BROKER_ENDPOINTS,
     CONF_BROKER_HOST,
     CONF_BROKER_PORT,
+    CONF_CONNECTION_PATH,
     CONF_ROBOT_NAME,
     DATA_CLIENT,
     DEFAULT_BROKER_PORT,
@@ -217,6 +218,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                             # Persist current host so next failover uses it
                             new_data = dict(self._entry.data)
                             new_data[CONF_BROKER_HOST] = next_host
+                            # Update connection path label for sensor display
+                            if next_host in getattr(self, "_endpoint_types", {}):
+                                new_data[CONF_CONNECTION_PATH] = self._endpoint_types[next_host]
                             self.hass.config_entries.async_update_entry(self._entry, data=new_data)
                             # Disconnect old client; suppress errors to avoid leaking
                             with contextlib.suppress(Exception):
