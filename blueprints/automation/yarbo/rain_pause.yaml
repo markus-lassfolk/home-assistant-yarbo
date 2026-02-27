@@ -1,8 +1,9 @@
 blueprint:
   name: Yarbo Rain Pause & Resume
   description: >
-    Automatically pause the Yarbo robot when rain is detected, and resume after
-    rain stops (with a configurable delay to let the ground dry).
+    Automatically pause and dock the Yarbo robot when rain is detected,
+    then resume after a configurable dry delay once rain stops.
+    Only acts when the robot is actively executing a plan.
   domain: automation
   author: markus-lassfolk
   source_url: https://github.com/markus-lassfolk/home-assistant-yarbo
@@ -18,59 +19,41 @@ blueprint:
     rain_sensor:
       name: Rain Sensor
       description: >
-        Sensor that indicates rain. Can be the Yarbo rain sensor entity
-        or any external weather sensor.
+        Binary sensor that indicates rain (on = raining, off = dry).
+        Can be the Yarbo built-in rain binary sensor or any HA rain/weather sensor.
       selector:
         entity:
-          domain: sensor
+          domain: binary_sensor
 
-    rain_threshold:
-      name: Rain Detection Value
+    dry_delay:
+      name: Dry Delay
       description: >
-        Sensor value above which rain is considered active.
-        For the Yarbo rain sensor, use 1 (sensor returns 0 when dry, positive when wet).
-      default: 1
+        How long to wait after rain stops before resuming, to let the ground dry.
+        Default is 2 hours.
+      default: "02:00:00"
       selector:
-        number:
-          min: 0
-          max: 1000
-          mode: box
+        duration:
 
-    resume_delay:
-      name: Resume Delay (minutes)
+    planning_sensor:
+      name: Planning Sensor
       description: >
-        Wait this many minutes after rain stops before resuming,
-        to allow the ground to dry.
-      default: 30
-      selector:
-        number:
-          min: 0
-          max: 120
-          unit_of_measurement: min
-          mode: slider
-
-    activity_sensor:
-      name: Activity Sensor
-      description: The Yarbo activity sensor — used to check if robot is working.
+        The Yarbo planning binary sensor — automation only acts when the robot
+        is actively executing a plan (binary_sensor.*_planning is on).
       selector:
         entity:
           integration: yarbo
-          domain: sensor
-
-variables:
-  yarbo_device_id: !input yarbo_device
-  activity_entity: !input activity_sensor
+          domain: binary_sensor
 
 trigger:
-  - platform: numeric_state
+  - platform: state
     id: rain_start
     entity_id: !input rain_sensor
-    above: !input rain_threshold
+    to: "on"
 
-  - platform: numeric_state
+  - platform: state
     id: rain_stop
     entity_id: !input rain_sensor
-    below: !input rain_threshold
+    to: "off"
 
 condition: []
 
@@ -80,10 +63,15 @@ action:
           - condition: trigger
             id: rain_start
           - condition: state
-            entity_id: !input activity_sensor
-            state: working
+            entity_id: !input planning_sensor
+            state: "on"
         sequence:
           - service: yarbo.pause
+            data:
+              device_id: !input yarbo_device
+          - delay:
+              seconds: 2
+          - service: yarbo.return_to_dock
             data:
               device_id: !input yarbo_device
 
@@ -91,11 +79,10 @@ action:
           - condition: trigger
             id: rain_stop
         sequence:
-          - delay:
-              minutes: !input resume_delay
+          - delay: !input dry_delay
           - condition: state
-            entity_id: !input activity_sensor
-            state: paused
+            entity_id: !input planning_sensor
+            state: "on"
           - service: yarbo.resume
             data:
               device_id: !input yarbo_device
