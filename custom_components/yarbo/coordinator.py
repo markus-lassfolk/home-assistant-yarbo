@@ -186,3 +186,4 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             with contextlib.suppress(asyncio.CancelledError):
                 await self._watchdog_task
             self._watchdog_task = None
+        await super().async_shutdown()

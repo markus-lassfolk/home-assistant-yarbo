@@ -29,9 +29,9 @@ def init_error_reporting(
     if not enabled:
         return
 
-    # Resolve DSN: explicit arg > YARBO_SENTRY_DSN env var > SENTRY_DSN env var
+    # Resolve DSN: explicit arg > YARBO_SENTRY_DSN env var
     # No hardcoded default — opt-in only
-    effective_dsn = dsn or os.environ.get("YARBO_SENTRY_DSN") or os.environ.get("SENTRY_DSN")
+    effective_dsn = dsn or os.environ.get("YARBO_SENTRY_DSN")
 
     if not effective_dsn:
         # No DSN configured — error reporting disabled (opt-in model)
