@@ -28,6 +28,13 @@
           "selected_endpoint": "Endpoint"
         }
       },
+      "select_endpoint": {
+        "title": "Choose MQTT Endpoint",
+        "description": "We found **{count}** path(s) to your Yarbo mower (order from discovery: Primary, then Secondary). Both connect to the same broker. Failover will try the next in this order when the current one is unavailable.",
+        "data": {
+          "selected_endpoint": "Endpoint"
+        }
+      },
       "mqtt_test": {
         "title": "Connecting to Yarbo",
         "description": "Testing MQTT connection and waiting for telemetry from your robot..."
