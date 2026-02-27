@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import __version__
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.loader import async_get_integration
@@ -45,7 +47,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "integration": DOMAIN,
             "integration_version": integration_version,
             "robot_serial": f"****{_serial[-4:]}" if len(_serial) > 4 else _serial,
-            "ha_version": str(hass.config.version),
+            "ha_version": __version__,
         }
     )
 
@@ -80,11 +82,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     async_register_services(hass)
+
+    # Register options update listener so throttle and other options apply
+    # immediately when the user changes them in the options UI — without
+    # requiring a full config-entry reload.
+    entry.async_on_unload(entry.add_update_listener(_async_update_options))
+
     return True
+
+
+async def _async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update — propagate new options to the coordinator."""
+    coordinator: YarboDataCoordinator = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
+    options: dict[str, Any] = dict(entry.options)
+    coordinator.update_options(options)
+    _LOGGER.debug("Yarbo options applied for entry %s", entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
+    from .repairs import async_delete_controller_lost_issue, async_delete_mqtt_disconnect_issue
+
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
@@ -92,6 +110,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator: YarboDataCoordinator = data[DATA_COORDINATOR]
         await coordinator.async_shutdown()
         await data[DATA_CLIENT].disconnect()
+        # Clean up any active repair issues to prevent orphaned issues
+        async_delete_mqtt_disconnect_issue(hass, entry.entry_id)
+        async_delete_controller_lost_issue(hass, entry.entry_id)
         if not hass.data[DOMAIN]:
             hass.data.pop(DOMAIN)
             async_unregister_services(hass)

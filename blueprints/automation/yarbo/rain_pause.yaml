@@ -1,9 +1,14 @@
 blueprint:
   name: Yarbo Rain Pause & Resume
   description: >
-    Automatically pause and dock the Yarbo robot when rain is detected,
-    then resume after a configurable dry delay once rain stops.
-    Only acts when the robot is actively executing a plan.
+    Automatically pause the Yarbo robot when rain is detected and send it to
+    dock, then resume after rain stops (with a configurable delay to let the
+    ground dry). When rain stops the automation re-launches the mowing job
+    regardless of whether the robot docked — this is intentional so the robot
+    resumes work automatically. The default threshold of 0.1 is chosen
+    deliberately: using 0 would break the rain-stop trigger because
+    Home Assistant's numeric_state `below: 0` only fires when the value goes
+    strictly below 0, and dry sensors read exactly 0.
   domain: automation
   author: markus-lassfolk
   source_url: https://github.com/markus-lassfolk/home-assistant-yarbo
@@ -19,42 +24,61 @@ blueprint:
     rain_sensor:
       name: Rain Sensor
       description: >
-        Binary sensor that indicates rain (on = raining, off = dry).
-        Use any HA binary rain sensor or a Template helper that converts
-        a numeric rain sensor (such as the Yarbo rain sensor) to binary.
+        Sensor that indicates rain. Can be the Yarbo rain sensor entity
+        or any external weather sensor.
       selector:
         entity:
-          domain: binary_sensor
+          domain: sensor
 
-    dry_delay:
-      name: Dry Delay
+    rain_threshold:
+      name: Rain Detection Value
       description: >
-        How long to wait after rain stops before resuming, to let the ground dry.
-        Default is 2 hours.
-      default: "02:00:00"
+        Sensor value above which rain is considered active.
+        For the Yarbo rain sensor, 0.1 is recommended: the sensor reads 0 when dry
+        and a positive value when wet. Setting this to 0 would break rain-stop detection
+        because `below: 0` never fires (the sensor never goes negative).
+      default: 0.1
       selector:
-        duration:
+        number:
+          min: 0
+          max: 1000
+          mode: box
+
+    resume_delay:
+      name: Resume Delay (minutes)
+      description: >
+        Wait this many minutes after rain stops before resuming,
+        to allow the ground to dry.
+      default: 30
+      selector:
+        number:
+          min: 0
+          max: 120
+          unit_of_measurement: min
+          mode: slider
 
     activity_sensor:
       name: Activity Sensor
-      description: >
-        The Yarbo activity sensor — automation only acts when the robot
-        is actively executing a plan (working or paused state).
+      description: The Yarbo activity sensor — used to check if robot is working.
       selector:
         entity:
           integration: yarbo
           domain: sensor
 
+variables:
+  yarbo_device_id: !input yarbo_device
+  activity_entity: !input activity_sensor
+
 trigger:
-  - platform: state
+  - platform: numeric_state
     id: rain_start
     entity_id: !input rain_sensor
-    to: "on"
+    above: !input rain_threshold
 
-  - platform: state
+  - platform: numeric_state
     id: rain_stop
     entity_id: !input rain_sensor
-    to: "off"
+    below: !input rain_threshold
 
 condition: []
 
@@ -71,7 +95,7 @@ action:
             data:
               device_id: !input yarbo_device
           - delay:
-              seconds: 2
+              seconds: 5
           - service: yarbo.return_to_dock
             data:
               device_id: !input yarbo_device
@@ -80,10 +104,19 @@ action:
           - condition: trigger
             id: rain_stop
         sequence:
-          - delay: !input dry_delay
-          - condition: state
-            entity_id: !input activity_sensor
-            state: paused
+          - delay:
+              minutes: !input resume_delay
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: !input activity_sensor
+                state: idle
+              - condition: state
+                entity_id: !input activity_sensor
+                state: charging
+              - condition: state
+                entity_id: !input activity_sensor
+                state: paused
           - service: yarbo.resume
             data:
               device_id: !input yarbo_device

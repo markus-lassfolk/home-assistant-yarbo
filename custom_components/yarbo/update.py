@@ -1,36 +1,22 @@
-"""Update platform for Yarbo integration — firmware update information."""
+"""Update platform for Yarbo integration — firmware update information.
+
+Entity: update.{name}_firmware
+- installed_version: read from DeviceMSG/deviceinfo_feedback/ota_feedback MQTT
+- latest_version: read from cloud API (requires cloud_enabled option)
+- No INSTALL support — OTA is managed by the Yarbo app via AWS Greengrass
+"""
 
 from __future__ import annotations
-
-import logging
-from datetime import timedelta
 
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (
-    CONF_CLOUD_REFRESH_TOKEN,
-    CONF_CLOUD_USERNAME,
-    CONF_ROBOT_SERIAL,
-    DATA_COORDINATOR,
-    DOMAIN,
-    OPT_CLOUD_ENABLED,
-)
+from .const import DATA_COORDINATOR, DEFAULT_CLOUD_ENABLED, DOMAIN, OPT_CLOUD_ENABLED
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
-
-try:
-    from yarbo.cloud import YarboCloudClient
-except ImportError:  # pragma: no cover
-    YarboCloudClient = None
-
-_LOGGER = logging.getLogger(__name__)
-
-SCAN_INTERVAL = timedelta(hours=6)
 
 
 async def async_setup_entry(
@@ -39,16 +25,23 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Yarbo firmware update entity."""
-    coordinator = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
+    coordinator: YarboDataCoordinator = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
     async_add_entities([YarboFirmwareUpdate(coordinator)])
 
 
 class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
     """Firmware update information entity (informational only — no install).
 
-    Displays currently installed firmware version from MQTT telemetry.
-    When cloud auth is configured, also fetches the latest available version
-    from the Yarbo cloud API for comparison.
+    Installed version is sourced from telemetry (deviceinfo_feedback or
+    ota_feedback MQTT messages, falling back to top-level firmware_version).
+
+    Latest version comparison is available when cloud features are enabled.
+    When cloud is disabled the latest_version property returns None, which
+    makes the HA update entity show only the installed version without an
+    update-available banner.
+
+    OTA updates are triggered exclusively via the Yarbo app — this entity
+    must NOT implement UpdateEntityFeature.INSTALL (safety requirement).
     """
 
     _attr_translation_key = "firmware"
@@ -60,88 +53,60 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
         "Firmware updates are managed by the Yarbo app. "
         "This entity shows the currently installed version."
     )
-    _attr_should_poll = True
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "firmware")
-        self._latest_version: str | None = None
 
     @property
     def installed_version(self) -> str | None:
-        """Return currently installed firmware version from telemetry."""
-        raw_source = self.coordinator.data
-        if raw_source is None:
+        """Return currently installed firmware version from telemetry.
+
+        Checks (in priority order):
+        1. deviceinfo_feedback MQTT message
+        2. ota_feedback MQTT message
+        3. Top-level firmware_version field
+        """
+        data = self.coordinator.data
+        if data is None:
             return None
-        if isinstance(raw_source, dict):
-            raw = raw_source.get("raw", raw_source)
+
+        if isinstance(data, dict):
+            raw: dict[str, object] = data.get("raw", data)
         else:
-            raw = getattr(raw_source, "raw", {})
-        return raw.get("firmware_version") if isinstance(raw, dict) else None
+            raw = getattr(data, "raw", {}) or {}
+
+        if not isinstance(raw, dict):
+            return None
+
+        # 1. Try deviceinfo_feedback (preferred — contains current version)
+        deviceinfo = raw.get("deviceinfo_feedback") or raw.get("DeviceInfoMSG") or {}
+        if isinstance(deviceinfo, dict):
+            v = deviceinfo.get("version") or deviceinfo.get("firmware_version")
+            if v:
+                return str(v)
+
+        # 2. Try ota_feedback (reported after OTA completes)
+        ota = raw.get("ota_feedback") or raw.get("OtaMSG") or {}
+        if isinstance(ota, dict):
+            v = ota.get("version") or ota.get("firmware_version")
+            if v:
+                return str(v)
+
+        # 3. Fallback to top-level firmware_version key
+        v = raw.get("firmware_version")
+        return str(v) if v else None
 
     @property
     def latest_version(self) -> str | None:
-        """Return latest available firmware version from cloud, if configured.
+        """Return latest available firmware version from cloud API.
 
-        Falls back to installed_version when cloud is disabled or unavailable,
-        so the entity shows no pending update when cloud is not configured.
+        Returns None when cloud features are disabled (OPT_CLOUD_ENABLED=False)
+        or when the cloud has not yet reported a version.
+        Populated by coordinator.latest_firmware_version once cloud auth is set up.
         """
-        if self._latest_version is not None:
-            return self._latest_version
-        # When no cloud version is known, report latest == installed (no update)
-        return self.installed_version
-
-    async def async_update(self) -> None:
-        """Fetch latest firmware version from cloud when cloud auth is enabled.
-
-        Uses the stored refresh_token to obtain a valid session via the cloud
-        client's public connect()/disconnect() lifecycle. Falls back gracefully
-        if cloud is unavailable, and raises ConfigEntryAuthFailed when the
-        token is expired so HA can prompt the user to re-authenticate.
-        """
-        entry = self.coordinator._entry
-        cloud_enabled = entry.options.get(OPT_CLOUD_ENABLED, False)
-        refresh_token = entry.data.get(CONF_CLOUD_REFRESH_TOKEN)
-
-        if not cloud_enabled or not refresh_token or YarboCloudClient is None:
-            self._latest_version = None
-            return
-
-        username = entry.data.get(CONF_CLOUD_USERNAME, "")
-        robot_serial = entry.data.get(CONF_ROBOT_SERIAL, "")
-
-        # Use the library's public lifecycle — no private attribute access.
-        cloud_client = YarboCloudClient(username=username)
-        cloud_client.auth.refresh_token = refresh_token
-        try:
-            await cloud_client.connect()
-            # Persist any rotated refresh token returned by the server.
-            new_refresh_token = cloud_client.auth.refresh_token
-            if new_refresh_token and new_refresh_token != refresh_token:
-                new_data = dict(entry.data)
-                new_data[CONF_CLOUD_REFRESH_TOKEN] = new_refresh_token
-                self.hass.config_entries.async_update_entry(entry, data=new_data)
-                _LOGGER.debug("Refresh token rotated for %s", robot_serial)
-            version_data: dict[str, str] = await cloud_client.get_latest_version()
-            self._latest_version = version_data.get("firmwareVersion")
-            _LOGGER.debug(
-                "Cloud firmware check for %s: latest=%s installed=%s",
-                robot_serial,
-                self._latest_version,
-                self.installed_version,
-            )
-        except ConfigEntryAuthFailed:
-            raise
-        except Exception as err:
-            self._latest_version = None
-            # Surface auth failures as ConfigEntryAuthFailed so HA triggers reauth.
-            err_str = str(err).lower()
-            if any(kw in err_str for kw in ("401", "403", "unauthorized", "forbidden")):
-                _LOGGER.warning("Cloud auth expired for %s — triggering reauth", robot_serial)
-                raise ConfigEntryAuthFailed(f"Cloud token expired for {robot_serial}") from err
-            _LOGGER.warning(
-                "Failed to fetch firmware version from cloud for %s",
-                robot_serial,
-                exc_info=True,
-            )
-        finally:
-            await cloud_client.disconnect()
+        cloud_enabled: bool = self.coordinator.entry.options.get(
+            OPT_CLOUD_ENABLED, DEFAULT_CLOUD_ENABLED
+        )
+        if not cloud_enabled:
+            return None
+        return self.coordinator.latest_firmware_version

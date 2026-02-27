@@ -2,7 +2,7 @@ blueprint:
   name: Yarbo Low Battery Notification
   description: >
     Send a notification when the Yarbo robot's battery drops below a configurable
-    threshold while not charging.
+    threshold. Useful for reminding you to dock the robot before it runs out of power.
   domain: automation
   author: markus-lassfolk
   source_url: https://github.com/markus-lassfolk/home-assistant-yarbo
@@ -28,17 +28,11 @@ blueprint:
           unit_of_measurement: "%"
           mode: slider
 
-    notify_service:
-      name: Notification Service
-      description: The notify service to call (e.g. notify.mobile_app_phone).
-      selector:
-        text:
-          multiline: false
-
-    message:
-      name: Notification Message
-      description: Message to send. Use {battery} for the current battery level.
-      default: "Yarbo battery is low: {battery}%"
+    notify_target:
+      name: Notification Target
+      description: >
+        The notification target to call (e.g. notify.mobile_app_phone or
+        persistent_notification).
       selector:
         text:
           multiline: false
@@ -48,20 +42,12 @@ trigger:
     entity_id: !input battery_sensor
     below: !input threshold
 
-condition:
-  - condition: template
-    value_template: >
-      {% set device_id = device_id(trigger.entity_id) %}
-      {% set charging_entity = device_entities(device_id) | select('search', '_charging$') | list | first | default(none) %}
-      {{ charging_entity is none or not is_state(charging_entity, 'on') }}
-
 action:
-  - service: !input notify_service
+  - service: !input notify_target
     data:
       title: "Yarbo Low Battery"
       message: >
-        {{ (inputs.message | default('Yarbo battery is low: {battery}%'))
-           | replace('{battery}', trigger.to_state.state) }}
+        Yarbo battery is low: {{ trigger.to_state.state }}%
 
 mode: single
 max_exceeded: silent

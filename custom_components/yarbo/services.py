@@ -95,7 +95,13 @@ def async_register_services(hass: HomeAssistant) -> None:
         )
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
-            await client.get_controller(timeout=5.0)
+            try:
+                await client.get_controller(timeout=5.0)
+            except Exception as err:
+                _LOGGER.warning("Failed to acquire controller: %s", err)
+                coordinator.report_controller_lost()
+                raise
+            coordinator.resolve_controller_lost()
             await client.publish_raw(command, payload)
 
     async def handle_start_plan(call: ServiceCall) -> None:
@@ -105,28 +111,52 @@ def async_register_services(hass: HomeAssistant) -> None:
         _LOGGER.debug("yarbo.start_plan: device=%s plan_id=%s", device_id, plan_id)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
-            await client.get_controller(timeout=5.0)
-            await client.publish_raw("start_plan", {"planId": plan_id})
+            try:
+                await client.get_controller(timeout=5.0)
+            except Exception as err:
+                _LOGGER.warning("Failed to acquire controller: %s", err)
+                coordinator.report_controller_lost()
+                raise
+            coordinator.resolve_controller_lost()
+            await client.publish_command("start_plan", {"planId": plan_id})
 
     async def handle_pause(call: ServiceCall) -> None:
         """Handle yarbo.pause — pause current job."""
         client, coordinator = _get_client_and_coordinator(hass, call.data["device_id"])
         async with coordinator.command_lock:
-            await client.get_controller(timeout=5.0)
+            try:
+                await client.get_controller(timeout=5.0)
+            except Exception as err:
+                _LOGGER.warning("Failed to acquire controller: %s", err)
+                coordinator.report_controller_lost()
+                raise
+            coordinator.resolve_controller_lost()
             await client.publish_command("planning_paused", {})
 
     async def handle_resume(call: ServiceCall) -> None:
         """Handle yarbo.resume — resume paused job."""
         client, coordinator = _get_client_and_coordinator(hass, call.data["device_id"])
         async with coordinator.command_lock:
-            await client.get_controller(timeout=5.0)
+            try:
+                await client.get_controller(timeout=5.0)
+            except Exception as err:
+                _LOGGER.warning("Failed to acquire controller: %s", err)
+                coordinator.report_controller_lost()
+                raise
+            coordinator.resolve_controller_lost()
             await client.publish_command("resume", {})
 
     async def handle_return_to_dock(call: ServiceCall) -> None:
         """Handle yarbo.return_to_dock — send robot to dock."""
         client, coordinator = _get_client_and_coordinator(hass, call.data["device_id"])
         async with coordinator.command_lock:
-            await client.get_controller(timeout=5.0)
+            try:
+                await client.get_controller(timeout=5.0)
+            except Exception as err:
+                _LOGGER.warning("Failed to acquire controller: %s", err)
+                coordinator.report_controller_lost()
+                raise
+            coordinator.resolve_controller_lost()
             await client.publish_command("cmd_recharge", {})
 
     async def handle_set_lights(call: ServiceCall) -> None:
@@ -136,7 +166,13 @@ def async_register_services(hass: HomeAssistant) -> None:
         _LOGGER.debug("yarbo.set_lights: device=%s brightness=%s", device_id, brightness)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
-            await client.get_controller(timeout=5.0)
+            try:
+                await client.get_controller(timeout=5.0)
+            except Exception as err:
+                _LOGGER.warning("Failed to acquire controller: %s", err)
+                coordinator.report_controller_lost()
+                raise
+            coordinator.resolve_controller_lost()
             await client.set_lights(
                 YarboLightState(
                     led_head=call.data.get("led_head", brightness),
@@ -164,7 +200,13 @@ def async_register_services(hass: HomeAssistant) -> None:
         _LOGGER.debug("yarbo.set_chute_velocity: device=%s velocity=%d", device_id, velocity)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
-            await client.get_controller(timeout=5.0)
+            try:
+                await client.get_controller(timeout=5.0)
+            except Exception as err:
+                _LOGGER.warning("Failed to acquire controller: %s", err)
+                coordinator.report_controller_lost()
+                raise
+            coordinator.resolve_controller_lost()
             await client.set_chute(vel=velocity)
 
     services = {
