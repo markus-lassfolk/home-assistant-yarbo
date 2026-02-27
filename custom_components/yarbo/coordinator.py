@@ -219,8 +219,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                             new_data = dict(self._entry.data)
                             new_data[CONF_BROKER_HOST] = next_host
                             # Update connection path label for sensor display
-                            if next_host in getattr(self, "_endpoint_types", {}):
-                                new_data[CONF_CONNECTION_PATH] = self._endpoint_types[next_host]
+                            alt = self._entry.data.get(CONF_ALTERNATE_BROKER_HOST)
+                            if alt and next_host == alt:
+                                new_data[CONF_CONNECTION_PATH] = "dc"
+                            elif alt:
+                                new_data[CONF_CONNECTION_PATH] = "rover"
                             self.hass.config_entries.async_update_entry(self._entry, data=new_data)
                             # Disconnect old client; suppress errors to avoid leaking
                             with contextlib.suppress(Exception):

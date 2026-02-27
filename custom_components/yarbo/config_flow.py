@@ -224,6 +224,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         # Single endpoint
         ep = self._discovered_endpoints[0]
         self._broker_host = ep.host
+        self._broker_port = ep.port
         self._connection_path = ep.endpoint_type
         self._rover_ip = ep.host if ep.endpoint_type == ENDPOINT_TYPE_ROVER else None
         self._alternate_host = None
