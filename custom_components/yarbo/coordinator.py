@@ -221,6 +221,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                             # Disconnect old client; suppress errors to avoid leaking
                             with contextlib.suppress(Exception):
                                 await old_client.disconnect()
+                        # Re-acquire controller on failover (matches async_setup_entry)
+                        try:
+                            await new_client.get_controller(timeout=5.0)
+                        except Exception as ctrl_err:
+                            _LOGGER.warning("Failover controller acquisition failed: %s", ctrl_err)
                         _LOGGER.info("Failover to %s succeeded", next_host)
                         continue
                     except Exception as connect_err:

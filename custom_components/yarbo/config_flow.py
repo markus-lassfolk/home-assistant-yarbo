@@ -102,6 +102,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step — try discovery first, then manual IP/port if needed."""
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             self._broker_host = user_input[CONF_BROKER_HOST]
             port = user_input.get(CONF_BROKER_PORT)
@@ -146,6 +147,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manual IP/port entry when discovery found no devices."""
         errors: dict[str, str] = {}
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             self._broker_host = user_input[CONF_BROKER_HOST]
             port = user_input.get(CONF_BROKER_PORT)
@@ -231,6 +233,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Let user choose initial endpoint. Order is from python-yarbo (Primary, Secondary)."""
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             chosen_host = user_input.get("selected_endpoint")
             chosen: YarboEndpoint | None = None
@@ -281,6 +284,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Confirm DHCP-discovered device."""
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             self._broker_host = self._broker_host or self._discovered_host
             return await self.async_step_mqtt_test()
@@ -360,6 +364,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         if self._reconfigure_entry is None:
             return self.async_abort(reason="reconfigure_failed")
 
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             self._broker_host = user_input[CONF_BROKER_HOST]
             port = user_input.get(CONF_BROKER_PORT)
@@ -392,6 +397,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="no_telemetry")
 
         default_name = f"Yarbo {self._robot_serial[-4:]}"
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             # Use robot serial as unique ID and abort if already configured
             await self.async_set_unique_id(self._robot_serial)
@@ -437,6 +443,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         """
         errors: dict[str, str] = {}
 
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             username = (user_input.get(CONF_CLOUD_USERNAME) or "").strip()
             password = (user_input.get("cloud_password") or "").strip()
@@ -494,6 +501,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         reauth_entry = self._get_reauth_entry()
         username = reauth_entry.data.get(CONF_CLOUD_USERNAME, "")
 
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             password = user_input.get("cloud_password", "")
             if YarboCloudClient is None:
@@ -542,6 +550,7 @@ class YarboOptionsFlow(OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage options."""
+        # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
