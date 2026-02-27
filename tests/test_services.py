@@ -57,7 +57,7 @@ class TestServiceRegistration:
 class TestStartPlanService:
     """Tests for the yarbo.start_plan service (issue #16)."""
 
-    async def test_start_plan_calls_publish_raw(
+    async def test_start_plan_calls_publish_command(
         self,
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
