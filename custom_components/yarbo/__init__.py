@@ -61,10 +61,14 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 )
             )
 
-    # Run discovery 30s after startup to let the network settle
+    # Run 30s after HA fully starts so the network stack is ready
+    from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
     from homeassistant.helpers.event import async_call_later
 
-    async_call_later(hass, 30, _discover_yarbos)
+    async def _on_start(_event: Any) -> None:
+        async_call_later(hass, 30, lambda _now: hass.async_create_task(_discover_yarbos()))
+
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _on_start)
     return True
 
 
