@@ -17,6 +17,7 @@ from yarbo.exceptions import YarboConnectionError
 
 from .const import (
     CONF_ALTERNATE_BROKER_HOST,
+    CONF_BROKER_ENDPOINTS,
     CONF_BROKER_HOST,
     CONF_BROKER_PORT,
     CONF_ROBOT_NAME,
@@ -176,27 +177,52 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 raise
             except YarboConnectionError as err:
                 self.last_update_success = False
-                alternate = self._entry.data.get(CONF_ALTERNATE_BROKER_HOST)
                 port = self._entry.data.get(CONF_BROKER_PORT) or DEFAULT_BROKER_PORT
-                if alternate:
+                # Ordered list from discovery: Primary, Secondary, … (like DNS); try next on failover
+                endpoints = self._entry.data.get(CONF_BROKER_ENDPOINTS)
+                if not endpoints and self._entry.data.get(CONF_ALTERNATE_BROKER_HOST):
+                    endpoints = [
+                        self._entry.data[CONF_BROKER_HOST],
+                        self._entry.data[CONF_ALTERNATE_BROKER_HOST],
+                    ]
+                if not endpoints:
+                    endpoints = [self._entry.data.get(CONF_BROKER_HOST)]
+                endpoints = [h for h in endpoints if h]
+
+                current_host = self._entry.data.get(CONF_BROKER_HOST)
+                try:
+                    idx = endpoints.index(current_host)
+                except (ValueError, TypeError):
+                    idx = 0
+                next_idx = (idx + 1) % len(endpoints) if len(endpoints) > 1 else idx
+                next_host = endpoints[next_idx] if endpoints else None
+
+                if next_host and next_host != current_host and len(endpoints) > 1:
                     _LOGGER.warning(
-                        "Yarbo connection error: %s — failing over to alternate endpoint %s",
+                        "Yarbo connection error: %s — failing over to next endpoint %s (Primary/Secondary order)",
                         err,
-                        alternate,
+                        next_host,
                     )
                     try:
-                        new_client = YarboLocalClient(host=alternate, port=port)
+                        new_client = YarboLocalClient(host=next_host, port=port)
                         await new_client.connect()
                         await self.client.disconnect()
                         self.client = new_client
                         if DOMAIN in self.hass.data and self._entry.entry_id in self.hass.data[DOMAIN]:
                             self.hass.data[DOMAIN][self._entry.entry_id][DATA_CLIENT] = new_client
-                        _LOGGER.info("Failover to alternate endpoint %s succeeded", alternate)
+                        # Persist current host so device info and next failover use it
+                        new_data = dict(self._entry.data)
+                        new_data[CONF_BROKER_HOST] = next_host
+                        self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+                        _LOGGER.info(
+                            "Failover to %s succeeded; will only try Primary again when this one fails",
+                            next_host,
+                        )
                         continue
                     except Exception as connect_err:
                         _LOGGER.warning(
-                            "Failover to %s failed: %s — retrying primary in %ds",
-                            alternate,
+                            "Failover to %s failed: %s — retrying current in %ds",
+                            next_host,
                             connect_err,
                             TELEMETRY_RETRY_DELAY_SECONDS,
                         )

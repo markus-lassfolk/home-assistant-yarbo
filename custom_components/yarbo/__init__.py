@@ -15,6 +15,8 @@ from yarbo import YarboLocalClient
 from yarbo.exceptions import YarboConnectionError
 
 from .const import (
+    CONF_ALTERNATE_BROKER_HOST,
+    CONF_BROKER_ENDPOINTS,
     CONF_BROKER_HOST,
     CONF_BROKER_PORT,
     CONF_ROBOT_SERIAL,
@@ -35,6 +37,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Migrate config entry to version 2 (issue #50: alternate host, connection path, rover_ip)
     if entry.version < 2:
         hass.config_entries.async_update_entry(entry, version=2)
+
+    # Ensure ordered endpoints list for Primary/Secondary failover (from discovery order)
+    if CONF_BROKER_ENDPOINTS not in entry.data:
+        data = dict(entry.data)
+        primary = entry.data.get(CONF_BROKER_HOST)
+        alternate = entry.data.get(CONF_ALTERNATE_BROKER_HOST)
+        data[CONF_BROKER_ENDPOINTS] = (
+            [primary, alternate] if alternate and alternate != primary else [primary]
+        )
+        if primary:
+            hass.config_entries.async_update_entry(entry, data=data)
 
     # Get actual integration version from manifest
     integration_version = "unknown"
