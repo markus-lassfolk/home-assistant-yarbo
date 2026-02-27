@@ -2,9 +2,28 @@
 
 from __future__ import annotations
 
+import os
+import sys
+from unittest.mock import AsyncMock, MagicMock, patch
+
+# homeassistant.components.dhcp transitively imports several packages
+# (aiodhcpwatcher, aiodiscover, cached_ipaddress, …) that are not available
+# in the test environment.  Stub the entire dhcp component module so
+# config_flow.py can import dhcp.DhcpServiceInfo without pulling in those deps.
+_dhcp_mock = MagicMock()
+_dhcp_mock.DhcpServiceInfo = type(
+    "DhcpServiceInfo", (), {"ip": "", "macaddress": "", "hostname": ""}
+)
+sys.modules.setdefault("homeassistant.components.dhcp", _dhcp_mock)
+
+# Disable Sentry/GlitchTip error reporting during tests.
+# python-yarbo calls init_error_reporting() at module import time; the Sentry SDK
+# starts a BackgroundWorker thread when the first event is captured, which causes
+# pytest-homeassistant-custom-component's strict thread-leak checker to fail.
+os.environ.setdefault("YARBO_SENTRY_DSN", "")
+
 from collections.abc import AsyncGenerator, Generator
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
