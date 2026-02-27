@@ -271,6 +271,12 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         self._rover_ip = ep.host if ep.endpoint_type == ENDPOINT_TYPE_ROVER else None
         self._alternate_host = None
         self._broker_endpoints_ordered = [ep.host]
+
+        # If SN was discovered during probe, skip MQTT test — go straight to confirm
+        if self._robot_serial:
+            return await self.async_step_confirm()
+
+        # Robot sleeping — fall back to full MQTT test flow
         return await self.async_step_confirm()
 
     async def async_step_select_endpoint(
@@ -327,10 +333,17 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Confirm DHCP-discovered device."""
-        # Defensive: HA may call async_step_user with form data in edge cases
+        """Confirm DHCP-discovered device.
+
+        If the serial number was already discovered via MQTT probe, the user
+        just clicks 'Add' to create the entry — no further MQTT test needed.
+        If SN is unknown (robot sleeping), falls through to mqtt_test.
+        """
         if user_input is not None:
             self._broker_host = self._broker_host or self._discovered_host
+            if self._robot_serial:
+                # SN already known — skip MQTT test, go to name step
+                return await self.async_step_name()
             return await self.async_step_mqtt_test()
 
         title = f"Yarbo {self._robot_serial}" if self._robot_serial else "Yarbo"
