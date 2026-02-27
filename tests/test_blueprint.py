@@ -34,18 +34,18 @@ class TestLowBatteryBlueprint:
 
     def test_file_exists(self) -> None:
         """Blueprint file must exist at the expected path."""
-        path = os.path.join(BLUEPRINTS_DIR, "low_battery.yaml")
+        path = os.path.join(BLUEPRINTS_DIR, "low_battery_notification.yaml")
         assert os.path.isfile(path), f"Blueprint not found: {path}"
 
     def test_valid_yaml(self) -> None:
         """Blueprint must be valid YAML."""
-        path = os.path.join(BLUEPRINTS_DIR, "low_battery.yaml")
+        path = os.path.join(BLUEPRINTS_DIR, "low_battery_notification.yaml")
         data = _load_blueprint(path)
         assert data is not None
 
     def test_blueprint_metadata(self) -> None:
         """Blueprint must have correct domain and metadata."""
-        path = os.path.join(BLUEPRINTS_DIR, "low_battery.yaml")
+        path = os.path.join(BLUEPRINTS_DIR, "low_battery_notification.yaml")
         data = _load_blueprint(path)
 
         bp = data["blueprint"]
@@ -54,18 +54,18 @@ class TestLowBatteryBlueprint:
         assert "description" in bp
 
     def test_required_inputs_present(self) -> None:
-        """Blueprint must have battery_sensor, threshold, and notify_target inputs."""
-        path = os.path.join(BLUEPRINTS_DIR, "low_battery.yaml")
+        """Blueprint must have battery_sensor, threshold, and notify_service inputs."""
+        path = os.path.join(BLUEPRINTS_DIR, "low_battery_notification.yaml")
         data = _load_blueprint(path)
 
         inputs = data["blueprint"]["input"]
         assert "battery_sensor" in inputs, "Missing 'battery_sensor' input"
         assert "threshold" in inputs, "Missing 'threshold' input"
-        assert "notify_target" in inputs, "Missing 'notify_target' input"
+        assert "notify_service" in inputs, "Missing 'notify_service' input"
 
     def test_battery_sensor_uses_device_class(self) -> None:
         """battery_sensor selector must use device_class=battery."""
-        path = os.path.join(BLUEPRINTS_DIR, "low_battery.yaml")
+        path = os.path.join(BLUEPRINTS_DIR, "low_battery_notification.yaml")
         data = _load_blueprint(path)
 
         sensor_input = data["blueprint"]["input"]["battery_sensor"]
@@ -75,7 +75,7 @@ class TestLowBatteryBlueprint:
 
     def test_threshold_default_is_20(self) -> None:
         """threshold input must default to 20%."""
-        path = os.path.join(BLUEPRINTS_DIR, "low_battery.yaml")
+        path = os.path.join(BLUEPRINTS_DIR, "low_battery_notification.yaml")
         data = _load_blueprint(path)
 
         threshold_input = data["blueprint"]["input"]["threshold"]
@@ -83,7 +83,7 @@ class TestLowBatteryBlueprint:
 
     def test_trigger_is_numeric_state(self) -> None:
         """Trigger must use numeric_state platform."""
-        path = os.path.join(BLUEPRINTS_DIR, "low_battery.yaml")
+        path = os.path.join(BLUEPRINTS_DIR, "low_battery_notification.yaml")
         data = _load_blueprint(path)
 
         triggers = data.get("trigger", [])
@@ -93,7 +93,7 @@ class TestLowBatteryBlueprint:
 
     def test_has_action(self) -> None:
         """Blueprint must have an action block."""
-        path = os.path.join(BLUEPRINTS_DIR, "low_battery.yaml")
+        path = os.path.join(BLUEPRINTS_DIR, "low_battery_notification.yaml")
         data = _load_blueprint(path)
 
         assert "action" in data
@@ -101,7 +101,7 @@ class TestLowBatteryBlueprint:
 
     def test_mode_is_single(self) -> None:
         """Automation mode must be 'single' to avoid duplicate notifications."""
-        path = os.path.join(BLUEPRINTS_DIR, "low_battery.yaml")
+        path = os.path.join(BLUEPRINTS_DIR, "low_battery_notification.yaml")
         data = _load_blueprint(path)
 
         assert data.get("mode") == "single"

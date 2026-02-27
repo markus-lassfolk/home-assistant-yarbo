@@ -171,7 +171,7 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
                 self._latest_version = str(result["firmwareVersion"])
                 self.coordinator.latest_firmware_version = self._latest_version
                 _LOGGER.debug("Latest Yarbo firmware from cloud: %s", self._latest_version)
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:
             _LOGGER.warning("Failed to fetch latest Yarbo firmware version: %s", err)
         finally:
             if cloud_client is not None:
