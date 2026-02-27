@@ -298,6 +298,7 @@ class YarboRainSensor(YarboSensor):
 class YarboSatelliteCountSensor(YarboSensor):
     """GNSS satellite count sensor."""
 
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_entity_registry_enabled_default = False
     _attr_translation_key = "satellite_count"
@@ -381,7 +382,8 @@ class YarboChargeVoltageSensor(YarboSensor):
 
     _attr_device_class = SensorDeviceClass.VOLTAGE
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_native_unit_of_measurement = "mV"
+    # HA expects V for SensorDeviceClass.VOLTAGE to enable unit conversion
+    _attr_native_unit_of_measurement = "V"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_entity_registry_enabled_default = False
     _attr_translation_key = "charge_voltage"
@@ -390,11 +392,12 @@ class YarboChargeVoltageSensor(YarboSensor):
         super().__init__(coordinator, "charge_voltage")
 
     @property
-    def native_value(self) -> int | None:
-        """Return charging voltage in millivolts."""
+    def native_value(self) -> float | None:
+        """Return charging voltage in volts (MQTT payload is mV)."""
         if not self.telemetry:
             return None
-        return getattr(self.telemetry, "charge_voltage_mv", None)
+        mv = getattr(self.telemetry, "charge_voltage_mv", None)
+        return round(mv / 1000, 3) if mv is not None else None
 
 
 class YarboChargeCurrentSensor(YarboSensor):
@@ -402,7 +405,8 @@ class YarboChargeCurrentSensor(YarboSensor):
 
     _attr_device_class = SensorDeviceClass.CURRENT
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_native_unit_of_measurement = "mA"
+    # HA expects A for SensorDeviceClass.CURRENT to enable unit conversion
+    _attr_native_unit_of_measurement = "A"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_entity_registry_enabled_default = False
     _attr_translation_key = "charge_current"
@@ -411,11 +415,12 @@ class YarboChargeCurrentSensor(YarboSensor):
         super().__init__(coordinator, "charge_current")
 
     @property
-    def native_value(self) -> int | None:
-        """Return charging current in milliamps."""
+    def native_value(self) -> float | None:
+        """Return charging current in amperes (MQTT payload is mA)."""
         if not self.telemetry:
             return None
-        return getattr(self.telemetry, "charge_current_ma", None)
+        ma = getattr(self.telemetry, "charge_current_ma", None)
+        return round(ma / 1000, 3) if ma is not None else None
 
 
 class YarboMqttAgeSensor(YarboSensor):
@@ -423,7 +428,8 @@ class YarboMqttAgeSensor(YarboSensor):
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_native_unit_of_measurement = "s"
-    _attr_state_class = SensorStateClass.MEASUREMENT
+    # No state_class: value grows unbounded when robot is offline, which breaks
+    # long-term statistics. state_class=None avoids polluting the statistics DB.
     _attr_entity_registry_enabled_default = False
     _attr_translation_key = "mqtt_age"
 

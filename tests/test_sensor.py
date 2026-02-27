@@ -283,12 +283,12 @@ class TestDiagnosticSensors:
     def test_charge_voltage_unit(self) -> None:
         coord = _make_coordinator()
         entity = YarboChargeVoltageSensor(coord)
-        assert entity.native_unit_of_measurement == "mV"
+        assert entity.native_unit_of_measurement == "V"
 
     def test_charge_current_unit(self) -> None:
         coord = _make_coordinator()
         entity = YarboChargeCurrentSensor(coord)
-        assert entity.native_unit_of_measurement == "mA"
+        assert entity.native_unit_of_measurement == "A"
 
     def test_rtcm_age_unit(self) -> None:
         coord = _make_coordinator()

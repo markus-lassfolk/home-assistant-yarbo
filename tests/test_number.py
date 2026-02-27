@@ -133,3 +133,4 @@ class TestYarboChuteVelocityNumber:
             await entity.async_set_native_value(0.0)
 
         coord.client.set_chute.assert_called_once_with(vel=0)
+        assert entity.native_value == 0.0
