@@ -66,7 +66,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     from homeassistant.helpers.event import async_call_later
 
     async def _on_start(_event: Any) -> None:
-        async_call_later(hass, 30, lambda _now: hass.async_create_task(_discover_yarbos()))
+        async_call_later(hass, 30, _discover_yarbos)
 
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _on_start)
     return True
