@@ -156,10 +156,11 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_dhcp(self, discovery_info: dhcp.DhcpServiceInfo) -> FlowResult:
-        """Handle DHCP discovery.
+        """Handle DHCP discovery (issue #2).
 
         Triggered when a device with MAC OUI C8:FE:0F:* appears on the network.
-        This is the Yarbo Data Center (base station).
+        Stores IP/MAC, shows confirm form; on confirm runs MQTT validation.
+        If same MAC gets new IP (lease change), reconfigures broker_host.
         """
         _LOGGER.debug(
             "DHCP discovery: IP=%s MAC=%s hostname=%s",
