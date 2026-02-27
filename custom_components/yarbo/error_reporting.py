@@ -60,7 +60,7 @@ def init_error_reporting(
 
 
 # Non-sensitive field names that contain "_key" but must not be redacted.
-_KEY_ALLOWLIST: frozenset[str] = frozenset({"entity_key", "key_format", "key_type"})
+_KEY_ALLOWLIST: frozenset[str] = frozenset({"entity_key"})
 
 
 def _scrub_event(event: dict, hint: dict) -> dict:  # type: ignore[type-arg]
