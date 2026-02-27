@@ -118,8 +118,20 @@ class YarboRepairFlow(RepairsFlow):
 
             return self.async_abort(reason="unknown")
 
+        # Extract entry_id and get robot name for description placeholder
+        issue_id = self.issue_id
+        robot_name = "unknown"
+        if issue_id.startswith(f"{ISSUE_CONTROLLER_LOST}_"):
+            entry_id = issue_id[len(f"{ISSUE_CONTROLLER_LOST}_") :]
+            entry = self.hass.config_entries.async_get_entry(entry_id)
+            if entry:
+                robot_name = entry.data.get("robot_name", "unknown")
+
         # Show the confirmation form
-        return self.async_show_form(step_id="confirm")
+        return self.async_show_form(
+            step_id="confirm",
+            description_placeholders={"name": robot_name},
+        )
 
 
 async def async_create_fix_flow(
