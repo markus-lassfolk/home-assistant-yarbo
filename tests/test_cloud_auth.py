@@ -1,0 +1,248 @@
+"""Tests for optional cloud authentication (issue #20)."""
+
+from __future__ import annotations
+
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from homeassistant.core import HomeAssistant
+
+from custom_components.yarbo.const import (
+    CONF_CLOUD_REFRESH_TOKEN,
+    CONF_CLOUD_USERNAME,
+    CONF_ROBOT_NAME,
+    CONF_ROBOT_SERIAL,
+)
+
+
+class TestCloudConfigFlowStep:
+    """Tests for async_step_cloud in the config flow."""
+
+    def _make_flow(self, hass: HomeAssistant) -> Any:
+        """Create a config flow instance with pre-filled pending data."""
+        from custom_components.yarbo.config_flow import YarboConfigFlow
+
+        flow = YarboConfigFlow()
+        flow.hass = hass
+        flow._pending_data = {
+            CONF_ROBOT_NAME: "Yarbo Test",
+            CONF_ROBOT_SERIAL: "TEST1234",
+            "broker_host": "192.168.1.10",
+            "broker_port": 1883,
+        }
+        # Patch async_create_entry to capture what it receives
+        flow.async_create_entry = MagicMock(return_value={"type": "create_entry"})
+        flow.async_show_form = MagicMock(return_value={"type": "form"})
+        flow.async_abort = MagicMock(return_value={"type": "abort"})
+        return flow
+
+    async def test_cloud_step_skipped_when_email_empty(self, hass: HomeAssistant) -> None:
+        """Submitting empty email skips cloud and creates entry without cloud data."""
+        flow = self._make_flow(hass)
+        result = await flow.async_step_cloud(
+            user_input={"cloud_username": "", "cloud_password": ""}
+        )
+        assert result["type"] == "create_entry"
+        # No cloud credentials should be in the data
+        call_kwargs: dict[str, Any] = flow.async_create_entry.call_args.kwargs
+        assert CONF_CLOUD_USERNAME not in call_kwargs.get("data", {})
+        assert CONF_CLOUD_REFRESH_TOKEN not in call_kwargs.get("data", {})
+
+    async def test_cloud_step_skipped_when_password_empty(self, hass: HomeAssistant) -> None:
+        """Submitting email but no password also skips cloud auth."""
+        flow = self._make_flow(hass)
+        result = await flow.async_step_cloud(
+            user_input={"cloud_username": "user@example.com", "cloud_password": ""}
+        )
+        assert result["type"] == "create_entry"
+
+    async def test_cloud_step_shows_form_on_first_call(self, hass: HomeAssistant) -> None:
+        """Calling async_step_cloud with no input shows the form."""
+        flow = self._make_flow(hass)
+        result = await flow.async_step_cloud(user_input=None)
+        assert result["type"] == "form"
+        flow.async_show_form.assert_called_once()
+        call_kwargs = flow.async_show_form.call_args.kwargs
+        assert call_kwargs.get("step_id") == "cloud"
+
+    async def test_cloud_auth_success_stores_refresh_token(self, hass: HomeAssistant) -> None:
+        """Successful cloud auth stores refresh_token (not password) in entry data."""
+        flow = self._make_flow(hass)
+
+        mock_cloud = AsyncMock()
+        mock_cloud.login = AsyncMock(
+            return_value={"refresh_token": "rt_secret_token", "access_token": "at_xxx"}
+        )
+
+        with patch.dict("sys.modules", {"yarbo.cloud": MagicMock(YarboCloudClient=lambda: mock_cloud)}):
+            result = await flow.async_step_cloud(
+                user_input={"cloud_username": "user@example.com", "cloud_password": "s3cr3t"}
+            )
+
+        assert result["type"] == "create_entry"
+        call_kwargs = flow.async_create_entry.call_args.kwargs
+        data = call_kwargs.get("data", {})
+        assert data.get(CONF_CLOUD_USERNAME) == "user@example.com"
+        assert data.get(CONF_CLOUD_REFRESH_TOKEN) == "rt_secret_token"
+        # Password must NOT be stored
+        assert "cloud_password" not in data
+
+    async def test_cloud_auth_failure_shows_error(self, hass: HomeAssistant) -> None:
+        """Failed cloud auth shows error form without creating entry."""
+        flow = self._make_flow(hass)
+
+        mock_cloud = AsyncMock()
+        mock_cloud.login = AsyncMock(side_effect=Exception("Invalid credentials"))
+
+        with patch.dict("sys.modules", {"yarbo.cloud": MagicMock(YarboCloudClient=lambda: mock_cloud)}):
+            result = await flow.async_step_cloud(
+                user_input={"cloud_username": "bad@example.com", "cloud_password": "wrong"}
+            )
+
+        assert result["type"] == "form"
+        call_kwargs = flow.async_show_form.call_args.kwargs
+        errors = call_kwargs.get("errors", {})
+        assert errors.get("base") == "cloud_auth_failed"
+        # Entry should NOT be created
+        flow.async_create_entry.assert_not_called()
+
+
+class TestReauthFlow:
+    """Tests for the reauth config flow (cloud token expiry)."""
+
+    def _make_reauth_flow(self, hass: HomeAssistant) -> Any:
+        """Create a config flow in reauth context."""
+        from custom_components.yarbo.config_flow import YarboConfigFlow
+
+        flow = YarboConfigFlow()
+        flow.hass = hass
+
+        # Mock the reauth entry
+        mock_entry = MagicMock()
+        mock_entry.data = {
+            CONF_CLOUD_USERNAME: "user@example.com",
+            CONF_CLOUD_REFRESH_TOKEN: "old_refresh_token",
+        }
+        mock_entry.entry_id = "test_reauth_entry"
+        flow._get_reauth_entry = MagicMock(return_value=mock_entry)
+        flow.async_show_form = MagicMock(return_value={"type": "form"})
+        flow.async_abort = MagicMock(return_value={"type": "abort"})
+
+        return flow, mock_entry
+
+    async def test_reauth_confirm_shows_form(self, hass: HomeAssistant) -> None:
+        """Reauth confirm step shows password form."""
+        flow, _ = self._make_reauth_flow(hass)
+        result = await flow.async_step_reauth_confirm(user_input=None)
+        assert result["type"] == "form"
+        call_kwargs = flow.async_show_form.call_args.kwargs
+        assert call_kwargs.get("step_id") == "reauth_confirm"
+
+    async def test_reauth_confirm_success_updates_token(self, hass: HomeAssistant) -> None:
+        """Successful reauth updates refresh_token in config entry."""
+        flow, mock_entry = self._make_reauth_flow(hass)
+        flow.hass.config_entries = MagicMock()
+        flow.hass.config_entries.async_update_entry = MagicMock()
+        flow.hass.config_entries.async_reload = AsyncMock()
+
+        mock_cloud = AsyncMock()
+        mock_cloud.login = AsyncMock(return_value={"refresh_token": "new_token"})
+
+        with patch.dict("sys.modules", {"yarbo.cloud": MagicMock(YarboCloudClient=lambda: mock_cloud)}):
+            result = await flow.async_step_reauth_confirm(
+                user_input={"cloud_password": "newpassword"}
+            )
+
+        assert result["type"] == "abort"
+        flow.async_abort.assert_called_once_with(reason="reauth_successful")
+        # Verify token was updated
+        flow.hass.config_entries.async_update_entry.assert_called_once()
+        update_kwargs = flow.hass.config_entries.async_update_entry.call_args
+        new_data = update_kwargs.args[1] if update_kwargs.args else update_kwargs.kwargs.get("data", {})
+        assert new_data.get(CONF_CLOUD_REFRESH_TOKEN) == "new_token"
+
+    async def test_reauth_confirm_failure_shows_error(self, hass: HomeAssistant) -> None:
+        """Failed reauth shows error without updating entry."""
+        flow, _ = self._make_reauth_flow(hass)
+
+        mock_cloud = AsyncMock()
+        mock_cloud.login = AsyncMock(side_effect=Exception("Auth failed"))
+
+        with patch.dict("sys.modules", {"yarbo.cloud": MagicMock(YarboCloudClient=lambda: mock_cloud)}):
+            result = await flow.async_step_reauth_confirm(
+                user_input={"cloud_password": "wrongpass"}
+            )
+
+        assert result["type"] == "form"
+        errors = flow.async_show_form.call_args.kwargs.get("errors", {})
+        assert errors.get("base") == "cloud_auth_failed"
+
+
+class TestFirmwareUpdate:
+    """Tests for cloud firmware version in update.py."""
+
+    async def test_latest_version_returns_installed_when_no_cloud(
+        self, hass: HomeAssistant
+    ) -> None:
+        """latest_version returns installed_version when cloud is not configured."""
+        from custom_components.yarbo.update import YarboFirmwareUpdate
+
+        coordinator = MagicMock()
+        coordinator._entry = MagicMock()
+        coordinator._entry.data = {}
+        coordinator._entry.options = {}
+        coordinator.data = None
+
+        entity = YarboFirmwareUpdate(coordinator)
+        # No cloud and no telemetry — both should be None
+        assert entity.latest_version is None
+        assert entity.installed_version is None
+
+    async def test_latest_version_falls_back_to_installed(self, hass: HomeAssistant) -> None:
+        """When no cloud version cached, latest_version mirrors installed_version."""
+        from custom_components.yarbo.update import YarboFirmwareUpdate
+
+        coordinator = MagicMock()
+        coordinator._entry = MagicMock()
+        coordinator._entry.data = {}
+        coordinator._entry.options = {}
+        mock_telemetry = MagicMock()
+        mock_telemetry.raw = {"firmware_version": "1.2.3"}
+        coordinator.data = mock_telemetry
+
+        entity = YarboFirmwareUpdate(coordinator)
+        # latest should fall back to installed when not fetched from cloud
+        assert entity.latest_version == entity.installed_version
+
+    async def test_async_update_skipped_when_cloud_disabled(
+        self, hass: HomeAssistant
+    ) -> None:
+        """async_update does not call cloud API when cloud_enabled is False."""
+        from custom_components.yarbo.update import YarboFirmwareUpdate
+
+        coordinator = MagicMock()
+        coordinator._entry = MagicMock()
+        coordinator._entry.data = {CONF_CLOUD_REFRESH_TOKEN: "some_token"}
+        coordinator._entry.options = {"cloud_enabled": False}
+        coordinator.data = None
+
+        entity = YarboFirmwareUpdate(coordinator)
+        with patch("yarbo.cloud.YarboCloudClient") as mock_cloud_cls:
+            await entity.async_update()
+            mock_cloud_cls.assert_not_called()
+
+    async def test_async_update_skipped_when_no_token(self, hass: HomeAssistant) -> None:
+        """async_update does not call cloud API when no refresh_token is stored."""
+        from custom_components.yarbo.update import YarboFirmwareUpdate
+
+        coordinator = MagicMock()
+        coordinator._entry = MagicMock()
+        coordinator._entry.data = {}  # no token
+        coordinator._entry.options = {"cloud_enabled": True}
+        coordinator.data = None
+
+        entity = YarboFirmwareUpdate(coordinator)
+        with patch("yarbo.cloud.YarboCloudClient") as mock_cloud_cls:
+            await entity.async_update()
+            mock_cloud_cls.assert_not_called()

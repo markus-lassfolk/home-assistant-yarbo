@@ -19,6 +19,8 @@ from .const import (
     CONF_BROKER_HOST,
     CONF_BROKER_MAC,
     CONF_BROKER_PORT,
+    CONF_CLOUD_REFRESH_TOKEN,
+    CONF_CLOUD_USERNAME,
     CONF_ROBOT_NAME,
     CONF_ROBOT_SERIAL,
     DEFAULT_ACTIVITY_PERSONALITY,
@@ -42,6 +44,19 @@ STEP_USER_SCHEMA = vol.Schema(
     }
 )
 
+STEP_CLOUD_SCHEMA = vol.Schema(
+    {
+        vol.Optional(CONF_CLOUD_USERNAME, default=""): str,
+        vol.Optional("cloud_password", default=""): str,
+    }
+)
+
+STEP_REAUTH_SCHEMA = vol.Schema(
+    {
+        vol.Required("cloud_password"): str,
+    }
+)
+
 
 class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Yarbo.
@@ -50,7 +65,9 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
     - Manual IP entry (async_step_user)
     - DHCP auto-discovery (async_step_dhcp)
     - MQTT connection validation (async_step_mqtt_test)
+    - Optional cloud authentication (async_step_cloud)
     - Reconfigure flow (async_step_reconfigure)
+    - Re-authentication when cloud token expires (async_step_reauth)
     """
 
     VERSION = 1
@@ -63,6 +80,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         self._broker_host: str | None = None
         self._broker_port: int = DEFAULT_BROKER_PORT
         self._reconfigure_entry: ConfigEntry | None = None
+        self._pending_data: dict[str, Any] = {}
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step — manual IP entry."""
@@ -222,7 +240,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(step_id="reconfigure", data_schema=schema)
 
     async def async_step_name(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Prompt for an optional friendly name."""
+        """Prompt for an optional friendly name, then proceed to cloud step."""
         if not self._robot_serial:
             return self.async_abort(reason="no_telemetry")
 
@@ -230,19 +248,20 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             # Use robot serial as unique ID and abort if already configured
             await self.async_set_unique_id(self._robot_serial)
-            self._abort_if_unique_id_configured()  # Fixed: was _async_abort_entries_match (wrong)
+            self._abort_if_unique_id_configured()
 
             name = user_input.get(CONF_ROBOT_NAME, default_name)
-            data: dict[str, Any] = {
+            self._pending_data = {
                 CONF_BROKER_HOST: self._broker_host,
                 CONF_BROKER_PORT: self._broker_port,
                 CONF_ROBOT_SERIAL: self._robot_serial,
                 CONF_ROBOT_NAME: name,
             }
             if self._discovered_mac:
-                data[CONF_BROKER_MAC] = self._discovered_mac
+                self._pending_data[CONF_BROKER_MAC] = self._discovered_mac
 
-            return self.async_create_entry(title=name, data=data)
+            # Proceed to optional cloud authentication step
+            return await self.async_step_cloud()
 
         schema = vol.Schema(
             {
@@ -250,6 +269,99 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
         return self.async_show_form(step_id="name", data_schema=schema)
+
+    async def async_step_cloud(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Optional cloud credentials step.
+
+        Users can skip this step by submitting empty email/password.
+        On success, stores only the refresh_token (never the password).
+        Local operation is fully functional without cloud credentials.
+        """
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            username = (user_input.get(CONF_CLOUD_USERNAME) or "").strip()
+            password = (user_input.get("cloud_password") or "").strip()
+
+            if not username or not password:
+                # User skipped cloud — create entry without cloud credentials
+                return self.async_create_entry(
+                    title=self._pending_data[CONF_ROBOT_NAME],
+                    data=self._pending_data,
+                )
+
+            # Attempt Auth0 login via python-yarbo cloud client
+            try:
+                from yarbo.cloud import YarboCloudClient  # noqa: PLC0415
+
+                cloud_client = YarboCloudClient()
+                token_data: dict[str, Any] = await cloud_client.login(
+                    username=username,
+                    password=password,
+                )
+                self._pending_data[CONF_CLOUD_USERNAME] = username
+                self._pending_data[CONF_CLOUD_REFRESH_TOKEN] = token_data["refresh_token"]
+                _LOGGER.debug("Cloud auth succeeded for %s", username)
+            except ImportError:
+                _LOGGER.warning("python-yarbo cloud client not available")
+                errors["base"] = "cloud_not_available"
+            except Exception:
+                _LOGGER.exception("Cloud authentication failed for %s", username)
+                errors["base"] = "cloud_auth_failed"
+
+            if not errors:
+                return self.async_create_entry(
+                    title=self._pending_data[CONF_ROBOT_NAME],
+                    data=self._pending_data,
+                )
+
+        return self.async_show_form(
+            step_id="cloud",
+            data_schema=STEP_CLOUD_SCHEMA,
+            errors=errors,
+            description_placeholders={},
+        )
+
+    async def async_step_reauth(self, entry_data: dict[str, Any] | None = None) -> FlowResult:
+        """Handle re-authentication when the cloud token has expired."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Show re-authentication form and refresh the cloud token."""
+        errors: dict[str, str] = {}
+
+        reauth_entry = self._get_reauth_entry()
+        username = reauth_entry.data.get(CONF_CLOUD_USERNAME, "")
+
+        if user_input is not None:
+            password = user_input.get("cloud_password", "")
+            try:
+                from yarbo.cloud import YarboCloudClient  # noqa: PLC0415
+
+                cloud_client = YarboCloudClient()
+                token_data: dict[str, Any] = await cloud_client.login(
+                    username=username,
+                    password=password,
+                )
+                new_data = dict(reauth_entry.data)
+                new_data[CONF_CLOUD_REFRESH_TOKEN] = token_data["refresh_token"]
+                self.hass.config_entries.async_update_entry(reauth_entry, data=new_data)
+                await self.hass.config_entries.async_reload(reauth_entry.entry_id)
+                return self.async_abort(reason="reauth_successful")
+            except ImportError:
+                errors["base"] = "cloud_not_available"
+            except Exception:
+                _LOGGER.exception("Re-authentication failed for %s", username)
+                errors["base"] = "cloud_auth_failed"
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=STEP_REAUTH_SCHEMA,
+            errors=errors,
+            description_placeholders={"username": username},
+        )
 
     @staticmethod
     @callback

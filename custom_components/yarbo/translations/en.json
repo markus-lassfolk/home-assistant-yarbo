@@ -34,9 +34,16 @@
       },
       "cloud": {
         "title": "Cloud Features (Optional)",
-        "description": "Optionally connect to the Yarbo cloud for firmware updates and device info. Not required for local control.",
+        "description": "Optionally connect to the Yarbo cloud for firmware updates and device info. Not required for local control. Leave blank to skip.",
         "data": {
           "cloud_username": "Yarbo Account Email",
+          "cloud_password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate Yarbo Cloud",
+        "description": "Your Yarbo cloud session for **{username}** has expired. Enter your password to reconnect.",
+        "data": {
           "cloud_password": "Password"
         }
       }
@@ -49,12 +56,15 @@
       "not_implemented": "Configuration flow not yet implemented.",
       "wrong_device": "The discovered device does not match this Yarbo robot.",
       "reconfigure_successful": "Reconfiguration completed successfully.",
-      "reconfigure_failed": "Reconfiguration failed."
+      "reconfigure_failed": "Reconfiguration failed.",
+      "reauth_successful": "Re-authentication successful."
     },
     "error": {
       "cannot_connect": "Cannot connect",
       "no_telemetry": "No telemetry received",
-      "decode_error": "Decode error"
+      "decode_error": "Decode error",
+      "cloud_auth_failed": "Cloud authentication failed — check your email and password",
+      "cloud_not_available": "Cloud client not available — update python-yarbo"
     }
   },
   "options": {
