@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.config_entries import ConfigEntry
@@ -28,6 +29,8 @@ except ImportError:  # pragma: no cover
     YarboCloudClient = None
 
 _LOGGER = logging.getLogger(__name__)
+
+SCAN_INTERVAL = timedelta(hours=6)
 
 
 async def async_setup_entry(
