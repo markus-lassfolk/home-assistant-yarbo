@@ -167,10 +167,24 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
             cloud_client.auth.refresh_token = refresh_token
             await cloud_client.connect()
             result = await cloud_client.get_latest_version()
-            if isinstance(result, dict) and result.get("firmwareVersion"):
+            if not isinstance(result, dict):
+                _LOGGER.debug(
+                    "Unexpected response type from get_latest_version: %s"
+                    " — clearing cached version",
+                    type(result).__name__,
+                )
+                self._latest_version = None
+                self.coordinator.latest_firmware_version = None
+            elif result.get("firmwareVersion"):
                 self._latest_version = str(result["firmwareVersion"])
                 self.coordinator.latest_firmware_version = self._latest_version
                 _LOGGER.debug("Latest Yarbo firmware from cloud: %s", self._latest_version)
+            else:
+                _LOGGER.debug(
+                    "Cloud response has no usable firmwareVersion — clearing cached version"
+                )
+                self._latest_version = None
+                self.coordinator.latest_firmware_version = None
         except Exception as err:
             _LOGGER.warning("Failed to fetch latest Yarbo firmware version: %s", err)
         finally:
