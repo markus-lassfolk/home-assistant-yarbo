@@ -400,7 +400,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                 return await self.async_step_name()
             return await self.async_step_mqtt_test()
 
-        display_name = self._robot_name or self._robot_serial or "unknown"
+        display_name = self._robot_serial or "unknown"
         return self.async_show_form(
             step_id="confirm",
             description_placeholders={

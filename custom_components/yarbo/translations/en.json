@@ -18,8 +18,8 @@
         }
       },
       "confirm": {
-        "title": "Add Yarbo Robot",
-        "description": "Found **{name}** at {host}. Click Submit to add this robot."
+        "title": "Yarbo Discovered",
+        "description": "Found **Yarbo {name}** on your network at {host}. Click Submit to add this robot."
       },
       "select_endpoint": {
         "title": "Choose MQTT Endpoint",
