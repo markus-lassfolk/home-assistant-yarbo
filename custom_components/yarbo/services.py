@@ -106,7 +106,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
             await client.get_controller(timeout=5.0)
-            await client.publish_command("start_plan", {"planId": plan_id})
+            await client.publish_raw("start_plan", {"planId": plan_id})
 
     async def handle_pause(call: ServiceCall) -> None:
         """Handle yarbo.pause — pause current job."""
