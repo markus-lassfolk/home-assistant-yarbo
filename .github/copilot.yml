@@ -1,0 +1,4 @@
+review:
+  auto_review: true
+  auto_fix: false
+
