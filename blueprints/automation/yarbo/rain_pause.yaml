@@ -96,9 +96,14 @@ action:
         sequence:
           - delay:
               minutes: !input resume_delay
-          - condition: state
-            entity_id: !input activity_sensor
-            state: paused
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: !input activity_sensor
+                state: idle
+              - condition: state
+                entity_id: !input activity_sensor
+                state: charging
           - service: yarbo.resume
             data:
               device_id: !input yarbo_device
