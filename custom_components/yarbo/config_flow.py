@@ -510,13 +510,10 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class YarboOptionsFlow(OptionsFlow):
-    """Handle options for the Yarbo integration.
+    """Handle options for the Yarbo integration (issue #26).
 
-    Options:
-    - telemetry_throttle: debounce interval (seconds)
-    - auto_controller: auto-acquire controller before commands
-    - cloud_enabled: enable cloud REST features
-    - activity_personality: fun personality descriptions (boolean toggle)
+    Options: telemetry_throttle (float, 1.0s default), auto_controller (bool),
+    cloud_enabled (bool), activity_personality (bool). Applied without restart.
     """
 
     def __init__(self, config_entry: ConfigEntry) -> None:
