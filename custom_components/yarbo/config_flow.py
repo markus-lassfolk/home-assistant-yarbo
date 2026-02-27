@@ -203,7 +203,12 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                 if len(parts) >= 2 and parts[0] == "snowbot" and parts[1]:
                     result["sn"] = parts[1]
                 try:
-                    payload = _json.loads(msg.payload)
+                    import zlib
+                    try:
+                        raw = zlib.decompress(msg.payload)
+                    except zlib.error:
+                        raw = msg.payload
+                    payload = _json.loads(raw)
                     if not result["name"]:
                         result["name"] = (
                             payload.get("name")
