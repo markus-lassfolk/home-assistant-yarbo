@@ -59,6 +59,7 @@ blueprint:
 
 variables:
   plan_id_var: !input plan_id
+  threshold_var: !input threshold
 
 trigger:
   - platform: numeric_state
@@ -70,7 +71,7 @@ action:
     data:
       title: "Yarbo Snow Alert"
       message: >
-        Snowfall detected: {{ trigger.to_state.state }} mm (threshold: {{ threshold }} mm).
+        Snowfall detected: {{ trigger.to_state.state }} mm (threshold: {{ threshold_var }} mm).
         {% if plan_id_var | trim != '' %}Starting snow clearing plan.{% else %}No plan configured — start manually if needed.{% endif %}
   - if:
       - condition: template

@@ -111,6 +111,12 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
                 cloud_client.auth._session = session
                 cloud_client.auth.refresh_token = refresh_token
                 await cloud_client.auth.refresh()
+                new_refresh_token = cloud_client.auth.refresh_token
+                if new_refresh_token != refresh_token:
+                    new_data = dict(entry.data)
+                    new_data[CONF_CLOUD_REFRESH_TOKEN] = new_refresh_token
+                    self.hass.config_entries.async_update_entry(entry, data=new_data)
+                    _LOGGER.debug("Refresh token rotated for %s", robot_serial)
                 version_data: dict[str, str] = await cloud_client.get_latest_version()
                 self._latest_version = version_data.get("firmwareVersion")
             _LOGGER.debug(
