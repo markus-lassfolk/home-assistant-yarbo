@@ -34,15 +34,15 @@ blueprint:
       selector:
         duration:
 
-    planning_sensor:
-      name: Planning Sensor
+    activity_sensor:
+      name: Activity Sensor
       description: >
-        The Yarbo planning binary sensor — automation only acts when the robot
-        is actively executing a plan (binary_sensor.*_planning is on).
+        The Yarbo activity sensor — automation only acts when the robot
+        is actively executing a plan (working or paused state).
       selector:
         entity:
           integration: yarbo
-          domain: binary_sensor
+          domain: sensor
 
 trigger:
   - platform: state
@@ -63,8 +63,8 @@ action:
           - condition: trigger
             id: rain_start
           - condition: state
-            entity_id: !input planning_sensor
-            state: "on"
+            entity_id: !input activity_sensor
+            state: working
         sequence:
           - service: yarbo.pause
             data:
@@ -81,8 +81,8 @@ action:
         sequence:
           - delay: !input dry_delay
           - condition: state
-            entity_id: !input planning_sensor
-            state: "on"
+            entity_id: !input activity_sensor
+            state: paused
           - service: yarbo.resume
             data:
               device_id: !input yarbo_device

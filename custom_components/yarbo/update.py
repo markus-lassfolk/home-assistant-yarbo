@@ -98,6 +98,7 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
         refresh_token = entry.data.get(CONF_CLOUD_REFRESH_TOKEN)
 
         if not cloud_enabled or not refresh_token or YarboCloudClient is None:
+            self._latest_version = None
             return
 
         username = entry.data.get(CONF_CLOUD_USERNAME, "")
@@ -127,6 +128,7 @@ class YarboFirmwareUpdate(YarboEntity, UpdateEntity):
                 self.installed_version,
             )
         except Exception:
+            self._latest_version = None
             _LOGGER.warning(
                 "Failed to fetch firmware version from cloud for %s — token may be expired",
                 robot_serial,
