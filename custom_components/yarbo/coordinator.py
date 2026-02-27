@@ -10,7 +10,6 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from yarbo import YarboTelemetry
@@ -23,6 +22,12 @@ from .const import (
     HEARTBEAT_TIMEOUT_SECONDS,
     OPT_TELEMETRY_THROTTLE,
     TELEMETRY_RETRY_DELAY_SECONDS,
+)
+from .repairs import (
+    async_create_controller_lost_issue,
+    async_create_mqtt_disconnect_issue,
+    async_delete_controller_lost_issue,
+    async_delete_mqtt_disconnect_issue,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,6 +43,10 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     debounces updates to avoid stressing the HA recorder and event bus.
 
     On connection error, the loop retries after TELEMETRY_RETRY_DELAY_SECONDS.
+
+    Repair issues managed here:
+    - mqtt_disconnect: raised by _heartbeat_watchdog when no telemetry for > 60s
+    - controller_lost: raised by report_controller_lost(), cleared by resolve_controller_lost()
     """
 
     def __init__(
@@ -64,6 +73,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._last_update: float = 0.0
         self._last_seen: float = 0.0
         self._issue_active = False
+        self._controller_lost_active = False
         self._throttle_interval: float = entry.options.get(
             OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE
         )
@@ -78,6 +88,40 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             "tail_left_r": 0,
             "tail_right_r": 0,
         }
+        # Latest firmware version from cloud API — populated when cloud is enabled
+        self.latest_firmware_version: str | None = None
+
+    def update_options(self, options: dict[str, Any]) -> None:
+        """Apply updated config entry options without requiring a full reload.
+
+        Called by the options update listener in __init__.py when the user
+        changes settings in the integration options UI.
+
+        Currently applies:
+        - telemetry_throttle: debounce interval for pushing updates to HA
+        """
+        self._throttle_interval = options.get(OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE)
+        _LOGGER.debug("Yarbo options updated — throttle=%.1fs", self._throttle_interval)
+
+    def report_controller_lost(self) -> None:
+        """Raise an ERROR repair issue when the controller session is stolen.
+
+        Call this from command handlers when a command fails because another
+        client holds the controller (data_feedback error).
+        The issue is marked fixable — the user can re-acquire via the repair UI.
+        """
+        if self._controller_lost_active:
+            return
+        name: str = self._entry.data.get(CONF_ROBOT_NAME, "Yarbo")
+        async_create_controller_lost_issue(self.hass, self._entry.entry_id, name)
+        self._controller_lost_active = True
+
+    def resolve_controller_lost(self) -> None:
+        """Clear the controller lost repair issue after successful re-acquisition."""
+        if not self._controller_lost_active:
+            return
+        async_delete_controller_lost_issue(self.hass, self._entry.entry_id)
+        self._controller_lost_active = False
 
     async def _async_setup(self) -> None:
         """Start the telemetry listener task."""
@@ -103,9 +147,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     self._update_count += 1
                     self.async_set_updated_data(telemetry)
                     if self._issue_active:
-                        ir.async_delete_issue(
-                            self.hass, DOMAIN, f"telemetry_timeout_{self._entry.entry_id}"
-                        )
+                        async_delete_mqtt_disconnect_issue(self.hass, self._entry.entry_id)
                         self._issue_active = False
             except asyncio.CancelledError:
                 _LOGGER.debug("Telemetry loop cancelled")
@@ -132,7 +174,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
 
     async def _heartbeat_watchdog(self) -> None:
-        """Watch for telemetry silence and raise a repair issue."""
+        """Watch for telemetry silence and raise a repair issue.
+
+        If no telemetry is received for HEARTBEAT_TIMEOUT_SECONDS, creates a
+        mqtt_disconnect repair issue. Auto-resolves when telemetry resumes.
+        """
         try:
             while True:
                 await asyncio.sleep(5)
@@ -142,17 +188,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     continue
                 if self._issue_active:
                     continue
-                ir.async_create_issue(
-                    self.hass,
-                    DOMAIN,
-                    f"telemetry_timeout_{self._entry.entry_id}",
-                    is_fixable=False,
-                    severity=ir.IssueSeverity.WARNING,
-                    translation_key="telemetry_timeout",
-                    translation_placeholders={
-                        "name": self._entry.data.get(CONF_ROBOT_NAME, "Yarbo"),
-                    },
-                )
+                name: str = self._entry.data.get(CONF_ROBOT_NAME, "Yarbo")
+                async_create_mqtt_disconnect_issue(self.hass, self._entry.entry_id, name)
                 self._issue_active = True
         except asyncio.CancelledError:
             _LOGGER.debug("Heartbeat watchdog cancelled")

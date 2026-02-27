@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -80,7 +81,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     async_register_services(hass)
+
+    # Register options update listener so throttle and other options apply
+    # immediately when the user changes them in the options UI — without
+    # requiring a full config-entry reload.
+    entry.async_on_unload(entry.add_update_listener(_async_update_options))
+
     return True
+
+
+async def _async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update — propagate new options to the coordinator."""
+    coordinator: YarboDataCoordinator = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
+    options: dict[str, Any] = dict(entry.options)
+    coordinator.update_options(options)
+    _LOGGER.debug("Yarbo options applied for entry %s", entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
