@@ -32,6 +32,42 @@ from .services import async_register_services, async_unregister_services
 _LOGGER = logging.getLogger(__name__)
 
 
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
+    """Set up the Yarbo integration — run background ARP discovery on startup."""
+
+    async def _discover_yarbos(_now: Any = None) -> None:
+        """Scan ARP table for Yarbo devices and create discovery flows."""
+        from .discovery import DEFAULT_BROKER_PORT, _discover_from_arp
+
+        endpoints = await _discover_from_arp(DEFAULT_BROKER_PORT)
+        if not endpoints:
+            return
+
+        for ep in endpoints:
+            # Check if already configured for this host
+            existing = any(
+                entry.data.get(CONF_BROKER_HOST) == ep.host
+                for entry in hass.config_entries.async_entries(DOMAIN)
+            )
+            if existing:
+                continue
+
+            _LOGGER.info("Yarbo discovered via ARP at %s (MAC %s)", ep.host, ep.mac)
+            hass.async_create_task(
+                hass.config_entries.flow.async_init(
+                    DOMAIN,
+                    context={"source": "dhcp"},
+                    data={"ip": ep.host, "macaddress": ep.mac or "", "hostname": "yarbo"},
+                )
+            )
+
+    # Run discovery 30s after startup to let the network settle
+    from homeassistant.helpers.event import async_call_later
+
+    async_call_later(hass, 30, _discover_yarbos)
+    return True
+
+
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Migrate old config entry to the latest version."""
     _LOGGER.debug("Migrating Yarbo config entry from version %s", config_entry.version)

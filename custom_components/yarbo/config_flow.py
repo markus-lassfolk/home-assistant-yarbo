@@ -245,33 +245,40 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_dhcp(self, discovery_info: dhcp.DhcpServiceInfo) -> FlowResult:
         """Handle DHCP discovery (issue #2).
 
-        Triggered when a device with MAC OUI C8:FE:0F:* appears on the network.
-        Stores IP/MAC, shows confirm form; on confirm runs MQTT validation.
-        If same MAC gets new IP (lease change), reconfigures broker_host.
+        Triggered when a device with MAC OUI C8:FE:0F:* appears on the network,
+        or by our ARP startup scan via async_setup.
         """
+        # Support both DhcpServiceInfo and plain dict (from ARP discovery trigger)
+        if isinstance(discovery_info, dict):
+            ip = discovery_info["ip"]
+            mac = discovery_info.get("macaddress", "")
+            hostname = discovery_info.get("hostname", "")
+        else:
+            ip = discovery_info.ip
+            mac = discovery_info.macaddress
+            hostname = discovery_info.hostname
+
         _LOGGER.debug(
             "DHCP discovery: IP=%s MAC=%s hostname=%s",
-            discovery_info.ip,
-            discovery_info.macaddress,
-            discovery_info.hostname,
+            ip, mac, hostname,
         )
 
         # Probe MQTT to discover the robot serial number for unique identification
         sn, bot_name = await self._probe_robot_identity(
-            discovery_info.ip, DEFAULT_BROKER_PORT, timeout=8.0
+            ip, DEFAULT_BROKER_PORT, timeout=8.0
         )
         if sn:
             self._robot_serial = sn
             self._robot_name = bot_name
             await self.async_set_unique_id(sn)
             self._abort_if_unique_id_configured(
-                updates={CONF_BROKER_HOST: discovery_info.ip}
+                updates={CONF_BROKER_HOST: ip}
             )
         else:
             # Fallback: use MAC as unique_id if MQTT probe fails (robot sleeping)
-            await self.async_set_unique_id(discovery_info.macaddress)
+            await self.async_set_unique_id(mac)
             self._abort_if_unique_id_configured(
-                updates={CONF_BROKER_HOST: discovery_info.ip}
+                updates={CONF_BROKER_HOST: ip}
             )
 
         # Check by MAC address for IP changes (reconfigure)
@@ -279,35 +286,35 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             (
                 entry
                 for entry in self._async_current_entries()
-                if entry.data.get(CONF_BROKER_MAC) == discovery_info.macaddress
+                if entry.data.get(CONF_BROKER_MAC) == mac
             ),
             None,
         )
         if existing_entry is not None:
-            if existing_entry.data.get(CONF_BROKER_HOST) != discovery_info.ip:
+            if existing_entry.data.get(CONF_BROKER_HOST) != ip:
                 self._reconfigure_entry = existing_entry
-                self._broker_host = discovery_info.ip
+                self._broker_host = ip
                 port = existing_entry.data.get(CONF_BROKER_PORT)
                 self._broker_port = DEFAULT_BROKER_PORT if port in (None, "") else int(port)
                 return await self.async_step_reconfigure()
             return self.async_abort(reason="already_configured")
 
-        self._discovered_host = discovery_info.ip
-        self._discovered_mac = discovery_info.macaddress
+        self._discovered_host = ip
+        self._discovered_mac = mac
 
         # Discover all endpoints (this + e.g. YARBO); if multiple, show selection
         self._discovered_endpoints = await async_discover_endpoints(
-            seed_host=discovery_info.ip,
-            seed_mac=discovery_info.macaddress,
+            seed_host=ip,
+            seed_mac=mac,
             port=DEFAULT_BROKER_PORT,
         )
         if not self._discovered_endpoints:
             # Fallback: single endpoint from DHCP (type/recommended from library only)
             self._discovered_endpoints = [
                 YarboEndpoint(
-                    host=discovery_info.ip,
+                    host=ip,
                     port=DEFAULT_BROKER_PORT,
-                    mac=discovery_info.macaddress,
+                    mac=mac,
                     endpoint_type=ENDPOINT_TYPE_UNKNOWN,
                     recommended=False,
                 )
