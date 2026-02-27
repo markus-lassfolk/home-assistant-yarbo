@@ -171,31 +171,68 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> tuple[str | None, str | None]:
         """Quick MQTT probe to discover the robot serial number and name.
 
-        Connects with empty SN (wildcard subscription), waits for first
-        telemetry, extracts SN and bot name, then disconnects.
-        Returns (serial_number, bot_name) — either may be None.
+        Uses a synchronous paho-mqtt client in a thread executor to avoid
+        blocking-call warnings from HA's event loop detector (paho's import
+        and connect trigger synchronous file I/O).
 
-        Runs the initial import + connect in an executor to avoid
-        blocking-call warnings from HA's event loop detector.
+        Returns (serial_number, bot_name) — either may be None.
         """
-        try:
-            # Import paho-mqtt off the event loop to avoid blocking-call warnings
-            await asyncio.get_running_loop().run_in_executor(
-                None, __import__, "paho.mqtt.client"
+
+        def _sync_probe() -> tuple[str | None, str | None]:
+            """Run entirely in a thread — no async, no event loop interaction."""
+            import json as _json
+            import threading
+
+            import paho.mqtt.client as mqtt
+
+            result: dict[str, str | None] = {"sn": None, "name": None}
+            got_telemetry = threading.Event()
+
+            def on_connect(
+                client: Any, userdata: Any, flags: Any, rc: Any, props: Any = None
+            ) -> None:
+                rc_val = getattr(rc, "value", rc)
+                if rc_val == 0:
+                    client.subscribe("snowbot/+/device/DeviceMSG")
+                    client.subscribe("snowbot/+/device/heart_beat")
+
+            def on_message(
+                client: Any, userdata: Any, msg: Any
+            ) -> None:
+                parts = msg.topic.split("/")
+                if len(parts) >= 2 and parts[0] == "snowbot" and parts[1]:
+                    result["sn"] = parts[1]
+                try:
+                    payload = _json.loads(msg.payload)
+                    if not result["name"]:
+                        result["name"] = (
+                            payload.get("name")
+                            or payload.get("robotName")
+                            or payload.get("snowbotName")
+                        )
+                except Exception:
+                    pass
+                if result["sn"]:
+                    got_telemetry.set()
+
+            c = mqtt.Client(
+                callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+                client_id=f"yarbo-ha-probe-{int(__import__('time').time())}",
             )
-            client = YarboLocalClient(broker=host, port=port)
-            await client.connect()
+            c.on_connect = on_connect
+            c.on_message = on_message
             try:
-                async_gen = client.watch_telemetry()
-                telemetry = await asyncio.wait_for(async_gen.__anext__(), timeout=timeout)
-                sn = telemetry.serial_number if telemetry else None
-                bot_name = telemetry.name if telemetry else None
-                if not sn:
-                    sn = client.serial_number
-                await async_gen.aclose()
-                return (sn or None, bot_name or None)
-            finally:
-                await client.disconnect()
+                c.connect(host, port, keepalive=10)
+                c.loop_start()
+                got_telemetry.wait(timeout=timeout)
+                c.loop_stop()
+                c.disconnect()
+            except Exception:
+                pass
+            return (result["sn"], result["name"])
+
+        try:
+            return await asyncio.get_running_loop().run_in_executor(None, _sync_probe)
         except Exception:
             _LOGGER.debug("Robot identity probe failed for %s:%d", host, port)
             return (None, None)
