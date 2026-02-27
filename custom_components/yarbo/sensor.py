@@ -362,7 +362,8 @@ class YarboRtcmAgeSensor(YarboSensor):
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_native_unit_of_measurement = "s"
-    _attr_state_class = SensorStateClass.MEASUREMENT
+    # No state_class: value grows unbounded when base station is unavailable, which
+    # breaks long-term statistics. state_class=None avoids polluting the statistics DB.
     _attr_entity_registry_enabled_default = False
     _attr_translation_key = "rtcm_age"
 
