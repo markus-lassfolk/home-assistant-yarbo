@@ -1,4 +1,5 @@
 review:
   auto_review: true
-  auto_fix: false
+  auto_fix: true
+  auto_merge: true
 
