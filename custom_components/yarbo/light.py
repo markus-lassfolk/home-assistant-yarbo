@@ -119,6 +119,8 @@ class YarboAllLightsGroup(YarboLight):
 class YarboChannelLight(YarboLight):
     """Individual LED channel light entity."""
 
+    _attr_entity_registry_enabled_default = False
+
     def __init__(self, coordinator: YarboDataCoordinator, channel: str) -> None:
         super().__init__(coordinator, f"light_{channel}")
         self._channel = channel

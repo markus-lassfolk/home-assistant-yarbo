@@ -1,0 +1,53 @@
+blueprint:
+  name: Yarbo Low Battery Notification
+  description: >
+    Send a notification when the Yarbo robot's battery drops below a configurable
+    threshold. Useful for reminding you to dock the robot before it runs out of power.
+  domain: automation
+  author: markus-lassfolk
+  source_url: https://github.com/markus-lassfolk/home-assistant-yarbo
+
+  input:
+    battery_sensor:
+      name: Battery Sensor
+      description: The Yarbo battery sensor entity.
+      selector:
+        entity:
+          integration: yarbo
+          domain: sensor
+          device_class: battery
+
+    threshold:
+      name: Battery Threshold (%)
+      description: Send notification when battery drops below this percentage.
+      default: 20
+      selector:
+        number:
+          min: 5
+          max: 50
+          unit_of_measurement: "%"
+          mode: slider
+
+    notify_target:
+      name: Notification Target
+      description: >
+        The notification target to call (e.g. notify.mobile_app_phone or
+        persistent_notification).
+      selector:
+        text:
+          multiline: false
+
+trigger:
+  - platform: numeric_state
+    entity_id: !input battery_sensor
+    below: !input threshold
+
+action:
+  - service: !input notify_target
+    data:
+      title: "Yarbo Low Battery"
+      message: >
+        Yarbo battery is low: {{ trigger.to_state.state }}%
+
+mode: single
+max_exceeded: silent

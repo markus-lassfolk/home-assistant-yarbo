@@ -29,6 +29,8 @@ class YarboBuzzerSwitch(YarboEntity, SwitchEntity):
 
     _attr_translation_key = "buzzer"
     _attr_assumed_state = True  # No read-back from robot
+    _attr_entity_registry_enabled_default = False
+    _attr_icon = "mdi:volume-high"
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "buzzer")

@@ -125,6 +125,27 @@
       },
       "error_code": {
         "name": "Error Code"
+      },
+      "satellite_count": {
+        "name": "Satellite Count"
+      },
+      "charging_power": {
+        "name": "Charging Power"
+      },
+      "odom_confidence": {
+        "name": "Odometry Confidence"
+      },
+      "rtcm_age": {
+        "name": "RTCM Age"
+      },
+      "charge_voltage": {
+        "name": "Charge Voltage"
+      },
+      "charge_current": {
+        "name": "Charge Current"
+      },
+      "mqtt_age": {
+        "name": "MQTT Message Age"
       }
     },
     "binary_sensor": {
