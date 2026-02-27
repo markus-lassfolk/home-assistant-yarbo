@@ -70,7 +70,7 @@ jobs:
               title = `Fix: ${title}`;
             }
 
-            console.log(`Creating PR for branch ${branch} targeting ${defaultBranch}`);
+            console.log(`Creating PR for branch ${branch} targeting develop`);
             
             try {
               const { data: newPr } = await github.rest.pulls.create({
@@ -78,7 +78,7 @@ jobs:
                 repo,
                 title: title,
                 head: branch,
-                base: defaultBranch,
+                base: "develop",
                 body: `🤖 **Auto-created PR**\n\nThis branch (\`${branch}\`) was pushed by an AI agent/bot (\`${actor}\`), but no PR was opened. This PR was automatically created so CI can run and the \`copilot-automerge\` workflow can process it.`
               });
               
