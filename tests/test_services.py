@@ -123,9 +123,7 @@ class TestStartPlanService:
         client, coordinator = mock_client_and_coordinator
         call_order: list[str] = []
         client.get_controller.side_effect = lambda **_kw: call_order.append("get_controller")
-        client.publish_command.side_effect = lambda *_a, **_kw: call_order.append(
-            "publish_command"
-        )
+        client.publish_command.side_effect = lambda *_a, **_kw: call_order.append("publish_command")
 
         with patch(
             "custom_components.yarbo.services._get_client_and_coordinator",

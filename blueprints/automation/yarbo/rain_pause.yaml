@@ -40,7 +40,7 @@ blueprint:
       default: 0.1
       selector:
         number:
-          min: 0
+          min: 0.01
           max: 1000
           mode: box
 
