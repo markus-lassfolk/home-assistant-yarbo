@@ -1,0 +1,104 @@
+name: Auto-merge Copilot Fixes
+
+on:
+  check_suite:
+    types: [completed]
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'check_suite' &&
+      github.event.check_suite.conclusion == 'success' ||
+      github.event_name == 'pull_request'
+    steps:
+      - name: Find eligible Copilot fix PRs
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Get open PRs
+            const { data: pulls } = await github.rest.pulls.list({
+              owner, repo, state: 'open', per_page: 50
+            });
+
+            // Filter to Copilot/Cursor fix branches
+            const fixPRs = pulls.filter(pr => {
+              const branch = pr.head.ref;
+              const author = pr.user.login;
+              return (
+                // Copilot autofix branches
+                branch.startsWith('copilot-fix/') ||
+                branch.startsWith('cursor-agent/') ||
+                // Or authored by known bot accounts
+                author === 'copilot[bot]' ||
+                author === 'github-actions[bot]' ||
+                (author === 'cursor-agent' || author === 'cursor[bot]')
+              );
+            });
+
+            if (fixPRs.length === 0) {
+              console.log('No Copilot/Cursor fix PRs found');
+              return;
+            }
+
+            for (const pr of fixPRs) {
+              console.log(`Checking PR #${pr.number}: ${pr.title} (${pr.head.ref})`);
+
+              // Check if all status checks passed
+              const { data: checks } = await github.rest.checks.listForRef({
+                owner, repo, ref: pr.head.sha
+              });
+
+              const allChecks = checks.check_runs.filter(
+                c => c.name !== 'automerge' && c.name !== 'Auto-merge Copilot Fixes'
+              );
+
+              if (allChecks.length === 0) {
+                console.log(`  No checks found yet, skipping`);
+                continue;
+              }
+
+              const pending = allChecks.filter(c => c.status !== 'completed');
+              const failed = allChecks.filter(
+                c => c.status === 'completed' && c.conclusion !== 'success' && c.conclusion !== 'neutral' && c.conclusion !== 'skipped'
+              );
+
+              if (pending.length > 0) {
+                console.log(`  ${pending.length} checks still pending, skipping`);
+                continue;
+              }
+
+              if (failed.length > 0) {
+                console.log(`  ${failed.length} checks failed: ${failed.map(c => c.name).join(', ')}`);
+                // Comment on the PR about failure
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number: pr.number,
+                  body: `⚠️ Auto-merge skipped — ${failed.length} check(s) failed: ${failed.map(c => '`' + c.name + '`').join(', ')}.\n\nPlease fix manually or close this PR.`
+                });
+                continue;
+              }
+
+              // All checks passed — squash merge
+              console.log(`  All ${allChecks.length} checks passed, squash-merging...`);
+              try {
+                await github.rest.pulls.merge({
+                  owner, repo, pull_number: pr.number,
+                  merge_method: 'squash',
+                  commit_title: `${pr.title} (#${pr.number})`,
+                  commit_message: `Auto-merged Copilot fix.\n\nCo-authored-by: ${pr.user.login}`
+                });
+                console.log(`  ✅ Merged PR #${pr.number}`);
+              } catch (e) {
+                console.log(`  ❌ Merge failed: ${e.message}`);
+              }
+            }
