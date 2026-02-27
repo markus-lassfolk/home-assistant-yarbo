@@ -59,10 +59,20 @@ def init_error_reporting(
         _LOGGER.warning("Failed to initialize error reporting: %s", exc)
 
 
+# Non-sensitive field names that contain "_key" but must not be redacted.
+_KEY_ALLOWLIST: frozenset[str] = frozenset({"entity_key"})
+
+
 def _scrub_event(event: dict, hint: dict) -> dict:  # type: ignore[type-arg]
     """Remove sensitive data before sending."""
     if "extra" in event:
         for key in list(event["extra"]):
-            if any(s in key.lower() for s in ("password", "token", "secret", "credential", "key")):
+            key_lower = key.lower()
+            if any(s in key_lower for s in ("password", "token", "secret", "credential")):
+                event["extra"][key] = "[REDACTED]"
+            elif (key_lower == "key" or "_key" in key_lower) and key_lower not in _KEY_ALLOWLIST:
+                # Catches bare "key", suffix "_key" (api_key), and compound forms
+                # (api_key_id, encryption_key_backup). Allowlist exempts known
+                # non-sensitive fields like entity_key.
                 event["extra"][key] = "[REDACTED]"
     return event
