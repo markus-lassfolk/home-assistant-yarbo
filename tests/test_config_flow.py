@@ -16,8 +16,16 @@ from custom_components.yarbo.const import (
     CONF_BROKER_PORT,
     CONF_ROBOT_NAME,
     CONF_ROBOT_SERIAL,
+    DEFAULT_ACTIVITY_PERSONALITY,
+    DEFAULT_AUTO_CONTROLLER,
     DEFAULT_BROKER_PORT,
+    DEFAULT_CLOUD_ENABLED,
+    DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
+    OPT_ACTIVITY_PERSONALITY,
+    OPT_AUTO_CONTROLLER,
+    OPT_CLOUD_ENABLED,
+    OPT_TELEMETRY_THROTTLE,
 )
 from tests.conftest import (
     MOCK_BROKER_HOST,
@@ -410,17 +418,92 @@ class TestDhcpDiscoveryFlow:
 
 
 class TestOptionsFlow:
-    """Tests for the Yarbo options flow.
+    """Tests for the Yarbo options flow (issue #26).
 
-    Options: telemetry_throttle, auto_controller, cloud_enabled, activity_personality
+    Options: telemetry_throttle, auto_controller, cloud_enabled, activity_personality.
+    Applied without restart via entry update listener.
     """
 
-    @pytest.mark.skip(reason="Options flow tests — implement with issue #26")
-    async def test_options_flow_shows_form(self, hass: HomeAssistant) -> None:
-        """Options flow shows the options form."""
-        pass
+    async def test_options_flow_shows_form(
+        self, hass: HomeAssistant, enable_custom_integrations: None
+    ) -> None:
+        """Options flow shows the options form with current values."""
+        from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-    @pytest.mark.skip(reason="Options flow tests — implement with issue #26")
-    async def test_options_flow_saves_options(self, hass: HomeAssistant) -> None:
-        """Options are saved correctly."""
-        pass
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_ROBOT_SERIAL: MOCK_ROBOT_SERIAL,
+                CONF_BROKER_HOST: MOCK_BROKER_HOST,
+                CONF_BROKER_PORT: DEFAULT_BROKER_PORT,
+                CONF_ROBOT_NAME: MOCK_ROBOT_NAME,
+            },
+            unique_id=MOCK_ROBOT_SERIAL,
+            options={
+                OPT_TELEMETRY_THROTTLE: 2.0,
+                OPT_AUTO_CONTROLLER: True,
+                OPT_CLOUD_ENABLED: False,
+                OPT_ACTIVITY_PERSONALITY: True,
+            },
+        )
+        entry.add_to_hass(hass)
+
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "init"
+
+    async def test_options_flow_saves_options(
+        self, hass: HomeAssistant, enable_custom_integrations: None
+    ) -> None:
+        """Options are saved and entry is updated without reload."""
+        from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_ROBOT_SERIAL: MOCK_ROBOT_SERIAL,
+                CONF_BROKER_HOST: MOCK_BROKER_HOST,
+                CONF_BROKER_PORT: DEFAULT_BROKER_PORT,
+                CONF_ROBOT_NAME: MOCK_ROBOT_NAME,
+            },
+            unique_id=MOCK_ROBOT_SERIAL,
+            options={
+                OPT_TELEMETRY_THROTTLE: DEFAULT_TELEMETRY_THROTTLE,
+                OPT_AUTO_CONTROLLER: DEFAULT_AUTO_CONTROLLER,
+                OPT_CLOUD_ENABLED: DEFAULT_CLOUD_ENABLED,
+                OPT_ACTIVITY_PERSONALITY: DEFAULT_ACTIVITY_PERSONALITY,
+            },
+        )
+        entry.add_to_hass(hass)
+
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        assert result["type"] == FlowResultType.FORM
+
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                OPT_TELEMETRY_THROTTLE: 3.0,
+                OPT_AUTO_CONTROLLER: False,
+                OPT_CLOUD_ENABLED: True,
+                OPT_ACTIVITY_PERSONALITY: True,
+            },
+        )
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["data"][OPT_TELEMETRY_THROTTLE] == 3.0
+        assert result["data"][OPT_AUTO_CONTROLLER] is False
+        assert result["data"][OPT_CLOUD_ENABLED] is True
+        assert result["data"][OPT_ACTIVITY_PERSONALITY] is True
+
+        # Entry options updated (no reload required for coordinator to see them)
+        updated = hass.config_entries.async_get_entry(entry.entry_id)
+        assert updated is not None
+        assert updated.options[OPT_TELEMETRY_THROTTLE] == 3.0
+        assert updated.options[OPT_AUTO_CONTROLLER] is False
+        assert updated.options[OPT_CLOUD_ENABLED] is True
+        assert updated.options[OPT_ACTIVITY_PERSONALITY] is True
