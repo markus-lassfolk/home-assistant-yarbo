@@ -198,9 +198,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._update_count: int = 0
 
         # Debug logging toggle
-        self._debug_logging: bool = entry.options.get(
-            OPT_DEBUG_LOGGING, DEFAULT_DEBUG_LOGGING
-        )
+        self._debug_logging: bool = entry.options.get(OPT_DEBUG_LOGGING, DEFAULT_DEBUG_LOGGING)
         self._original_log_levels: dict[str, int] = {}
         if self._debug_logging:
             self._apply_debug_logging(True)
@@ -281,8 +279,12 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             elif not new_recording and self._recorder.enabled:
                 self.hass.async_create_task(self._async_stop_recorder())
 
-        _LOGGER.debug("Yarbo options updated — throttle=%.1fs, debug=%s, recording=%s",
-                       self._throttle_interval, self._debug_logging, self._recorder.enabled)
+        _LOGGER.debug(
+            "Yarbo options updated — throttle=%.1fs, debug=%s, recording=%s",
+            self._throttle_interval,
+            self._debug_logging,
+            self._recorder.enabled,
+        )
 
     def report_controller_lost(self) -> None:
         """Raise an ERROR repair issue when the controller session is stolen.
@@ -535,6 +537,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             timeout: Response timeout in seconds
             skip_lock: If True, skip command_lock acquisition (for low-priority diagnostics)
         """
+
         async def _execute_command() -> Any:
             await self.client.publish_command(command, payload)
             if self._recorder.enabled:

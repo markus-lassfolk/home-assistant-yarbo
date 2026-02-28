@@ -60,11 +60,15 @@ class MqttRecorder:
         self._enabled = True
 
         _LOGGER.info("MQTT recording started: %s", self._current_path)
-        self._write_entry("META", "recording_start", {
-            "serial": self._serial,
-            "max_size_bytes": self._max_size,
-            "started_at": datetime.now(UTC).isoformat(),
-        })
+        self._write_entry(
+            "META",
+            "recording_start",
+            {
+                "serial": self._serial,
+                "max_size_bytes": self._max_size,
+                "started_at": datetime.now(UTC).isoformat(),
+            },
+        )
         return self._current_path
 
     def stop(self) -> None:
