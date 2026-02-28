@@ -201,6 +201,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._debug_logging: bool = entry.options.get(
             OPT_DEBUG_LOGGING, DEFAULT_DEBUG_LOGGING
         )
+        self._original_log_levels: dict[str, int] = {}
         if self._debug_logging:
             self._apply_debug_logging(True)
 
@@ -869,22 +870,28 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         if self._diagnostic_task is None:
             self._diagnostic_task = asyncio.create_task(self._diagnostic_polling_loop())
 
-    @staticmethod
-    def _apply_debug_logging(enabled: bool) -> None:
+    def _apply_debug_logging(self, enabled: bool) -> None:
         """Toggle debug logging for all yarbo components."""
-        level = logging.DEBUG if enabled else logging.INFO
-        for name in (
+        logger_names = (
             "custom_components.yarbo",
             "yarbo",
             "yarbo.client",
             "yarbo.local",
             "yarbo.mqtt",
             "yarbo.cloud",
-        ):
-            logging.getLogger(name).setLevel(level)
+        )
         if enabled:
+            for name in logger_names:
+                logger = logging.getLogger(name)
+                if name not in self._original_log_levels:
+                    self._original_log_levels[name] = logger.level
+                logger.setLevel(logging.DEBUG)
             _LOGGER.info("Yarbo debug logging ENABLED")
         else:
+            for name in logger_names:
+                logger = logging.getLogger(name)
+                original_level = self._original_log_levels.get(name, logging.INFO)
+                logger.setLevel(original_level)
             _LOGGER.info("Yarbo debug logging DISABLED")
 
     @property
@@ -1053,6 +1060,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
         Runs every 300 seconds to fetch non-streaming data like wifi, battery temps,
         odometer, etc. Does not modify self.data, only updates internal state.
+        
+        Uses a reduced timeout (1.0s) to minimize blocking user commands, since many
+        diagnostic commands do not respond when the robot is idle/docked.
         """
         try:
             while True:
@@ -1077,7 +1087,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     ]
                     for method in diagnostic_methods:
                         try:
-                            await method()
+                            await method(timeout=1.0)
                         except Exception as err:
                             _LOGGER.debug("Diagnostic request failed (non-fatal): %s", err)
                     self.async_update_listeners()
