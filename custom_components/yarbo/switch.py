@@ -356,9 +356,9 @@ class YarboUsbSwitch(YarboEntity, SwitchEntity):
 class YarboIgnoreObstaclesSwitch(YarboCommandSwitch):
     """Obstacle detection bypass.
 
-    Per robot docs: topic is obstacle_toggle with {enabled: bool}.
-    APK also references setIgnoreObstacle / ignore_obstacles — verify against
-    live robot if behaviour is unexpected.
+    Verified against live robot: "ignore_obstacles" with {"state": int} is correct.
+    "obstacle_toggle" and "setIgnoreObstacle" are silently ignored.
+    Command confirmed 2026-02-28.
     """
 
     _attr_translation_key = "ignore_obstacles"
@@ -370,10 +370,10 @@ class YarboIgnoreObstaclesSwitch(YarboCommandSwitch):
         super().__init__(
             coordinator,
             "ignore_obstacles",
-            "obstacle_toggle",
-            payload_key="enabled",
-            on_value=True,
-            off_value=False,
+            "ignore_obstacles",
+            payload_key="state",
+            on_value=1,
+            off_value=0,
         )
 
 
