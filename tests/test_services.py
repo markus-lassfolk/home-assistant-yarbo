@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -126,9 +127,9 @@ class TestStartPlanService:
         """start_plan calls get_controller before publish_command."""
         client, coordinator = mock_client_and_coordinator
         call_order: list[str] = []
-        async def _get_controller(**_kw): call_order.append("get_controller")
+        async def _get_controller(**_kw: Any) -> None: call_order.append("get_controller")
         client.get_controller.side_effect = _get_controller
-        async def _publish(*_a, **_kw): call_order.append("publish_command")
+        async def _publish(*_a: Any, **_kw: Any) -> None: call_order.append("publish_command")
         client.publish_command.side_effect = _publish
 
         with patch(
