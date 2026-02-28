@@ -559,14 +559,20 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             feedback_task = asyncio.create_task(
                 self._await_data_feedback(normalized_command, timeout)
             )
-            if self._recorder.enabled:
-                try:
-                    await self.hass.async_add_executor_job(
-                        self._recorder.record_tx, normalized_command, payload or {}
-                    )
-                except Exception as rec_err:
-                    _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
-            return await feedback_task
+            try:
+                if self._recorder.enabled:
+                    try:
+                        await self.hass.async_add_executor_job(
+                            self._recorder.record_tx, normalized_command, payload or {}
+                        )
+                    except Exception as rec_err:
+                        _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
+                return await feedback_task
+            except asyncio.CancelledError:
+                feedback_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await feedback_task
+                raise
 
         if skip_lock:
             response = await _execute_command()
@@ -604,6 +610,12 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         response = await self._request_data_feedback(
             "battery_cell_temp_msg", {}, timeout, skip_lock
         )
+        if not response:
+            return (
+                self._battery_cell_temp_min,
+                self._battery_cell_temp_max,
+                self._battery_cell_temp_avg,
+            )
         data = response.get("data", response)
         min_val = max_val = avg_val = None
 
@@ -646,6 +658,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Request odometer distance (meters)."""
         # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("odometer_msg", {}, timeout, skip_lock)
+        if not response:
+            return self._odometer_m
         data = response.get("data", response)
         odometer_m: float | None = None
         if isinstance(data, dict):
@@ -752,6 +766,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Request body current (A)."""
         # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("body_current_msg", {}, timeout, skip_lock)
+        if not response:
+            return self._body_current
         data = response.get("data", response)
         self._body_current = _extract_float(data)
         return self._body_current
@@ -760,6 +776,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Request head current (A)."""
         # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("head_current_msg", {}, timeout, skip_lock)
+        if not response:
+            return self._head_current
         data = response.get("data", response)
         self._head_current = _extract_float(data)
         return self._head_current
@@ -768,6 +786,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Request speed (m/s)."""
         # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("speed_msg", {}, timeout, skip_lock)
+        if not response:
+            return self._speed_m_s
         data = response.get("data", response)
         self._speed_m_s = _extract_float(data)
         return self._speed_m_s
@@ -776,6 +796,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Request product code."""
         # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("product_code_msg", {}, timeout, skip_lock)
+        if not response:
+            return self._product_code
         data = response.get("data", response)
         self._product_code = _extract_text(data, ("product_code", "product", "code"))
         return self._product_code
@@ -784,6 +806,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Request hub info."""
         # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("hub_info", {}, timeout, skip_lock)
+        if not response:
+            return self._hub_info
         data = response.get("data", response)
         self._hub_info = _extract_text(data, ("hub_info", "info", "hub"))
         return self._hub_info
@@ -880,6 +904,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Request motor temperature (°C)."""
         # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("motor_temp_samp", {}, timeout, skip_lock)
+        if not response:
+            return self._motor_temp_c
         data = response.get("data", response)
         self._motor_temp_c = _extract_float(data)
         return self._motor_temp_c
