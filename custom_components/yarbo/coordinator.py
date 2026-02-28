@@ -1108,8 +1108,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
         Uses skip_lock=True to avoid blocking user commands during diagnostic polling.
         """
-        try:
-            while True:
+        while True:
+            try:
                 await asyncio.sleep(300)
                 async with self._diagnostic_lock:
                     diagnostic_methods = [
@@ -1135,9 +1135,12 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         except Exception as err:
                             _LOGGER.debug("Diagnostic request failed (non-fatal): %s", err)
                     self.async_update_listeners()
-        except asyncio.CancelledError:
-            _LOGGER.debug("Diagnostic polling loop cancelled")
-            raise
+            except asyncio.CancelledError:
+                _LOGGER.debug("Diagnostic polling loop cancelled")
+                raise
+            except Exception:
+                _LOGGER.exception("Unexpected error in diagnostic polling loop — retrying in 300s")
+                await asyncio.sleep(300)
 
     async def async_config_entry_first_refresh(self) -> None:
         """Start push telemetry before the first refresh."""
@@ -1163,6 +1166,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             self._diagnostic_task = None
         if self._recorder.enabled:
             await self._async_stop_recorder()
+        if self._debug_logging:
+            self._apply_debug_logging(False)
         await super().async_shutdown()
 
     async def _async_start_recorder(self) -> None:

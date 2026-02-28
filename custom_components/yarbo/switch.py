@@ -157,6 +157,7 @@ class YarboPersonDetectSwitch(YarboCommandSwitch):
     _attr_translation_key = "person_detect"
     _attr_icon = "mdi:account-eye"
     _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(
