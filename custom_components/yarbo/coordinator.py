@@ -12,7 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from yarbo import YarboLocalClient, YarboTelemetry
+from yarbo import YarboLocalClient
 from yarbo.exceptions import YarboConnectionError
 
 from .const import (
@@ -30,6 +30,7 @@ from .const import (
     OPT_TELEMETRY_THROTTLE,
     TELEMETRY_RETRY_DELAY_SECONDS,
 )
+from .models import YarboTelemetry
 from .repairs import (
     async_create_controller_lost_issue,
     async_create_mqtt_disconnect_issue,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from yarbo import YarboTelemetry
+from .models import YarboTelemetry
 
 DOMAIN = "yarbo"
 

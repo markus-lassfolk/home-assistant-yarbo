@@ -34,6 +34,7 @@ from .const import (
 )
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
+from .telemetry import get_gngga_data, get_nested_raw_value, get_value_from_paths
 
 # Internal activity state values (snake_case enum values)
 ACTIVITY_CHARGING: Final = "charging"
@@ -104,17 +105,44 @@ async def async_setup_entry(
             YarboActivitySensor(coordinator),
             YarboHeadTypeSensor(coordinator),
             YarboErrorCodeSensor(coordinator),
+            YarboHeadSerialSensor(coordinator),
+            YarboBatteryTempErrorSensor(coordinator),
+            YarboBaseStationStatusSensor(coordinator),
             YarboRtkStatusSensor(coordinator),
+            YarboRtcmSourceTypeSensor(coordinator),
             YarboHeadingSensor(coordinator),
+            YarboHeadingDopSensor(coordinator),
+            YarboHeadingStatusSensor(coordinator),
+            YarboAntennaDistanceSensor(coordinator),
             YarboChuteAngleSensor(coordinator),
+            YarboChuteSteeringInfoSensor(coordinator),
             YarboRainSensor(coordinator),
             YarboSatelliteCountSensor(coordinator),
+            YarboGpsFixQualitySensor(coordinator),
+            YarboGpsHdopSensor(coordinator),
+            YarboGpsAltitudeSensor(coordinator),
             YarboChargingPowerSensor(coordinator),
+            YarboWirelessChargeStateSensor(coordinator),
+            YarboWirelessChargeErrorSensor(coordinator),
             YarboOdomConfidenceSensor(coordinator),
+            YarboOdomXSensor(coordinator),
+            YarboOdomYSensor(coordinator),
+            YarboOdomPhiSensor(coordinator),
             YarboRtcmAgeSensor(coordinator),
             YarboChargeVoltageSensor(coordinator),
             YarboChargeCurrentSensor(coordinator),
             YarboMqttAgeSensor(coordinator),
+            YarboNavSensorFrontRight(coordinator),
+            YarboNavSensorRearRight(coordinator),
+            YarboHeadGyroPitchSensor(coordinator),
+            YarboHeadGyroRollSensor(coordinator),
+            YarboMachineControllerSensor(coordinator),
+            YarboRoutePriorityHg0Sensor(coordinator),
+            YarboRoutePriorityWlan0Sensor(coordinator),
+            YarboRoutePriorityWwan0Sensor(coordinator),
+            YarboUltrasonicLeftFrontSensor(coordinator),
+            YarboUltrasonicMiddleSensor(coordinator),
+            YarboUltrasonicRightFrontSensor(coordinator),
         ]
     )
 
@@ -248,6 +276,78 @@ class YarboErrorCodeSensor(YarboSensor):
         return self.telemetry.error_code
 
 
+class YarboHeadSerialSensor(YarboSensor):
+    """Diagnostic sensor for head serial number."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "head_serial"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "head_serial")
+
+    @property
+    def native_value(self) -> str | None:
+        """Return head serial number."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "head_serial", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "HeadSerialMsg", "head_sn")
+        return value if value is not None else None
+
+
+class YarboBatteryTempErrorSensor(YarboSensor):
+    """Diagnostic sensor for battery temperature error."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "battery_temp_error"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "battery_temp_error")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return battery temperature error."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "battery_temp_error", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "BatteryMSG", "temp_err")
+        return value if value is not None else None
+
+
+class YarboBaseStationStatusSensor(YarboSensor):
+    """Diagnostic sensor for base station status."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "base_station_status"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "base_station_status")
+
+    @property
+    def native_value(self) -> int | str | None:
+        """Return base station status."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "base_station_status", None)
+        if value is None:
+            value = get_value_from_paths(
+                telemetry,
+                [
+                    ("base_status",),
+                    ("BaseStatusMsg", "base_status"),
+                ],
+            )
+        return value if value is not None else None
+
+
 class YarboRtkStatusSensor(YarboSensor):
     """RTK fix quality sensor."""
 
@@ -270,6 +370,28 @@ class YarboRtkStatusSensor(YarboSensor):
         return RTK_STATUS_MAP.get(status, "unknown")
 
 
+class YarboRtcmSourceTypeSensor(YarboSensor):
+    """Diagnostic sensor for RTCM source type."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "rtcm_source_type"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "rtcm_source_type")
+
+    @property
+    def native_value(self) -> int | str | None:
+        """Return RTCM source type."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "rtcm_source_type", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "rtcm_info", "current_source_type")
+        return value if value is not None else None
+
+
 class YarboHeadingSensor(YarboSensor):
     """Compass heading sensor."""
 
@@ -287,6 +409,76 @@ class YarboHeadingSensor(YarboSensor):
         if not self.telemetry:
             return None
         return getattr(self.telemetry, "heading", None)
+
+
+class YarboHeadingDopSensor(YarboSensor):
+    """Diagnostic sensor for heading DOP."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "heading_dop"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "heading_dop")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return heading DOP."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "heading_dop", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "RTKMSG", "heading_dop")
+        return value if value is not None else None
+
+
+class YarboHeadingStatusSensor(YarboSensor):
+    """Diagnostic sensor for heading status."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "heading_status"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "heading_status")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return heading status."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "heading_status", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "RTKMSG", "heading_status")
+        return value if value is not None else None
+
+
+class YarboAntennaDistanceSensor(YarboSensor):
+    """Diagnostic sensor for antenna distance."""
+
+    _attr_device_class = SensorDeviceClass.DISTANCE
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_native_unit_of_measurement = "m"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "antenna_distance"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "antenna_distance")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return antenna distance in meters."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "antenna_distance", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "RTKMSG", "gga_atn_dis")
+        return value if value is not None else None
 
 
 class YarboChuteAngleSensor(YarboSensor):
@@ -315,6 +507,30 @@ class YarboChuteAngleSensor(YarboSensor):
         if not self.telemetry:
             return None
         return getattr(self.telemetry, "chute_angle", None)
+
+
+class YarboChuteSteeringInfoSensor(YarboSensor):
+    """Diagnostic sensor for chute steering info."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "chute_steering_info"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "chute_steering_info")
+
+    @property
+    def native_value(self) -> int | str | None:
+        """Return chute steering info."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "chute_steering_info", None)
+        if value is None:
+            value = get_nested_raw_value(
+                telemetry, "RunningStatusMSG", "chute_steering_engine_info"
+            )
+        return value if value is not None else None
 
 
 class YarboRainSensor(YarboSensor):
@@ -351,7 +567,81 @@ class YarboSatelliteCountSensor(YarboSensor):
         """Return number of visible satellites."""
         if not self.telemetry:
             return None
+        gngga = get_gngga_data(self.telemetry)
+        if gngga is not None and gngga.satellite_count is not None:
+            return gngga.satellite_count
         return getattr(self.telemetry, "satellite_count", None)
+
+
+class YarboGpsFixQualitySensor(YarboSensor):
+    """Diagnostic sensor for GPS fix quality."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "gps_fix_quality"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "gps_fix_quality")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return GPS fix quality."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        gngga = get_gngga_data(telemetry)
+        if gngga is not None:
+            return gngga.fix_quality
+        return None
+
+
+class YarboGpsHdopSensor(YarboSensor):
+    """Diagnostic sensor for GPS HDOP."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "gps_hdop"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "gps_hdop")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return GPS HDOP."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        gngga = get_gngga_data(telemetry)
+        if gngga is not None:
+            return gngga.hdop
+        return None
+
+
+class YarboGpsAltitudeSensor(YarboSensor):
+    """Diagnostic sensor for GPS altitude."""
+
+    _attr_device_class = SensorDeviceClass.DISTANCE
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_native_unit_of_measurement = "m"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "gps_altitude"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "gps_altitude")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return GPS altitude in meters."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        gngga = get_gngga_data(telemetry)
+        if gngga is not None:
+            return gngga.altitude_m
+        return None
 
 
 class YarboChargingPowerSensor(YarboSensor):
@@ -378,6 +668,50 @@ class YarboChargingPowerSensor(YarboSensor):
         return round(voltage_mv * current_ma / 1_000_000, 2)
 
 
+class YarboWirelessChargeStateSensor(YarboSensor):
+    """Diagnostic sensor for wireless charge state."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "wireless_charge_state"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "wireless_charge_state")
+
+    @property
+    def native_value(self) -> int | str | None:
+        """Return wireless charge state."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "wireless_charge_state", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "wireless_recharge", "state")
+        return value if value is not None else None
+
+
+class YarboWirelessChargeErrorSensor(YarboSensor):
+    """Diagnostic sensor for wireless charge error."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "wireless_charge_error"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "wireless_charge_error")
+
+    @property
+    def native_value(self) -> int | str | None:
+        """Return wireless charge error code."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "wireless_charge_error", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "wireless_recharge", "error_code")
+        return value if value is not None else None
+
+
 class YarboOdomConfidenceSensor(YarboSensor):
     """Odometry confidence diagnostic sensor."""
 
@@ -395,6 +729,75 @@ class YarboOdomConfidenceSensor(YarboSensor):
         if not self.telemetry:
             return None
         return getattr(self.telemetry, "odom_confidence", None)
+
+
+class YarboOdomXSensor(YarboSensor):
+    """Diagnostic sensor for odometry X."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "odom_x"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "odom_x")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return odometry X."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "odom_x", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "CombinedOdom", "x")
+        return value if value is not None else None
+
+
+class YarboOdomYSensor(YarboSensor):
+    """Diagnostic sensor for odometry Y."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "odom_y"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "odom_y")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return odometry Y."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "odom_y", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "CombinedOdom", "y")
+        return value if value is not None else None
+
+
+class YarboOdomPhiSensor(YarboSensor):
+    """Diagnostic sensor for odometry Phi."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "odom_phi"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "odom_phi")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return odometry Phi."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "odom_phi", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "CombinedOdom", "phi")
+        return value if value is not None else None
 
 
 class YarboRtcmAgeSensor(YarboSensor):
@@ -483,3 +886,244 @@ class YarboMqttAgeSensor(YarboSensor):
         if not self.telemetry:
             return None
         return getattr(self.telemetry, "mqtt_age", None)
+
+
+class YarboNavSensorFrontRight(YarboSensor):
+    """Diagnostic sensor for front-right navigation sensor."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "nav_sensor_front_right"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "nav_sensor_front_right")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return front-right navigation sensor value."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "nav_sensor_front_right", None)
+        if value is None:
+            value = get_nested_raw_value(
+                telemetry, "RunningStatusMSG", "elec_navigation_front_right_sensor"
+            )
+        return value if value is not None else None
+
+
+class YarboNavSensorRearRight(YarboSensor):
+    """Diagnostic sensor for rear-right navigation sensor."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "nav_sensor_rear_right"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "nav_sensor_rear_right")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return rear-right navigation sensor value."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "nav_sensor_rear_right", None)
+        if value is None:
+            value = get_nested_raw_value(
+                telemetry, "RunningStatusMSG", "elec_navigation_rear_right_sensor"
+            )
+        return value if value is not None else None
+
+
+class YarboHeadGyroPitchSensor(YarboSensor):
+    """Diagnostic sensor for head gyro pitch."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_native_unit_of_measurement = "°"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "head_gyro_pitch"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "head_gyro_pitch")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return head gyro pitch in degrees."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "head_gyro_pitch", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "RunningStatusMSG", "head_gyro_pitch")
+        return value if value is not None else None
+
+
+class YarboHeadGyroRollSensor(YarboSensor):
+    """Diagnostic sensor for head gyro roll."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_native_unit_of_measurement = "°"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "head_gyro_roll"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "head_gyro_roll")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return head gyro roll in degrees."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "head_gyro_roll", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "RunningStatusMSG", "head_gyro_roll")
+        return value if value is not None else None
+
+
+class YarboMachineControllerSensor(YarboSensor):
+    """Diagnostic sensor for machine controller."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "machine_controller"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "machine_controller")
+
+    @property
+    def native_value(self) -> int | str | None:
+        """Return machine controller value."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "machine_controller", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "StateMSG", "machine_controller")
+        return value if value is not None else None
+
+
+class YarboRoutePriorityHg0Sensor(YarboSensor):
+    """Diagnostic sensor for route priority hg0."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "route_priority_hg0"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "route_priority_hg0")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return route priority for hg0."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        return get_nested_raw_value(telemetry, "route_priority", "hg0")
+
+
+class YarboRoutePriorityWlan0Sensor(YarboSensor):
+    """Diagnostic sensor for route priority wlan0."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "route_priority_wlan0"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "route_priority_wlan0")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return route priority for wlan0."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        return get_nested_raw_value(telemetry, "route_priority", "wlan0")
+
+
+class YarboRoutePriorityWwan0Sensor(YarboSensor):
+    """Diagnostic sensor for route priority wwan0."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "route_priority_wwan0"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "route_priority_wwan0")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return route priority for wwan0."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        return get_nested_raw_value(telemetry, "route_priority", "wwan0")
+
+
+class YarboUltrasonicLeftFrontSensor(YarboSensor):
+    """Ultrasonic left-front distance sensor."""
+
+    _attr_native_unit_of_measurement = "mm"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "ultrasonic_left_front"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "ultrasonic_left_front")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return left-front ultrasonic distance in mm."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "ultrasonic_left_front", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "ultrasonic_msg", "lf_dis")
+        return value if value is not None else None
+
+
+class YarboUltrasonicMiddleSensor(YarboSensor):
+    """Ultrasonic middle distance sensor."""
+
+    _attr_native_unit_of_measurement = "mm"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "ultrasonic_middle"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "ultrasonic_middle")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return middle ultrasonic distance in mm."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "ultrasonic_middle", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "ultrasonic_msg", "mt_dis")
+        return value if value is not None else None
+
+
+class YarboUltrasonicRightFrontSensor(YarboSensor):
+    """Ultrasonic right-front distance sensor."""
+
+    _attr_native_unit_of_measurement = "mm"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "ultrasonic_right_front"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "ultrasonic_right_front")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return right-front ultrasonic distance in mm."""
+        telemetry = self.telemetry
+        if not telemetry:
+            return None
+        value = getattr(telemetry, "ultrasonic_right_front", None)
+        if value is None:
+            value = get_nested_raw_value(telemetry, "ultrasonic_msg", "rf_dis")
+        return value if value is not None else None

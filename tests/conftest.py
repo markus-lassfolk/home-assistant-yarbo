@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+import types
 from unittest.mock import AsyncMock, MagicMock, patch
 
 
@@ -23,6 +24,62 @@ class _DhcpServiceInfo:
 _dhcp_mock = MagicMock()
 _dhcp_mock.DhcpServiceInfo = _DhcpServiceInfo
 sys.modules.setdefault("homeassistant.components.dhcp", _dhcp_mock)
+
+# Stub aiodns/pycares to avoid background threads during tests.
+_aiodns_module = types.ModuleType("aiodns")
+
+
+class _DNSResolver:
+    """Stub for aiodns.DNSResolver."""
+
+    def __init__(self, *_args: object, **_kwargs: object) -> None:
+        pass
+
+
+_aiodns_module.DNSResolver = _DNSResolver
+sys.modules.setdefault("aiodns", _aiodns_module)
+sys.modules.setdefault("pycares", types.ModuleType("pycares"))
+
+# Stub python-yarbo to avoid optional dependency in tests.
+_yarbo_module = types.ModuleType("yarbo")
+
+
+class _YarboLocalClient:
+    """Stub for YarboLocalClient."""
+
+    def __init__(self, *_args: object, **_kwargs: object) -> None:
+        pass
+
+
+class _YarboTelemetry:
+    """Stub for YarboTelemetry."""
+
+    def __init__(self, **_kwargs: object) -> None:
+        pass
+
+
+class _YarboLightState:
+    """Stub for YarboLightState."""
+
+    def __init__(self, **_kwargs: object) -> None:
+        pass
+
+
+_yarbo_module.YarboLocalClient = _YarboLocalClient
+_yarbo_module.YarboTelemetry = _YarboTelemetry
+_yarbo_module.YarboLightState = _YarboLightState
+
+_yarbo_exceptions = types.ModuleType("yarbo.exceptions")
+
+
+class YarboConnectionError(Exception):
+    """Stub for YarboConnectionError."""
+
+
+_yarbo_exceptions.YarboConnectionError = YarboConnectionError
+_yarbo_module.exceptions = _yarbo_exceptions
+sys.modules.setdefault("yarbo", _yarbo_module)
+sys.modules.setdefault("yarbo.exceptions", _yarbo_exceptions)
 
 # Disable Sentry/GlitchTip error reporting during tests.
 # python-yarbo calls init_error_reporting() at module import time; the Sentry SDK

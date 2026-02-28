@@ -154,17 +154,53 @@
       "error_code": {
         "name": "Error Code"
       },
+      "head_serial": {
+        "name": "Head Serial"
+      },
+      "battery_temp_error": {
+        "name": "Battery Temp Error"
+      },
+      "base_station_status": {
+        "name": "Base Station Status"
+      },
       "satellite_count": {
         "name": "Satellite Count"
+      },
+      "gps_fix_quality": {
+        "name": "GPS Fix Quality"
+      },
+      "gps_hdop": {
+        "name": "GPS HDOP"
+      },
+      "gps_altitude": {
+        "name": "GPS Altitude"
       },
       "charging_power": {
         "name": "Charging Power"
       },
+      "wireless_charge_state": {
+        "name": "Wireless Charge State"
+      },
+      "wireless_charge_error": {
+        "name": "Wireless Charge Error"
+      },
       "odom_confidence": {
         "name": "Odometry Confidence"
       },
+      "odom_x": {
+        "name": "Odometry X"
+      },
+      "odom_y": {
+        "name": "Odometry Y"
+      },
+      "odom_phi": {
+        "name": "Odometry Phi"
+      },
       "rtcm_age": {
         "name": "RTCM Age"
+      },
+      "rtcm_source_type": {
+        "name": "RTCM Source Type"
       },
       "charge_voltage": {
         "name": "Charge Voltage"
@@ -174,6 +210,51 @@
       },
       "mqtt_age": {
         "name": "MQTT Message Age"
+      },
+      "heading_dop": {
+        "name": "Heading DOP"
+      },
+      "heading_status": {
+        "name": "Heading Status"
+      },
+      "antenna_distance": {
+        "name": "Antenna Distance"
+      },
+      "chute_steering_info": {
+        "name": "Chute Steering Info"
+      },
+      "nav_sensor_front_right": {
+        "name": "Navigation Sensor Front Right"
+      },
+      "nav_sensor_rear_right": {
+        "name": "Navigation Sensor Rear Right"
+      },
+      "head_gyro_pitch": {
+        "name": "Head Gyro Pitch"
+      },
+      "head_gyro_roll": {
+        "name": "Head Gyro Roll"
+      },
+      "machine_controller": {
+        "name": "Machine Controller"
+      },
+      "route_priority_hg0": {
+        "name": "Route Priority HG0"
+      },
+      "route_priority_wlan0": {
+        "name": "Route Priority WLAN0"
+      },
+      "route_priority_wwan0": {
+        "name": "Route Priority WWAN0"
+      },
+      "ultrasonic_left_front": {
+        "name": "Ultrasonic Left Front"
+      },
+      "ultrasonic_middle": {
+        "name": "Ultrasonic Middle"
+      },
+      "ultrasonic_right_front": {
+        "name": "Ultrasonic Right Front"
       }
     },
     "binary_sensor": {
@@ -185,6 +266,27 @@
       },
       "planning": {
         "name": "Planning Active"
+      },
+      "planning_active": {
+        "name": "Planning Active"
+      },
+      "returning_to_charge": {
+        "name": "Returning To Charge"
+      },
+      "going_to_start": {
+        "name": "Going To Start"
+      },
+      "follow_mode": {
+        "name": "Follow Mode"
+      },
+      "planning_paused": {
+        "name": "Planning Paused"
+      },
+      "manual_controller": {
+        "name": "Manual Controller"
+      },
+      "rain_detected": {
+        "name": "Rain Detected"
       }
     },
     "button": {
