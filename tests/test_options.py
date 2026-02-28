@@ -14,6 +14,7 @@ from custom_components.yarbo.const import (
     OPT_ACTIVITY_PERSONALITY,
     OPT_AUTO_CONTROLLER,
     OPT_CLOUD_ENABLED,
+    OPT_DEBUG_LOGGING,
     OPT_TELEMETRY_THROTTLE,
 )
 from custom_components.yarbo.coordinator import YarboDataCoordinator
@@ -32,6 +33,9 @@ def _make_coordinator(options: dict | None = None) -> YarboDataCoordinator:
         coord._throttle_interval = entry.options.get(  # type: ignore[attr-defined]
             OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE
         )
+        coord._debug_logging = False  # type: ignore[attr-defined]
+        coord._recorder = MagicMock()  # type: ignore[attr-defined]
+        coord._recorder_enabled_option = False  # type: ignore[attr-defined]
     return coord  # type: ignore[return-value]
 
 

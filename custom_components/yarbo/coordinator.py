@@ -197,6 +197,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._last_seen: float = 0.0
         self._issue_active = False
         self._controller_lost_active = False
+        self._diagnostic_lock = asyncio.Semaphore(1)
         self._throttle_interval: float = entry.options.get(
             OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE
         )
@@ -216,8 +217,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             serial_number=serial,
             max_size_bytes=MQTT_RECORDING_MAX_SIZE_BYTES,
         )
-        if entry.options.get(OPT_MQTT_RECORDING, DEFAULT_MQTT_RECORDING):
-            self._recorder.start()
+        self._recorder_enabled_option = entry.options.get(
+            OPT_MQTT_RECORDING, DEFAULT_MQTT_RECORDING
+        )
         self.command_lock = asyncio.Lock()
         self.light_state: dict[str, int] = {
             "led_head": 0,
@@ -276,10 +278,12 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
         # MQTT recording
         new_recording = options.get(OPT_MQTT_RECORDING, DEFAULT_MQTT_RECORDING)
-        if new_recording and not self._recorder.enabled:
-            self._recorder.start()
-        elif not new_recording and self._recorder.enabled:
-            self._recorder.stop()
+        if new_recording != self._recorder_enabled_option:
+            self._recorder_enabled_option = new_recording
+            if new_recording and not self._recorder.enabled:
+                self.hass.async_create_task(self._async_start_recorder())
+            elif not new_recording and self._recorder.enabled:
+                self.hass.async_create_task(self._async_stop_recorder())
 
         _LOGGER.debug("Yarbo options updated — throttle=%.1fs, debug=%s, recording=%s",
                        self._throttle_interval, self._debug_logging, self._recorder.enabled)
@@ -530,7 +534,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         async with self.command_lock:
             await self.client.publish_command(command, payload)
             if self._recorder.enabled:
-                self._recorder.record_tx(command, payload or {})
+                await self.hass.async_add_executor_job(
+                    self._recorder.record_tx, command, payload or {}
+                )
             response = await self._await_data_feedback(command, timeout)
         if not isinstance(response, dict):
             return {}
@@ -858,6 +864,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         async_delete_controller_lost_issue(self.hass, self._entry.entry_id)
         self._controller_lost_active = False
 
+        if self._recorder_enabled_option and not self._recorder.enabled:
+            await self._async_start_recorder()
+
         if self._telemetry_task is None:
             self._telemetry_task = asyncio.create_task(self._telemetry_loop())
         if self._watchdog_task is None:
@@ -868,7 +877,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     @staticmethod
     def _apply_debug_logging(enabled: bool) -> None:
         """Toggle debug logging for all yarbo components."""
-        level = logging.DEBUG if enabled else logging.NOTSET
+        level = logging.DEBUG if enabled else logging.INFO
         for name in (
             "custom_components.yarbo",
             "yarbo",
@@ -901,7 +910,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     self._last_seen = now
                     # Record raw telemetry for diagnostics
                     if self._recorder.enabled:
-                        self._recorder.record_rx(
+                        await self.hass.async_add_executor_job(
+                            self._recorder.record_rx,
                             "telemetry",
                             telemetry.raw if hasattr(telemetry, "raw") else str(telemetry),
                         )
@@ -1052,29 +1062,30 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         try:
             while True:
                 await asyncio.sleep(300)
-                diagnostic_methods = [
-                    self.get_wifi_name,
-                    self.get_battery_cell_temps,
-                    self.get_odometer,
-                    self.get_no_charge_period,
-                    self.get_schedules,
-                    self.get_body_current,
-                    self.get_head_current,
-                    self.get_speed,
-                    self.get_product_code,
-                    self.get_hub_info,
-                    self.get_recharge_point,
-                    self.get_wifi_list,
-                    self.get_map_backups,
-                    self.get_clean_areas,
-                    self.get_motor_temp,
-                ]
-                for method in diagnostic_methods:
-                    try:
-                        await method()
-                    except Exception as err:
-                        _LOGGER.debug("Diagnostic request failed (non-fatal): %s", err)
-                self.async_update_listeners()
+                async with self._diagnostic_lock:
+                    diagnostic_methods = [
+                        self.get_wifi_name,
+                        self.get_battery_cell_temps,
+                        self.get_odometer,
+                        self.get_no_charge_period,
+                        self.get_schedules,
+                        self.get_body_current,
+                        self.get_head_current,
+                        self.get_speed,
+                        self.get_product_code,
+                        self.get_hub_info,
+                        self.get_recharge_point,
+                        self.get_wifi_list,
+                        self.get_map_backups,
+                        self.get_clean_areas,
+                        self.get_motor_temp,
+                    ]
+                    for method in diagnostic_methods:
+                        try:
+                            await method()
+                        except Exception as err:
+                            _LOGGER.debug("Diagnostic request failed (non-fatal): %s", err)
+                    self.async_update_listeners()
         except asyncio.CancelledError:
             _LOGGER.debug("Diagnostic polling loop cancelled")
             raise
@@ -1102,5 +1113,13 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 await self._diagnostic_task
             self._diagnostic_task = None
         if self._recorder.enabled:
-            self._recorder.stop()
+            await self._async_stop_recorder()
         await super().async_shutdown()
+
+    async def _async_start_recorder(self) -> None:
+        """Start MQTT recording in the executor."""
+        await self.hass.async_add_executor_job(self._recorder.start)
+
+    async def _async_stop_recorder(self) -> None:
+        """Stop MQTT recording in the executor."""
+        await self.hass.async_add_executor_job(self._recorder.stop)
