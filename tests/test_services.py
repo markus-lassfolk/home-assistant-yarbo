@@ -22,6 +22,7 @@ def mock_client_and_coordinator() -> tuple[AsyncMock, MagicMock]:
     client.publish_command = AsyncMock()
 
     coordinator = MagicMock()
+    coordinator.client = client
     coordinator.command_lock = asyncio.Lock()
     return client, coordinator
 
