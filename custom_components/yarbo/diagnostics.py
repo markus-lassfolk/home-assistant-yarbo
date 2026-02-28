@@ -46,7 +46,7 @@ async def async_get_config_entry_diagnostics(
     if not isinstance(raw, dict):
         raw = {}
 
-    return {
+    diagnostics = {
         "config_entry": _redact_config(entry.data),
         "coordinator": {
             "last_update_success": coordinator.last_update_success,
@@ -63,6 +63,19 @@ async def async_get_config_entry_diagnostics(
             "serial_number": _redact_sn(getattr(client, "serial_number", "")),
         },
     }
+
+    if hasattr(coordinator, "recorder"):
+        diagnostics["mqtt_recording"] = {
+            "enabled": coordinator.recorder.enabled,
+            "path": (
+                str(coordinator.recorder.recording_path)
+                if coordinator.recorder.recording_path
+                else None
+            ),
+            "files": [str(p) for p in coordinator.recorder.list_recordings()[:5]],
+        }
+
+    return diagnostics
 
 
 def _redact_sn(sn: str) -> str:

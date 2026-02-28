@@ -44,6 +44,10 @@ class TestServiceRegistration:
         assert hass.services.has_service(DOMAIN, "return_to_dock")
         assert hass.services.has_service(DOMAIN, "set_lights")
         assert hass.services.has_service(DOMAIN, "set_chute_velocity")
+        assert hass.services.has_service(DOMAIN, "manual_drive")
+        assert hass.services.has_service(DOMAIN, "go_to_waypoint")
+        assert hass.services.has_service(DOMAIN, "delete_plan")
+        assert hass.services.has_service(DOMAIN, "delete_all_plans")
 
     async def test_services_not_duplicated(self, hass: HomeAssistant) -> None:
         """Test that calling register twice does not raise."""
@@ -83,7 +87,9 @@ class TestStartPlanService:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_command.assert_awaited_once_with("start_plan", {"planId": "plan-abc-123"})
+        client.publish_command.assert_awaited_once_with(
+            "start_plan", {"planId": "plan-abc-123", "percent": coordinator.plan_start_percent}
+        )
 
     async def test_start_plan_different_plan_ids(
         self,
@@ -106,7 +112,10 @@ class TestStartPlanService:
                     {"device_id": "fake-device-id", "plan_id": plan_id},
                     blocking=True,
                 )
-                client.publish_command.assert_awaited_once_with("start_plan", {"planId": plan_id})
+                client.publish_command.assert_awaited_once_with(
+                    "start_plan",
+                    {"planId": plan_id, "percent": coordinator.plan_start_percent},
+                )
 
     async def test_start_plan_raises_for_unknown_device(self, hass: HomeAssistant) -> None:
         """start_plan raises ServiceValidationError for unknown device_id."""
@@ -252,3 +261,114 @@ class TestGetClientAndCoordinator:
             # hass.data[DOMAIN] does not have "unknown-entry-id"
             with pytest.raises(ServiceValidationError):
                 _get_client_and_coordinator(hass, "mock-device-id")
+
+
+class TestManualDriveService:
+    """Tests for the yarbo.manual_drive service."""
+
+    async def test_manual_drive_publishes_command(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """manual_drive sends cmd_vel with vel/rev keys (bug #1 fix)."""
+        client, coordinator = mock_client_and_coordinator
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            await hass.services.async_call(
+                DOMAIN,
+                "manual_drive",
+                {"device_id": "fake-device-id", "linear": 0.5, "angular": -0.25},
+                blocking=True,
+            )
+
+        client.get_controller.assert_awaited_once_with(timeout=5.0)
+        client.publish_command.assert_awaited_once_with(
+            "cmd_vel",
+            {"vel": 0.5, "rev": -0.25},
+        )
+
+
+class TestGoToWaypointService:
+    """Tests for the yarbo.go_to_waypoint service."""
+
+    async def test_go_to_waypoint_publishes_command(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """go_to_waypoint sends start_way_point with index."""
+        client, coordinator = mock_client_and_coordinator
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            await hass.services.async_call(
+                DOMAIN,
+                "go_to_waypoint",
+                {"device_id": "fake-device-id", "index": 3},
+                blocking=True,
+            )
+
+        client.get_controller.assert_awaited_once_with(timeout=5.0)
+        client.publish_command.assert_awaited_once_with("start_way_point", {"index": 3})
+
+
+class TestDeletePlanService:
+    """Tests for the yarbo.delete_plan service."""
+
+    async def test_delete_plan_publishes_command(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """delete_plan sends del_plan with id."""
+        client, coordinator = mock_client_and_coordinator
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            await hass.services.async_call(
+                DOMAIN,
+                "delete_plan",
+                {"device_id": "fake-device-id", "plan_id": "plan-7"},
+                blocking=True,
+            )
+
+        client.get_controller.assert_awaited_once_with(timeout=5.0)
+        client.publish_command.assert_awaited_once_with("del_plan", {"planId": "plan-7"})
+
+
+class TestDeleteAllPlansService:
+    """Tests for the yarbo.delete_all_plans service."""
+
+    async def test_delete_all_plans_publishes_command(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """delete_all_plans sends del_all_plan."""
+        client, coordinator = mock_client_and_coordinator
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            await hass.services.async_call(
+                DOMAIN,
+                "delete_all_plans",
+                {"device_id": "fake-device-id"},
+                blocking=True,
+            )
+
+        client.get_controller.assert_awaited_once_with(timeout=5.0)
+        client.publish_command.assert_awaited_once_with("del_all_plan", {})

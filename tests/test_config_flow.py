@@ -21,12 +21,10 @@ from custom_components.yarbo.const import (
     DEFAULT_ACTIVITY_PERSONALITY,
     DEFAULT_AUTO_CONTROLLER,
     DEFAULT_BROKER_PORT,
-    DEFAULT_CLOUD_ENABLED,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
     OPT_ACTIVITY_PERSONALITY,
     OPT_AUTO_CONTROLLER,
-    OPT_CLOUD_ENABLED,
     OPT_TELEMETRY_THROTTLE,
 )
 from tests.conftest import (
@@ -52,7 +50,7 @@ async def _async_gen_one(item: Any) -> AsyncGenerator[Any, None]:
 class TestManualConfigFlow:
     """Tests for the manual (user) config flow step.
 
-    Flow: user → (manual if no discovery) → mqtt_test → name → (cloud) → create_entry
+    Flow: user → (manual if no discovery) → mqtt_test → name → create_entry (cloud skipped for beta)
     """
 
     async def test_user_step_shows_manual_form_when_no_discovery(
@@ -127,10 +125,7 @@ class TestManualConfigFlow:
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"], {CONF_ROBOT_NAME: MOCK_ROBOT_NAME}
             )
-        # Next: cloud step; submit empty to skip
-        assert result["type"] == FlowResultType.FORM
-        assert result["step_id"] == "cloud"
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+        # Cloud step skipped for beta — name step goes directly to create_entry
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["data"][CONF_BROKER_HOST] == MOCK_BROKER_HOST
         assert result["data"][CONF_ROBOT_SERIAL] == MOCK_ROBOT_SERIAL
@@ -267,7 +262,6 @@ class TestManualConfigFlow:
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"], {CONF_ROBOT_NAME: MOCK_ROBOT_NAME}
             )
-            result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
             assert result["type"] == FlowResultType.CREATE_ENTRY
 
             # Second flow: same broker, same serial -> already_configured at name step
@@ -291,7 +285,7 @@ class TestDhcpDiscoveryFlow:
     """Tests for DHCP auto-discovery config flow.
 
     Triggered when a device with MAC OUI C8:FE:0F:* appears.
-    Flow: dhcp → confirm → mqtt_test → name → create_entry
+    Flow: dhcp → confirm → mqtt_test → name → create_entry (cloud skipped for beta)
     """
 
     async def test_dhcp_discovery_shows_confirm(
@@ -354,8 +348,7 @@ class TestDhcpDiscoveryFlow:
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"], {CONF_ROBOT_NAME: MOCK_ROBOT_NAME}
             )
-            assert result["step_id"] == "cloud"
-            result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+            # Cloud step skipped for beta — name step goes directly to create_entry
             assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["data"][CONF_ROBOT_SERIAL] == MOCK_ROBOT_SERIAL
 
@@ -439,8 +432,8 @@ class TestDhcpDiscoveryFlow:
 class TestOptionsFlow:
     """Tests for the Yarbo options flow (issue #26).
 
-    Options: telemetry_throttle, auto_controller, cloud_enabled, activity_personality.
-    Applied without restart via entry update listener.
+    Options: telemetry_throttle, auto_controller, activity_personality.
+    Cloud option hidden for beta. Applied without restart via entry update listener.
     """
 
     async def test_options_flow_shows_form(
@@ -461,7 +454,6 @@ class TestOptionsFlow:
             options={
                 OPT_TELEMETRY_THROTTLE: 2.0,
                 OPT_AUTO_CONTROLLER: True,
-                OPT_CLOUD_ENABLED: False,
                 OPT_ACTIVITY_PERSONALITY: True,
             },
         )
@@ -492,7 +484,6 @@ class TestOptionsFlow:
             options={
                 OPT_TELEMETRY_THROTTLE: DEFAULT_TELEMETRY_THROTTLE,
                 OPT_AUTO_CONTROLLER: DEFAULT_AUTO_CONTROLLER,
-                OPT_CLOUD_ENABLED: DEFAULT_CLOUD_ENABLED,
                 OPT_ACTIVITY_PERSONALITY: DEFAULT_ACTIVITY_PERSONALITY,
             },
         )
@@ -509,14 +500,12 @@ class TestOptionsFlow:
             {
                 OPT_TELEMETRY_THROTTLE: 3.0,
                 OPT_AUTO_CONTROLLER: False,
-                OPT_CLOUD_ENABLED: True,
                 OPT_ACTIVITY_PERSONALITY: True,
             },
         )
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["data"][OPT_TELEMETRY_THROTTLE] == 3.0
         assert result["data"][OPT_AUTO_CONTROLLER] is False
-        assert result["data"][OPT_CLOUD_ENABLED] is True
         assert result["data"][OPT_ACTIVITY_PERSONALITY] is True
 
         # Entry options updated (no reload required for coordinator to see them)
@@ -524,5 +513,4 @@ class TestOptionsFlow:
         assert updated is not None
         assert updated.options[OPT_TELEMETRY_THROTTLE] == 3.0
         assert updated.options[OPT_AUTO_CONTROLLER] is False
-        assert updated.options[OPT_CLOUD_ENABLED] is True
         assert updated.options[OPT_ACTIVITY_PERSONALITY] is True

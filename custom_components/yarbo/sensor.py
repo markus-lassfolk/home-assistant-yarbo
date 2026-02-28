@@ -10,7 +10,13 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTime
+from homeassistant.const import (
+    UnitOfElectricCurrent,
+    UnitOfLength,
+    UnitOfSpeed,
+    UnitOfTemperature,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -139,12 +145,28 @@ async def async_setup_entry(
             YarboHeadGyroRollSensor(coordinator),
             YarboMachineControllerSensor(coordinator),
             YarboPlanRemainingTimeSensor(coordinator),
+            YarboWifiNetworkSensor(coordinator),
+            YarboBatteryCellTempMinSensor(coordinator),
+            YarboBatteryCellTempMaxSensor(coordinator),
+            YarboBatteryCellTempAvgSensor(coordinator),
+            YarboOdometerSensor(coordinator),
             YarboRoutePriorityHg0Sensor(coordinator),
             YarboRoutePriorityWlan0Sensor(coordinator),
             YarboRoutePriorityWwan0Sensor(coordinator),
             YarboUltrasonicLeftFrontSensor(coordinator),
             YarboUltrasonicMiddleSensor(coordinator),
             YarboUltrasonicRightFrontSensor(coordinator),
+            YarboScheduleCountSensor(coordinator),
+            YarboBodyCurrentSensor(coordinator),
+            YarboHeadCurrentSensor(coordinator),
+            YarboSpeedSensor(coordinator),
+            YarboProductCodeSensor(coordinator),
+            YarboHubInfoSensor(coordinator),
+            YarboRechargePointSensor(coordinator),
+            YarboWifiListSensor(coordinator),
+            YarboMapBackupCountSensor(coordinator),
+            YarboCleanAreaCountSensor(coordinator),
+            YarboMotorTempSensor(coordinator),
         ]
     )
 
@@ -1025,6 +1047,99 @@ class YarboPlanRemainingTimeSensor(YarboSensor):
         return self.coordinator.plan_remaining_time
 
 
+class YarboWifiNetworkSensor(YarboSensor):
+    """Diagnostic sensor for connected WiFi network."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "wifi_network"
+    _attr_icon = "mdi:wifi"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "wifi_network")
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the last known WiFi network name."""
+        return self.coordinator.wifi_name
+
+
+class YarboBatteryCellTempMinSensor(YarboSensor):
+    """Minimum battery cell temperature."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "battery_cell_temp_min"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "battery_cell_temp_min")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return minimum cell temperature."""
+        return self.coordinator.battery_cell_temp_min
+
+
+class YarboBatteryCellTempMaxSensor(YarboSensor):
+    """Maximum battery cell temperature."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "battery_cell_temp_max"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "battery_cell_temp_max")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return maximum cell temperature."""
+        return self.coordinator.battery_cell_temp_max
+
+
+class YarboBatteryCellTempAvgSensor(YarboSensor):
+    """Average battery cell temperature."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "battery_cell_temp_avg"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "battery_cell_temp_avg")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return average cell temperature."""
+        return self.coordinator.battery_cell_temp_avg
+
+
+class YarboOdometerSensor(YarboSensor):
+    """Total distance traveled."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_device_class = SensorDeviceClass.DISTANCE
+    _attr_native_unit_of_measurement = UnitOfLength.METERS
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_translation_key = "odometer"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "odometer")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return odometer distance in meters."""
+        return self.coordinator.odometer_m
+
+
 class YarboRoutePriorityHg0Sensor(YarboSensor):
     """Diagnostic sensor for route priority hg0."""
 
@@ -1146,3 +1261,222 @@ class YarboUltrasonicRightFrontSensor(YarboSensor):
         if value is None:
             value = get_nested_raw_value(telemetry, "ultrasonic_msg", "rf_dis")
         return value if value is not None else None
+
+
+class YarboScheduleCountSensor(YarboSensor):
+    """Number of saved schedules."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "schedule_count"
+    _attr_icon = "mdi:calendar-clock"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "schedule_count")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return number of schedules."""
+        return len(self.coordinator.schedule_list)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return schedules list."""
+        return {"schedules": self.coordinator.schedule_list}
+
+
+class YarboBodyCurrentSensor(YarboSensor):
+    """Body current sensor."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "body_current"
+    _attr_device_class = SensorDeviceClass.CURRENT
+    _attr_native_unit_of_measurement = UnitOfElectricCurrent.AMPERE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "body_current")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return body current in A."""
+        return self.coordinator.body_current
+
+
+class YarboHeadCurrentSensor(YarboSensor):
+    """Head current sensor."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "head_current"
+    _attr_device_class = SensorDeviceClass.CURRENT
+    _attr_native_unit_of_measurement = UnitOfElectricCurrent.AMPERE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "head_current")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return head current in A."""
+        return self.coordinator.head_current
+
+
+class YarboSpeedSensor(YarboSensor):
+    """Speed sensor."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "speed"
+    _attr_device_class = SensorDeviceClass.SPEED
+    _attr_native_unit_of_measurement = UnitOfSpeed.METERS_PER_SECOND
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "speed")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return speed in m/s."""
+        return self.coordinator.speed_m_s
+
+
+class YarboProductCodeSensor(YarboSensor):
+    """Product code sensor."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "product_code"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "product_code")
+
+    @property
+    def native_value(self) -> str | None:
+        """Return product code."""
+        return self.coordinator.product_code
+
+
+class YarboHubInfoSensor(YarboSensor):
+    """Hub info sensor."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "hub_info"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "hub_info")
+
+    @property
+    def native_value(self) -> str | None:
+        """Return hub info."""
+        return self.coordinator.hub_info
+
+
+class YarboRechargePointSensor(YarboSensor):
+    """Recharge point status sensor."""
+
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "recharge_point"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "recharge_point")
+
+    @property
+    def native_value(self) -> str | None:
+        """Return recharge point status."""
+        return self.coordinator.recharge_point_status
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return recharge point details."""
+        details = self.coordinator.recharge_point_details
+        return {"details": details} if details else {}
+
+
+class YarboWifiListSensor(YarboSensor):
+    """Available WiFi list sensor."""
+
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "wifi_list"
+    _attr_icon = "mdi:wifi"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "wifi_list")
+
+    @property
+    def native_value(self) -> str | None:
+        """Return WiFi list summary."""
+        wifi_list = self.coordinator.wifi_list
+        if not wifi_list:
+            return None
+        return str(len(wifi_list))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return WiFi list details."""
+        return {"wifi_list": self.coordinator.wifi_list}
+
+
+class YarboMapBackupCountSensor(YarboSensor):
+    """Number of map backups."""
+
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "map_backup_count"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "map_backup_count")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return number of map backups."""
+        return len(self.coordinator.map_backups)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return map backups list."""
+        return {"map_backups": self.coordinator.map_backups}
+
+
+class YarboCleanAreaCountSensor(YarboSensor):
+    """Number of clean areas."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "clean_area_count"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "clean_area_count")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return number of clean areas."""
+        return len(self.coordinator.clean_areas)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return clean area list."""
+        return {"clean_areas": self.coordinator.clean_areas}
+
+
+class YarboMotorTempSensor(YarboSensor):
+    """Motor temperature sensor."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "motor_temp"
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "motor_temp")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return motor temperature."""
+        return self.coordinator.motor_temp_c

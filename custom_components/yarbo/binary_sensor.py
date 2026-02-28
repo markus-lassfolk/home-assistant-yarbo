@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DATA_COORDINATOR, DOMAIN
@@ -34,6 +37,7 @@ async def async_setup_entry(
             YarboPlanningPausedSensor(coordinator),
             YarboManualControllerSensor(coordinator),
             YarboRainDetectedSensor(coordinator),
+            YarboNoChargePeriodSensor(coordinator),
         ]
     )
 
@@ -260,3 +264,32 @@ class YarboRainDetectedSensor(YarboBinarySensor):
         if value is None:
             return None
         return value != 0
+
+
+class YarboNoChargePeriodSensor(YarboBinarySensor):
+    """No-charge period active sensor."""
+
+    _attr_translation_key = "no_charge_period"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "no_charge_period")
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True when a no-charge period is active."""
+        return self.coordinator.no_charge_period_active
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return no-charge period details."""
+        attrs: dict[str, Any] = {}
+        if self.coordinator.no_charge_period_start:
+            attrs["start_time"] = self.coordinator.no_charge_period_start
+        if self.coordinator.no_charge_period_end:
+            attrs["end_time"] = self.coordinator.no_charge_period_end
+        periods = self.coordinator.no_charge_periods
+        if periods:
+            attrs["periods"] = periods
+        return attrs

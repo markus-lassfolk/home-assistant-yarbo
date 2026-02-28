@@ -8,6 +8,7 @@ from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
@@ -35,6 +36,14 @@ async def async_setup_entry(
             YarboResumeButton(coordinator),
             YarboStopButton(coordinator),
             YarboEmergencyStopButton(coordinator),
+            YarboEmergencyUnlockButton(coordinator),
+            YarboPlaySoundButton(coordinator),
+            YarboShutdownButton(coordinator),
+            YarboRestartButton(coordinator),
+            YarboManualStopButton(coordinator),
+            YarboSaveChargingPointButton(coordinator),
+            YarboStartHotspotButton(coordinator),
+            YarboSaveMapBackupButton(coordinator),
         ]
     )
 
@@ -80,6 +89,7 @@ class YarboReturnToDockButton(YarboButton):
         super().__init__(coordinator, "return_to_dock")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("cmd_recharge", {})
 
 
@@ -92,6 +102,7 @@ class YarboPauseButton(YarboButton):
         super().__init__(coordinator, "pause")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("planning_paused", {})
 
 
@@ -104,6 +115,7 @@ class YarboResumeButton(YarboButton):
         super().__init__(coordinator, "resume")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("resume", {})
 
 
@@ -116,6 +128,7 @@ class YarboStopButton(YarboButton):
         super().__init__(coordinator, "stop")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("dstop", {})
 
 
@@ -129,4 +142,122 @@ class YarboEmergencyStopButton(YarboButton):
         super().__init__(coordinator, "emergency_stop")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("emergency_stop_active", {})
+
+
+class YarboEmergencyUnlockButton(YarboButton):
+    """Emergency unlock button."""
+
+    _attr_translation_key = "emergency_unlock"
+    _attr_icon = "mdi:lock-open-alert"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "emergency_unlock")
+
+    async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
+        await self._send_command("emergency_unlock", {})
+
+
+class YarboPlaySoundButton(YarboButton):
+    """Play the default sound."""
+
+    _attr_translation_key = "play_sound"
+    _attr_icon = "mdi:music-note"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "play_sound")
+
+    async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
+        await self._send_command("song_cmd", {"songId": 0})
+
+
+class YarboShutdownButton(YarboButton):
+    """Shutdown the robot."""
+
+    _attr_translation_key = "shutdown"
+    _attr_icon = "mdi:power"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "shutdown")
+
+    async def async_press(self) -> None:
+        # Verified live: "shutdown" correct. Powers off robot — physical restart required.
+        await self._send_command("shutdown", {})
+
+
+class YarboRestartButton(YarboButton):
+    """Restart the robot container."""
+
+    _attr_translation_key = "restart"
+    _attr_icon = "mdi:restart"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "restart")
+
+    async def async_press(self) -> None:
+        # ✅ Verified 2026-02-28: correct command, restarts EMQX container
+        await self._send_command("restart_container", {})
+
+
+class YarboManualStopButton(YarboButton):
+    """Stop manual drive."""
+
+    _attr_translation_key = "manual_stop"
+    _attr_icon = "mdi:stop"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "manual_stop")
+
+    async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
+        await self._send_command("cmd_vel", {"vel": 0, "rev": 0})
+
+
+class YarboSaveChargingPointButton(YarboButton):
+    """Save current position as charging point."""
+
+    _attr_translation_key = "save_charging_point"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "save_charging_point")
+
+    async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
+        await self._send_command("save_charging_point", {})
+
+
+class YarboStartHotspotButton(YarboButton):
+    """Start WiFi hotspot on the robot."""
+
+    _attr_translation_key = "start_hotspot"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "start_hotspot")
+
+    async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
+        await self._send_command("start_hotspot", {})
+
+
+class YarboSaveMapBackupButton(YarboButton):
+    """Create a new map backup."""
+
+    _attr_translation_key = "save_map_backup"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "save_map_backup")
+
+    async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
+        await self._send_command("save_map_backup", {})

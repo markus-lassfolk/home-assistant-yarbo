@@ -74,16 +74,19 @@ class YarboLawnMower(YarboEntity, LawnMowerEntity):
         """Start mowing — resumes last plan or starts default."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
             await self.coordinator.client.publish_command("resume", {})
 
     async def async_pause(self) -> None:
         """Pause mowing."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
             await self.coordinator.client.publish_command("planning_paused", {})
 
     async def async_dock(self) -> None:
         """Return robot to dock."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
             await self.coordinator.client.publish_command("cmd_recharge", {})

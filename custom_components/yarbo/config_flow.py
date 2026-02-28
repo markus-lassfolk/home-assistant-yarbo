@@ -89,14 +89,16 @@ from .const import (  # noqa: E402
     DEFAULT_ACTIVITY_PERSONALITY,
     DEFAULT_AUTO_CONTROLLER,
     DEFAULT_BROKER_PORT,
-    DEFAULT_CLOUD_ENABLED,
+    DEFAULT_DEBUG_LOGGING,
+    DEFAULT_MQTT_RECORDING,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
     ENDPOINT_TYPE_ROVER,
     ENDPOINT_TYPE_UNKNOWN,
     OPT_ACTIVITY_PERSONALITY,
     OPT_AUTO_CONTROLLER,
-    OPT_CLOUD_ENABLED,
+    OPT_DEBUG_LOGGING,
+    OPT_MQTT_RECORDING,
     OPT_TELEMETRY_THROTTLE,
 )
 from .discovery import YarboEndpoint, async_discover_endpoints  # noqa: E402
@@ -322,6 +324,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             mac = discovery_info.macaddress
             hostname = discovery_info.hostname
 
+        # MAC is a hardware identifier — log only last octet to avoid leaking full address
         _LOGGER.debug(
             "DHCP discovery: IP=%s MAC=%s hostname=%s",
             ip,
@@ -603,8 +606,13 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             )
             self._pending_data[CONF_BROKER_ENDPOINTS] = endpoints_ordered
 
-            # Proceed to optional cloud authentication step
-            return await self.async_step_cloud()
+            # Cloud features disabled for beta — skip cloud step
+            # TODO: Re-enable cloud step when cloud API is tested
+            entry_data, self._pending_data = self._pending_data, {}
+            return self.async_create_entry(
+                title=entry_data[CONF_ROBOT_NAME],
+                data=entry_data,
+            )
 
         schema = vol.Schema(
             {
@@ -748,11 +756,24 @@ class YarboOptionsFlow(OptionsFlow):
                     ),
                 ): bool,
                 vol.Optional(
-                    OPT_CLOUD_ENABLED,
+                    OPT_DEBUG_LOGGING,
                     default=self._config_entry.options.get(
-                        OPT_CLOUD_ENABLED, DEFAULT_CLOUD_ENABLED
+                        OPT_DEBUG_LOGGING, DEFAULT_DEBUG_LOGGING
                     ),
                 ): bool,
+                vol.Optional(
+                    OPT_MQTT_RECORDING,
+                    default=self._config_entry.options.get(
+                        OPT_MQTT_RECORDING, DEFAULT_MQTT_RECORDING
+                    ),
+                ): bool,
+                # Cloud features hidden for beta — uncomment when cloud API is tested
+                # vol.Optional(
+                #     OPT_CLOUD_ENABLED,
+                #     default=self._config_entry.options.get(
+                #         OPT_CLOUD_ENABLED, DEFAULT_CLOUD_ENABLED
+                #     ),
+                # ): bool,
                 # Fixed: activity_personality is a boolean toggle, not an enum string
                 vol.Optional(
                     OPT_ACTIVITY_PERSONALITY,

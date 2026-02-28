@@ -31,6 +31,10 @@ SERVICE_RESUME = "resume"
 SERVICE_RETURN_TO_DOCK = "return_to_dock"
 SERVICE_SET_LIGHTS = "set_lights"
 SERVICE_SET_CHUTE_VELOCITY = "set_chute_velocity"
+SERVICE_MANUAL_DRIVE = "manual_drive"
+SERVICE_GO_TO_WAYPOINT = "go_to_waypoint"
+SERVICE_DELETE_PLAN = "delete_plan"
+SERVICE_DELETE_ALL_PLANS = "delete_all_plans"
 
 SERVICE_SEND_COMMAND_SCHEMA = vol.Schema(
     {
@@ -44,6 +48,7 @@ SERVICE_START_PLAN_SCHEMA = vol.Schema(
     {
         vol.Required("device_id"): str,
         vol.Required("plan_id"): str,
+        vol.Optional("percent"): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
     }
 )
 
@@ -71,6 +76,28 @@ SERVICE_SET_CHUTE_VELOCITY_SCHEMA = vol.Schema(
     {
         vol.Required("device_id"): str,
         vol.Required("velocity"): vol.All(int, vol.Range(min=-2000, max=2000)),
+    }
+)
+
+SERVICE_MANUAL_DRIVE_SCHEMA = vol.Schema(
+    {
+        vol.Required("device_id"): str,
+        vol.Required("linear"): vol.All(vol.Coerce(float), vol.Range(min=-1.0, max=1.0)),
+        vol.Required("angular"): vol.All(vol.Coerce(float), vol.Range(min=-1.0, max=1.0)),
+    }
+)
+
+SERVICE_GO_TO_WAYPOINT_SCHEMA = vol.Schema(
+    {
+        vol.Required("device_id"): str,
+        vol.Required("index"): vol.Coerce(int),
+    }
+)
+
+SERVICE_DELETE_PLAN_SCHEMA = vol.Schema(
+    {
+        vol.Required("device_id"): str,
+        vol.Required("plan_id"): str,
     }
 )
 
@@ -139,11 +166,14 @@ def async_register_services(hass: HomeAssistant) -> None:
         plan_id: str = call.data["plan_id"]
         _LOGGER.debug("yarbo.start_plan: device=%s plan_id=%s", device_id, plan_id)
         _, coordinator = _get_client_and_coordinator(hass, device_id)
+        # Optional percent override; fall back to coordinator stored value
+        percent: int = call.data.get("percent", coordinator.plan_start_percent)
         async with coordinator.command_lock:
             client = coordinator.client
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            await client.publish_command("start_plan", {"planId": plan_id})
+            # 🔇 Fire-and-forget: no data_feedback response
+            await client.publish_command("start_plan", {"planId": plan_id, "percent": percent})
 
     async def handle_pause(call: ServiceCall) -> None:
         """Handle yarbo.pause — pause current job."""
@@ -152,6 +182,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             client = coordinator.client
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
             await client.publish_command("planning_paused", {})
 
     async def handle_resume(call: ServiceCall) -> None:
@@ -161,6 +192,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             client = coordinator.client
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
             await client.publish_command("resume", {})
 
     async def handle_return_to_dock(call: ServiceCall) -> None:
@@ -170,6 +202,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             client = coordinator.client
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
             await client.publish_command("cmd_recharge", {})
 
     async def handle_set_lights(call: ServiceCall) -> None:
@@ -214,6 +247,59 @@ def async_register_services(hass: HomeAssistant) -> None:
                 await _acquire_controller(client, coordinator)
             await client.set_chute(vel=velocity)
 
+    async def handle_manual_drive(call: ServiceCall) -> None:
+        """Handle yarbo.manual_drive — send linear/angular velocity."""
+        device_id: str = call.data["device_id"]
+        linear: float = call.data["linear"]
+        angular: float = call.data["angular"]
+        _LOGGER.debug(
+            "yarbo.manual_drive: device=%s linear=%.3f angular=%.3f",
+            device_id,
+            linear,
+            angular,
+        )
+        client, coordinator = _get_client_and_coordinator(hass, device_id)
+        async with coordinator.command_lock:
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
+            await client.publish_command("cmd_vel", {"vel": linear, "rev": angular})
+
+    async def handle_go_to_waypoint(call: ServiceCall) -> None:
+        """Handle yarbo.go_to_waypoint — navigate to waypoint index."""
+        device_id: str = call.data["device_id"]
+        index: int = call.data["index"]
+        _LOGGER.debug("yarbo.go_to_waypoint: device=%s index=%d", device_id, index)
+        client, coordinator = _get_client_and_coordinator(hass, device_id)
+        async with coordinator.command_lock:
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
+            await client.publish_command("start_way_point", {"index": index})
+
+    async def handle_delete_plan(call: ServiceCall) -> None:
+        """Handle yarbo.delete_plan — delete a plan by id."""
+        device_id: str = call.data["device_id"]
+        plan_id: str = call.data["plan_id"]
+        _LOGGER.debug("yarbo.delete_plan: device=%s plan_id=%s", device_id, plan_id)
+        client, coordinator = _get_client_and_coordinator(hass, device_id)
+        async with coordinator.command_lock:
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
+            await client.publish_command("del_plan", {"planId": plan_id})
+
+    async def handle_delete_all_plans(call: ServiceCall) -> None:
+        """Handle yarbo.delete_all_plans — delete all plans."""
+        device_id: str = call.data["device_id"]
+        _LOGGER.debug("yarbo.delete_all_plans: device=%s", device_id)
+        client, coordinator = _get_client_and_coordinator(hass, device_id)
+        async with coordinator.command_lock:
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
+            await client.publish_command("del_all_plan", {})
+
     services = {
         SERVICE_SEND_COMMAND: (handle_send_command, SERVICE_SEND_COMMAND_SCHEMA),
         SERVICE_START_PLAN: (handle_start_plan, SERVICE_START_PLAN_SCHEMA),
@@ -222,6 +308,10 @@ def async_register_services(hass: HomeAssistant) -> None:
         SERVICE_RETURN_TO_DOCK: (handle_return_to_dock, SERVICE_DEVICE_ONLY_SCHEMA),
         SERVICE_SET_LIGHTS: (handle_set_lights, SERVICE_SET_LIGHTS_SCHEMA),
         SERVICE_SET_CHUTE_VELOCITY: (handle_set_chute_velocity, SERVICE_SET_CHUTE_VELOCITY_SCHEMA),
+        SERVICE_MANUAL_DRIVE: (handle_manual_drive, SERVICE_MANUAL_DRIVE_SCHEMA),
+        SERVICE_GO_TO_WAYPOINT: (handle_go_to_waypoint, SERVICE_GO_TO_WAYPOINT_SCHEMA),
+        SERVICE_DELETE_PLAN: (handle_delete_plan, SERVICE_DELETE_PLAN_SCHEMA),
+        SERVICE_DELETE_ALL_PLANS: (handle_delete_all_plans, SERVICE_DEVICE_ONLY_SCHEMA),
     }
 
     for name, (handler, schema) in services.items():
@@ -241,6 +331,10 @@ def async_unregister_services(hass: HomeAssistant) -> None:
         SERVICE_RETURN_TO_DOCK,
         SERVICE_SET_LIGHTS,
         SERVICE_SET_CHUTE_VELOCITY,
+        SERVICE_MANUAL_DRIVE,
+        SERVICE_GO_TO_WAYPOINT,
+        SERVICE_DELETE_PLAN,
+        SERVICE_DELETE_ALL_PLANS,
     ]
     for name in service_names:
         if hass.services.has_service(DOMAIN, name):

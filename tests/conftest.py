@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import sys
 import types
@@ -50,6 +51,9 @@ class _YarboLocalClient:
     def __init__(self, *_args: object, **_kwargs: object) -> None:
         pass
 
+    connect = AsyncMock()
+    disconnect = AsyncMock()
+
 
 class _YarboTelemetry:
     """Stub for YarboTelemetry."""
@@ -63,6 +67,19 @@ class _YarboLightState:
 
     def __init__(self, **_kwargs: object) -> None:
         pass
+
+    @classmethod
+    def all_off(cls) -> _YarboLightState:
+        """Return a YarboLightState with all channels set to 0."""
+        return cls(
+            led_head=0,
+            led_left_w=0,
+            led_right_w=0,
+            body_left_r=0,
+            body_right_r=0,
+            tail_left_r=0,
+            tail_right_r=0,
+        )
 
 
 _yarbo_module.YarboLocalClient = _YarboLocalClient
@@ -146,6 +163,36 @@ MOCK_TELEMETRY: dict[str, Any] = {
 }
 
 
+async def _telemetry_stream() -> AsyncGenerator[Any, None]:
+    """Yield one telemetry item, then idle until cancelled."""
+    yield MOCK_TELEMETRY
+    while True:
+        await asyncio.sleep(3600)
+
+
+@pytest.fixture(autouse=True)
+def mock_yarbo_client_autouse() -> Generator[MagicMock, None, None]:
+    """Auto-mock YarboLocalClient so config entry setup never hits real MQTT."""
+    with patch("custom_components.yarbo.YarboLocalClient", autospec=True) as mock_cls:
+        client = mock_cls.return_value
+        client.connect = AsyncMock()
+        client.disconnect = AsyncMock()
+        client.get_controller = AsyncMock()
+        client.get_status = AsyncMock(return_value=MOCK_TELEMETRY)
+        client.publish_raw = AsyncMock()
+        client.publish_command = AsyncMock()
+        client.wait_for_data_feedback = AsyncMock(return_value={"data": []})
+        client.set_lights = AsyncMock()
+        client.buzzer = AsyncMock()
+        client.set_chute = AsyncMock()
+        client.start_plan = AsyncMock()
+        client.is_connected = True
+        client.controller_acquired = True
+        client.serial_number = MOCK_ROBOT_SERIAL
+        client.watch_telemetry = MagicMock(side_effect=lambda: _telemetry_stream())
+        yield client
+
+
 @pytest.fixture
 def mock_yarbo_client() -> Generator[MagicMock, None, None]:
     """Mock the YarboClient from python-yarbo.
@@ -171,14 +218,8 @@ def mock_yarbo_client() -> Generator[MagicMock, None, None]:
         client.controller_acquired = True
         client.serial_number = MOCK_ROBOT_SERIAL
         # watch_telemetry is an async generator — stub it to yield once then stop
-        client.watch_telemetry = MagicMock(return_value=_async_gen([MOCK_TELEMETRY]))
+        client.watch_telemetry = MagicMock(side_effect=lambda: _telemetry_stream())
         yield client
-
-
-async def _async_gen(items: list[Any]) -> AsyncGenerator[Any, None]:
-    """Yield items from a list as an async generator."""
-    for item in items:
-        yield item
 
 
 @pytest.fixture
