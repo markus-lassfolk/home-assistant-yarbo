@@ -1,0 +1,27 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  security-events: write
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        language: [python]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          config-file: .github/codeql/codeql-config.yml
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3
