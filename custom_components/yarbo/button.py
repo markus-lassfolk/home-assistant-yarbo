@@ -7,6 +7,7 @@ from typing import Any
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DATA_COORDINATOR, DOMAIN
@@ -31,6 +32,12 @@ async def async_setup_entry(
             YarboEmergencyStopButton(coordinator),
             YarboEmergencyUnlockButton(coordinator),
             YarboPlaySoundButton(coordinator),
+            YarboShutdownButton(coordinator),
+            YarboRestartButton(coordinator),
+            YarboManualStopButton(coordinator),
+            YarboSaveChargingPointButton(coordinator),
+            YarboStartHotspotButton(coordinator),
+            YarboSaveMapBackupButton(coordinator),
         ]
     )
 
@@ -146,3 +153,86 @@ class YarboPlaySoundButton(YarboButton):
 
     async def async_press(self) -> None:
         await self._send_command("song_cmd", {"song_name": "default"})
+
+
+class YarboShutdownButton(YarboButton):
+    """Shutdown the robot."""
+
+    _attr_translation_key = "shutdown"
+    _attr_icon = "mdi:power"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "shutdown")
+
+    async def async_press(self) -> None:
+        await self._send_command("shutdown", {})
+
+
+class YarboRestartButton(YarboButton):
+    """Restart the robot container."""
+
+    _attr_translation_key = "restart"
+    _attr_icon = "mdi:restart"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "restart")
+
+    async def async_press(self) -> None:
+        await self._send_command("restart_container", {})
+
+
+class YarboManualStopButton(YarboButton):
+    """Stop manual drive."""
+
+    _attr_translation_key = "manual_stop"
+    _attr_icon = "mdi:stop"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "manual_stop")
+
+    async def async_press(self) -> None:
+        await self._send_command("cmd_vel", {"linear": 0, "angular": 0})
+
+
+class YarboSaveChargingPointButton(YarboButton):
+    """Save current position as charging point."""
+
+    _attr_translation_key = "save_charging_point"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "save_charging_point")
+
+    async def async_press(self) -> None:
+        await self._send_command("save_charging_point", {})
+
+
+class YarboStartHotspotButton(YarboButton):
+    """Start WiFi hotspot on the robot."""
+
+    _attr_translation_key = "start_hotspot"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "start_hotspot")
+
+    async def async_press(self) -> None:
+        await self._send_command("start_hotspot", {})
+
+
+class YarboSaveMapBackupButton(YarboButton):
+    """Create a new map backup."""
+
+    _attr_translation_key = "save_map_backup"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "save_map_backup")
+
+    async def async_press(self) -> None:
+        await self._send_command("save_map_backup", {})

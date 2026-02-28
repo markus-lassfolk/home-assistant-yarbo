@@ -30,6 +30,7 @@ async def async_setup_entry(
     async_add_entities(
         [
             YarboChuteVelocityNumber(coordinator),
+            YarboChuteSteeringWorkNumber(coordinator),
             YarboBladeHeightNumber(coordinator),
             YarboBladeSpeedNumber(coordinator),
             YarboBlowerSpeedNumber(coordinator),
@@ -37,6 +38,47 @@ async def async_setup_entry(
             YarboPlanStartPercentNumber(coordinator),
         ]
     )
+
+
+class YarboChuteSteeringWorkNumber(YarboEntity, NumberEntity):
+    """Chute steering during work — snow blower head only."""
+
+    _attr_translation_key = "chute_steering_work"
+    _attr_native_min_value = -90.0
+    _attr_native_max_value = 90.0
+    _attr_native_step = 5.0
+    _attr_mode = NumberMode.SLIDER
+    _attr_icon = "mdi:rotate-3d-variant"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "chute_steering_work")
+        self._current_angle: float = 0.0
+
+    @property
+    def available(self) -> bool:
+        """Only available when snow blower head is installed."""
+        if not super().available:
+            return False
+        if not self.telemetry:
+            return False
+        return self.telemetry.head_type == HEAD_TYPE_SNOW_BLOWER
+
+    @property
+    def native_value(self) -> float:
+        """Return the last set chute steering angle."""
+        return self._current_angle
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set chute steering angle."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command(
+                "cmd_chute_streeing_work",
+                {"angle": int(value)},
+            )
+        self._current_angle = value
+        self.async_write_ha_state()
 
 
 class YarboChuteVelocityNumber(YarboEntity, NumberEntity):

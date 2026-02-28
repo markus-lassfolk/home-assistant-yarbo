@@ -273,6 +273,39 @@
       },
       "ultrasonic_right_front": {
         "name": "Ultrasonic Right Front"
+      },
+      "schedule_count": {
+        "name": "Schedule Count"
+      },
+      "body_current": {
+        "name": "Body Current"
+      },
+      "head_current": {
+        "name": "Head Current"
+      },
+      "speed": {
+        "name": "Speed"
+      },
+      "product_code": {
+        "name": "Product Code"
+      },
+      "hub_info": {
+        "name": "Hub Info"
+      },
+      "recharge_point": {
+        "name": "Recharge Point"
+      },
+      "wifi_list": {
+        "name": "WiFi List"
+      },
+      "map_backup_count": {
+        "name": "Map Backup Count"
+      },
+      "clean_area_count": {
+        "name": "Clean Area Count"
+      },
+      "motor_temp": {
+        "name": "Motor Temperature"
       }
     },
     "binary_sensor": {
@@ -303,10 +336,13 @@
       "manual_controller": {
         "name": "Manual Controller"
       },
-      "rain_detected": {
-        "name": "Rain Detected"
-      }
+    "rain_detected": {
+      "name": "Rain Detected"
     },
+    "no_charge_period": {
+      "name": "No-Charge Period"
+    }
+  },
     "button": {
       "beep": {
         "name": "Beep"
@@ -329,10 +365,28 @@
       "emergency_unlock": {
         "name": "Emergency Unlock"
       },
-      "play_sound": {
-        "name": "Play Sound"
-      }
+    "play_sound": {
+      "name": "Play Sound"
     },
+    "shutdown": {
+      "name": "Shutdown"
+    },
+    "restart": {
+      "name": "Restart"
+    },
+    "manual_stop": {
+      "name": "Manual Stop"
+    },
+    "save_charging_point": {
+      "name": "Save Charging Point"
+    },
+    "start_hotspot": {
+      "name": "Start Hotspot"
+    },
+    "save_map_backup": {
+      "name": "Save Map Backup"
+    }
+  },
     "event": {
       "events": {
         "name": "Events",
@@ -385,16 +439,58 @@
       "buzzer": {
         "name": "Buzzer"
       },
-      "person_detect": {
-        "name": "Person Detection"
-      }
+    "person_detect": {
+      "name": "Person Detection"
     },
+    "roller": {
+      "name": "Roller"
+    },
+    "heating_film": {
+      "name": "Heating Film"
+    },
+    "follow_mode": {
+      "name": "Follow Mode"
+    },
+    "auto_update": {
+      "name": "Auto Update"
+    },
+    "camera_ota": {
+      "name": "Camera OTA"
+    },
+    "trimmer": {
+      "name": "Trimmer"
+    },
+    "camera": {
+      "name": "Camera"
+    },
+    "laser": {
+      "name": "Laser"
+    },
+    "usb": {
+      "name": "USB"
+    },
+    "ignore_obstacles": {
+      "name": "Ignore Obstacles"
+    },
+    "draw_mode": {
+      "name": "Draw Mode"
+    },
+    "module_lock": {
+      "name": "Module Lock"
+    },
+    "wire_charging_lock": {
+      "name": "Wire Charging Lock"
+    }
+  },
     "number": {
-      "chute_velocity": {
-        "name": "Chute Velocity"
-      },
-      "blade_height": {
-        "name": "Blade Height"
+    "chute_velocity": {
+      "name": "Chute Velocity"
+    },
+    "chute_steering_work": {
+      "name": "Chute Steering (Work)"
+    },
+    "blade_height": {
+      "name": "Blade Height"
       },
       "blade_speed": {
         "name": "Blade Speed"
@@ -413,10 +509,13 @@
       "work_plan": {
         "name": "Work Plan"
       },
-      "turn_type": {
-        "name": "Turn Type"
-      }
+    "turn_type": {
+      "name": "Turn Type"
     },
+    "snow_push_direction": {
+      "name": "Snow Push Direction"
+    }
+  },
     "device_tracker": {
       "location": {
         "name": "Location"
@@ -500,6 +599,22 @@
     "set_chute_velocity": {
       "name": "Set chute velocity",
       "description": "Control snow chute direction and speed (snow blower head only)."
+    },
+    "manual_drive": {
+      "name": "Manual drive",
+      "description": "Send manual linear/angular velocity commands."
+    },
+    "go_to_waypoint": {
+      "name": "Go to waypoint",
+      "description": "Navigate to a stored waypoint index."
+    },
+    "delete_plan": {
+      "name": "Delete plan",
+      "description": "Delete a saved plan by id."
+    },
+    "delete_all_plans": {
+      "name": "Delete all plans",
+      "description": "Delete all saved plans on the robot."
     }
   }
 }

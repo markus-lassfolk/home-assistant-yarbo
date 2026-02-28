@@ -15,20 +15,31 @@ from custom_components.yarbo.sensor import (
     YarboBatteryCellTempMaxSensor,
     YarboBatteryCellTempMinSensor,
     YarboBatterySensor,
+    YarboBodyCurrentSensor,
     YarboChargeCurrentSensor,
     YarboChargeVoltageSensor,
     YarboChargingPowerSensor,
     YarboChuteAngleSensor,
+    YarboCleanAreaCountSensor,
     YarboErrorCodeSensor,
+    YarboHeadCurrentSensor,
     YarboHeadingSensor,
+    YarboHubInfoSensor,
+    YarboMapBackupCountSensor,
+    YarboMotorTempSensor,
     YarboMqttAgeSensor,
     YarboOdomConfidenceSensor,
     YarboOdometerSensor,
     YarboPlanRemainingTimeSensor,
+    YarboProductCodeSensor,
     YarboRainSensor,
+    YarboRechargePointSensor,
     YarboRtcmAgeSensor,
     YarboRtkStatusSensor,
     YarboSatelliteCountSensor,
+    YarboScheduleCountSensor,
+    YarboSpeedSensor,
+    YarboWifiListSensor,
     YarboWifiNetworkSensor,
 )
 
@@ -44,6 +55,18 @@ def _make_coordinator(**telemetry_kwargs: object) -> MagicMock:
     coord._entry.options = {}
     coord.last_update_success = True
     coord.wifi_name = None
+    coord.schedule_list = []
+    coord.body_current = None
+    coord.head_current = None
+    coord.speed_m_s = None
+    coord.product_code = None
+    coord.hub_info = None
+    coord.recharge_point_status = None
+    coord.recharge_point_details = None
+    coord.wifi_list = []
+    coord.map_backups = []
+    coord.clean_areas = []
+    coord.motor_temp_c = None
     coord.battery_cell_temp_min = None
     coord.battery_cell_temp_max = None
     coord.battery_cell_temp_avg = None
@@ -404,3 +427,182 @@ class TestErrorCodeSensor:
         coord = _make_coordinator(error_code=42)
         entity = YarboErrorCodeSensor(coord)
         assert entity.native_value == 42
+
+
+class TestScheduleCountSensor:
+    """Tests for schedule count sensor."""
+
+    def test_disabled_by_default(self) -> None:
+        """Schedule count is disabled by default."""
+        coord = _make_coordinator()
+        entity = YarboScheduleCountSensor(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    def test_icon(self) -> None:
+        """Schedule count uses mdi:calendar-clock icon."""
+        coord = _make_coordinator()
+        entity = YarboScheduleCountSensor(coord)
+        assert entity.icon == "mdi:calendar-clock"
+
+    def test_native_value_and_attributes(self) -> None:
+        """Returns number of schedules and list attributes."""
+        coord = _make_coordinator()
+        coord.schedule_list = [{"id": 1}, {"id": 2}]
+        entity = YarboScheduleCountSensor(coord)
+        assert entity.native_value == 2
+        assert entity.extra_state_attributes["schedules"] == [{"id": 1}, {"id": 2}]
+
+
+class TestBodyCurrentSensor:
+    """Tests for body current sensor."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboBodyCurrentSensor(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    def test_native_value(self) -> None:
+        coord = _make_coordinator()
+        coord.body_current = 2.5
+        entity = YarboBodyCurrentSensor(coord)
+        assert entity.native_value == 2.5
+
+
+class TestHeadCurrentSensor:
+    """Tests for head current sensor."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboHeadCurrentSensor(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    def test_native_value(self) -> None:
+        coord = _make_coordinator()
+        coord.head_current = 3.2
+        entity = YarboHeadCurrentSensor(coord)
+        assert entity.native_value == 3.2
+
+
+class TestSpeedSensor:
+    """Tests for speed sensor."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboSpeedSensor(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    def test_native_value(self) -> None:
+        coord = _make_coordinator()
+        coord.speed_m_s = 1.1
+        entity = YarboSpeedSensor(coord)
+        assert entity.native_value == 1.1
+
+
+class TestProductCodeSensor:
+    """Tests for product code sensor."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboProductCodeSensor(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    def test_native_value(self) -> None:
+        coord = _make_coordinator()
+        coord.product_code = "YB-1234"
+        entity = YarboProductCodeSensor(coord)
+        assert entity.native_value == "YB-1234"
+
+
+class TestHubInfoSensor:
+    """Tests for hub info sensor."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboHubInfoSensor(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    def test_native_value(self) -> None:
+        coord = _make_coordinator()
+        coord.hub_info = "hub-info"
+        entity = YarboHubInfoSensor(coord)
+        assert entity.native_value == "hub-info"
+
+
+class TestRechargePointSensor:
+    """Tests for recharge point sensor."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboRechargePointSensor(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    def test_native_value_and_attributes(self) -> None:
+        coord = _make_coordinator()
+        coord.recharge_point_status = "set"
+        coord.recharge_point_details = {"x": 1}
+        entity = YarboRechargePointSensor(coord)
+        assert entity.native_value == "set"
+        assert entity.extra_state_attributes["details"] == {"x": 1}
+
+
+class TestWifiListSensor:
+    """Tests for WiFi list sensor."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboWifiListSensor(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    def test_native_value_and_attributes(self) -> None:
+        coord = _make_coordinator()
+        coord.wifi_list = [{"ssid": "A"}, {"ssid": "B"}]
+        entity = YarboWifiListSensor(coord)
+        assert entity.native_value == "2"
+        assert entity.extra_state_attributes["wifi_list"] == [{"ssid": "A"}, {"ssid": "B"}]
+
+
+class TestMapBackupCountSensor:
+    """Tests for map backup count sensor."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboMapBackupCountSensor(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    def test_native_value_and_attributes(self) -> None:
+        coord = _make_coordinator()
+        coord.map_backups = ["a", "b", "c"]
+        entity = YarboMapBackupCountSensor(coord)
+        assert entity.native_value == 3
+        assert entity.extra_state_attributes["map_backups"] == ["a", "b", "c"]
+
+
+class TestCleanAreaCountSensor:
+    """Tests for clean area count sensor."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboCleanAreaCountSensor(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    def test_native_value_and_attributes(self) -> None:
+        coord = _make_coordinator()
+        coord.clean_areas = ["zone1"]
+        entity = YarboCleanAreaCountSensor(coord)
+        assert entity.native_value == 1
+        assert entity.extra_state_attributes["clean_areas"] == ["zone1"]
+
+
+class TestMotorTempSensor:
+    """Tests for motor temperature sensor."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboMotorTempSensor(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    def test_native_value(self) -> None:
+        coord = _make_coordinator()
+        coord.motor_temp_c = 55.0
+        entity = YarboMotorTempSensor(coord)
+        assert entity.native_value == 55.0

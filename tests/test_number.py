@@ -20,6 +20,7 @@ from custom_components.yarbo.number import (
     YarboBladeHeightNumber,
     YarboBladeSpeedNumber,
     YarboBlowerSpeedNumber,
+    YarboChuteSteeringWorkNumber,
     YarboChuteVelocityNumber,
     YarboPlanStartPercentNumber,
     YarboVolumeNumber,
@@ -147,6 +148,60 @@ class TestYarboChuteVelocityNumber:
 
         coord.client.set_chute.assert_called_once_with(vel=0)
         assert entity.native_value == 0.0
+
+
+class TestYarboChuteSteeringWorkNumber:
+    """Tests for chute steering during work."""
+
+    def test_translation_key(self) -> None:
+        """Translation key must be chute_steering_work."""
+        coord = _make_coordinator()
+        entity = YarboChuteSteeringWorkNumber(coord)
+        assert entity.translation_key == "chute_steering_work"
+
+    def test_icon(self) -> None:
+        """Icon must be mdi:rotate-3d-variant."""
+        coord = _make_coordinator()
+        entity = YarboChuteSteeringWorkNumber(coord)
+        assert entity.icon == "mdi:rotate-3d-variant"
+
+    def test_range(self) -> None:
+        """Range must be -90 to 90 with step 5."""
+        coord = _make_coordinator()
+        entity = YarboChuteSteeringWorkNumber(coord)
+        assert entity.native_min_value == -90.0
+        assert entity.native_max_value == 90.0
+        assert entity.native_step == 5.0
+
+    def test_available_snow_blower(self) -> None:
+        """Available when head_type is snow blower."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_SNOW_BLOWER)
+        coord.last_update_success = True
+        entity = YarboChuteSteeringWorkNumber(coord)
+        assert entity.available is True
+
+    def test_unavailable_other_head(self) -> None:
+        """Unavailable when not snow blower head."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
+        coord.last_update_success = True
+        entity = YarboChuteSteeringWorkNumber(coord)
+        assert entity.available is False
+
+    @pytest.mark.asyncio
+    async def test_set_angle_publishes_command(self) -> None:
+        """Setting angle publishes cmd_chute_streeing_work."""
+        coord = _make_coordinator()
+        entity = YarboChuteSteeringWorkNumber(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_set_native_value(25.0)
+
+        coord.client.get_controller.assert_called_once_with(timeout=5.0)
+        coord.client.publish_command.assert_called_once_with(
+            "cmd_chute_streeing_work",
+            {"angle": 25},
+        )
+        assert entity.native_value == 25.0
 
 
 class TestYarboBladeHeightNumber:

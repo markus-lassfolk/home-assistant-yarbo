@@ -166,3 +166,85 @@ set_chute_velocity:
         number:
           min: -2000
           max: 2000
+
+manual_drive:
+  name: Manual drive
+  description: Send manual linear/angular velocity commands.
+  fields:
+    device_id:
+      name: Device
+      required: true
+      selector:
+        device:
+          integration: yarbo
+    linear:
+      name: Linear
+      description: Linear velocity (-1.0 to 1.0).
+      required: true
+      selector:
+        number:
+          min: -1
+          max: 1
+          step: 0.01
+          mode: slider
+    angular:
+      name: Angular
+      description: Angular velocity (-1.0 to 1.0).
+      required: true
+      selector:
+        number:
+          min: -1
+          max: 1
+          step: 0.01
+          mode: slider
+
+go_to_waypoint:
+  name: Go to waypoint
+  description: Navigate to a stored waypoint index.
+  fields:
+    device_id:
+      name: Device
+      required: true
+      selector:
+        device:
+          integration: yarbo
+    index:
+      name: Index
+      description: Waypoint index to navigate to.
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 9999
+          mode: box
+
+delete_plan:
+  name: Delete plan
+  description: Delete a saved plan by id.
+  fields:
+    device_id:
+      name: Device
+      required: true
+      selector:
+        device:
+          integration: yarbo
+    plan_id:
+      name: Plan ID
+      description: Numeric plan id to delete.
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 2147483647
+          mode: box
+
+delete_all_plans:
+  name: Delete all plans
+  description: Delete all saved plans on the robot.
+  fields:
+    device_id:
+      name: Device
+      required: true
+      selector:
+        device:
+          integration: yarbo

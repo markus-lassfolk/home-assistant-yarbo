@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 import logging
 import time
 from dataclasses import dataclass
@@ -50,6 +51,44 @@ class PlanSummary:
     plan_id: str | int
     name: str
     area_ids: list[str | int]
+
+
+def _extract_float(data: Any) -> float | None:
+    """Best-effort numeric extraction from feedback payloads."""
+    if isinstance(data, (int, float)):
+        return float(data)
+    if isinstance(data, str) and data.strip():
+        try:
+            return float(data)
+        except ValueError:
+            return None
+    if isinstance(data, dict):
+        for key in ("value", "current", "speed", "temp", "temperature", "data"):
+            value = data.get(key)
+            extracted = _extract_float(value)
+            if extracted is not None:
+                return extracted
+    if isinstance(data, list) and data:
+        return _extract_float(data[0])
+    return None
+
+
+def _extract_text(data: Any, keys: tuple[str, ...]) -> str | None:
+    """Best-effort text extraction from feedback payloads."""
+    if isinstance(data, (str, bytes)):
+        return data.decode() if isinstance(data, bytes) else data
+    if isinstance(data, dict):
+        for key in keys:
+            value = data.get(key)
+            if value is None:
+                continue
+            if isinstance(value, (str, bytes)):
+                return value.decode() if isinstance(value, bytes) else value
+            return str(value)
+        return json.dumps(data, ensure_ascii=True)
+    if isinstance(data, list):
+        return json.dumps(data, ensure_ascii=True)
+    return None
 
 
 class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
@@ -120,6 +159,22 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._battery_cell_temp_max: float | None = None
         self._battery_cell_temp_avg: float | None = None
         self._odometer_m: float | None = None
+        self._no_charge_period_active: bool | None = None
+        self._no_charge_period_start: str | None = None
+        self._no_charge_period_end: str | None = None
+        self._no_charge_period_periods: list[Any] | None = None
+        self._schedules: list[Any] = []
+        self._body_current: float | None = None
+        self._head_current: float | None = None
+        self._speed_m_s: float | None = None
+        self._product_code: str | None = None
+        self._hub_info: str | None = None
+        self._recharge_point_status: str | None = None
+        self._recharge_point_details: dict[str, Any] | None = None
+        self._wifi_list: list[Any] = []
+        self._map_backups: list[Any] = []
+        self._clean_areas: list[Any] = []
+        self._motor_temp_c: float | None = None
 
     def update_options(self, options: dict[str, Any]) -> None:
         """Apply updated config entry options without requiring a full reload.
@@ -224,6 +279,86 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     def odometer_m(self) -> float | None:
         """Return odometer distance in meters."""
         return self._odometer_m
+
+    @property
+    def no_charge_period_active(self) -> bool | None:
+        """Return whether a no-charge period is active."""
+        return self._no_charge_period_active
+
+    @property
+    def no_charge_period_start(self) -> str | None:
+        """Return no-charge period start time (if known)."""
+        return self._no_charge_period_start
+
+    @property
+    def no_charge_period_end(self) -> str | None:
+        """Return no-charge period end time (if known)."""
+        return self._no_charge_period_end
+
+    @property
+    def no_charge_periods(self) -> list[Any] | None:
+        """Return list of no-charge periods, if provided."""
+        return self._no_charge_period_periods
+
+    @property
+    def schedule_list(self) -> list[Any]:
+        """Return last known schedules list."""
+        return self._schedules
+
+    @property
+    def body_current(self) -> float | None:
+        """Return last known body current (A)."""
+        return self._body_current
+
+    @property
+    def head_current(self) -> float | None:
+        """Return last known head current (A)."""
+        return self._head_current
+
+    @property
+    def speed_m_s(self) -> float | None:
+        """Return last known speed (m/s)."""
+        return self._speed_m_s
+
+    @property
+    def product_code(self) -> str | None:
+        """Return last known product code."""
+        return self._product_code
+
+    @property
+    def hub_info(self) -> str | None:
+        """Return last known hub info."""
+        return self._hub_info
+
+    @property
+    def recharge_point_status(self) -> str | None:
+        """Return last known recharge point status."""
+        return self._recharge_point_status
+
+    @property
+    def recharge_point_details(self) -> dict[str, Any] | None:
+        """Return recharge point details."""
+        return self._recharge_point_details
+
+    @property
+    def wifi_list(self) -> list[Any]:
+        """Return last known WiFi list."""
+        return self._wifi_list
+
+    @property
+    def map_backups(self) -> list[Any]:
+        """Return last known map backups list."""
+        return self._map_backups
+
+    @property
+    def clean_areas(self) -> list[Any]:
+        """Return last known clean areas list."""
+        return self._clean_areas
+
+    @property
+    def motor_temp_c(self) -> float | None:
+        """Return last known motor temperature (°C)."""
+        return self._motor_temp_c
 
     async def read_all_plans(self, timeout: float = 5.0) -> list[PlanSummary]:
         """Read all plan summaries from the robot."""
@@ -414,6 +549,198 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._odometer_m = odometer_m
         return odometer_m
 
+    async def get_no_charge_period(self, timeout: float = 5.0) -> dict[str, Any]:
+        """Request no-charge period settings."""
+        response = await self._request_data_feedback("read_no_charge_period", {}, timeout)
+        data = response.get("data", response)
+        active: bool | None = None
+        start_time: str | None = None
+        end_time: str | None = None
+        periods: list[Any] | None = None
+
+        def _to_bool(value: Any) -> bool | None:
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, (int, float)):
+                return value != 0
+            if isinstance(value, str):
+                lowered = value.strip().lower()
+                if lowered in {"1", "true", "on", "enabled", "active", "yes"}:
+                    return True
+                if lowered in {"0", "false", "off", "disabled", "inactive", "no"}:
+                    return False
+            return None
+
+        if isinstance(data, dict):
+            for key in ("enable", "enabled", "state", "active", "status", "on"):
+                active = _to_bool(data.get(key))
+                if active is not None:
+                    break
+            start_time = (
+                data.get("start_time") or data.get("start") or data.get("begin") or data.get("from")
+            )
+            end_time = data.get("end_time") or data.get("end") or data.get("to")
+            periods = data.get("periods") or data.get("period_list") or data.get("time_list")
+            if periods is None and isinstance(data.get("period"), list):
+                periods = data.get("period")
+        elif isinstance(data, list):
+            periods = data
+
+        if periods and (start_time is None or end_time is None):
+            first = periods[0] if isinstance(periods, list) else None
+            if isinstance(first, dict):
+                start_time = start_time or first.get("start") or first.get("start_time")
+                end_time = end_time or first.get("end") or first.get("end_time")
+
+        if active is None and (start_time or end_time or periods):
+            active = True
+
+        self._no_charge_period_active = active
+        self._no_charge_period_start = str(start_time) if start_time is not None else None
+        self._no_charge_period_end = str(end_time) if end_time is not None else None
+        self._no_charge_period_periods = periods
+        return response if isinstance(response, dict) else {}
+
+    async def get_schedules(self, timeout: float = 5.0) -> list[Any]:
+        """Request schedules list."""
+        response = await self._request_data_feedback("read_schedule", {}, timeout)
+        data = response.get("data", response)
+        schedules: list[Any] = []
+        if isinstance(data, list):
+            schedules = data
+        elif isinstance(data, dict):
+            for key in ("schedules", "schedule_list", "schedule", "list"):
+                value = data.get(key)
+                if isinstance(value, list):
+                    schedules = value
+                    break
+        self._schedules = schedules
+        return schedules
+
+    async def get_body_current(self, timeout: float = 5.0) -> float | None:
+        """Request body current (A)."""
+        response = await self._request_data_feedback("body_current_msg", {}, timeout)
+        data = response.get("data", response)
+        self._body_current = _extract_float(data)
+        return self._body_current
+
+    async def get_head_current(self, timeout: float = 5.0) -> float | None:
+        """Request head current (A)."""
+        response = await self._request_data_feedback("head_current_msg", {}, timeout)
+        data = response.get("data", response)
+        self._head_current = _extract_float(data)
+        return self._head_current
+
+    async def get_speed(self, timeout: float = 5.0) -> float | None:
+        """Request speed (m/s)."""
+        response = await self._request_data_feedback("speed_msg", {}, timeout)
+        data = response.get("data", response)
+        self._speed_m_s = _extract_float(data)
+        return self._speed_m_s
+
+    async def get_product_code(self, timeout: float = 5.0) -> str | None:
+        """Request product code."""
+        response = await self._request_data_feedback("product_code_msg", {}, timeout)
+        data = response.get("data", response)
+        self._product_code = _extract_text(data, ("product_code", "product", "code"))
+        return self._product_code
+
+    async def get_hub_info(self, timeout: float = 5.0) -> str | None:
+        """Request hub info."""
+        response = await self._request_data_feedback("hub_info", {}, timeout)
+        data = response.get("data", response)
+        self._hub_info = _extract_text(data, ("hub_info", "info", "hub"))
+        return self._hub_info
+
+    async def get_recharge_point(self, timeout: float = 5.0) -> str | None:
+        """Request recharge point status."""
+        response = await self._request_data_feedback("read_recharge_point", {}, timeout)
+        data = response.get("data", response)
+        status: str | None = None
+        details: dict[str, Any] | None = None
+
+        def _status_from_value(value: Any) -> str | None:
+            if value is None:
+                return None
+            if isinstance(value, bool):
+                return "set" if value else "unset"
+            if isinstance(value, (int, float)):
+                return "set" if value != 0 else "unset"
+            if isinstance(value, str) and value.strip():
+                return value
+            return None
+
+        if isinstance(data, dict):
+            details = data
+            for key in ("status", "state", "valid", "exist", "enabled", "active"):
+                status = _status_from_value(data.get(key))
+                if status is not None:
+                    break
+            if status is None:
+                if any(k in data for k in ("x", "y", "lat", "lon", "latitude", "longitude")):
+                    status = "set"
+        elif data is not None:
+            status = _status_from_value(data) or str(data)
+
+        self._recharge_point_status = status
+        self._recharge_point_details = details
+        return status
+
+    async def get_wifi_list(self, timeout: float = 5.0) -> list[Any]:
+        """Request available WiFi list."""
+        response = await self._request_data_feedback("get_wifi_list", {}, timeout)
+        data = response.get("data", response)
+        wifi_list: list[Any] = []
+        if isinstance(data, list):
+            wifi_list = data
+        elif isinstance(data, dict):
+            for key in ("wifi_list", "list", "networks", "aps"):
+                value = data.get(key)
+                if isinstance(value, list):
+                    wifi_list = value
+                    break
+        self._wifi_list = wifi_list
+        return wifi_list
+
+    async def get_map_backups(self, timeout: float = 5.0) -> list[Any]:
+        """Request map backup list."""
+        response = await self._request_data_feedback("get_all_map_backup", {}, timeout)
+        data = response.get("data", response)
+        backups: list[Any] = []
+        if isinstance(data, list):
+            backups = data
+        elif isinstance(data, dict):
+            for key in ("backups", "list", "map_backups", "maps"):
+                value = data.get(key)
+                if isinstance(value, list):
+                    backups = value
+                    break
+        self._map_backups = backups
+        return backups
+
+    async def get_clean_areas(self, timeout: float = 5.0) -> list[Any]:
+        """Request clean area list."""
+        response = await self._request_data_feedback("read_all_clean_area", {}, timeout)
+        data = response.get("data", response)
+        areas: list[Any] = []
+        if isinstance(data, list):
+            areas = data
+        elif isinstance(data, dict):
+            for key in ("areas", "list", "clean_areas", "clean_area"):
+                value = data.get(key)
+                if isinstance(value, list):
+                    areas = value
+                    break
+        self._clean_areas = areas
+        return areas
+
+    async def get_motor_temp(self, timeout: float = 5.0) -> float | None:
+        """Request motor temperature (°C)."""
+        response = await self._request_data_feedback("motor_temp_samp", {}, timeout)
+        data = response.get("data", response)
+        self._motor_temp_c = _extract_float(data)
+        return self._motor_temp_c
+
     async def _await_data_feedback(self, topic: str, timeout: float) -> dict[str, Any] | None:
         """Await a data_feedback response for a command, if supported."""
         waiter = getattr(self.client, "wait_for_data_feedback", None)
@@ -584,6 +911,22 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             await self.get_wifi_name()
             await self.get_battery_cell_temps()
             await self.get_odometer()
+            for method in (
+                self.get_no_charge_period,
+                self.get_schedules,
+                self.get_body_current,
+                self.get_head_current,
+                self.get_speed,
+                self.get_product_code,
+                self.get_hub_info,
+                self.get_recharge_point,
+                self.get_wifi_list,
+                self.get_map_backups,
+                self.get_clean_areas,
+                self.get_motor_temp,
+            ):
+                with contextlib.suppress(Exception):
+                    await method()
             return await self.client.get_status(timeout=5.0)
         except YarboConnectionError as err:
             raise UpdateFailed(f"Cannot connect to Yarbo: {err}") from err
