@@ -234,7 +234,14 @@ class YarboCameraSwitch(YarboCommandSwitch):
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "camera", "camera_toggle", payload_key="enabled", on_value=True, off_value=False)
+        super().__init__(
+            coordinator,
+            "camera",
+            "camera_toggle",
+            payload_key="enabled",
+            on_value=True,
+            off_value=False,
+        )
 
 
 class YarboLaserSwitch(YarboCommandSwitch):
@@ -246,7 +253,14 @@ class YarboLaserSwitch(YarboCommandSwitch):
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "laser", "laser_toggle", payload_key="enabled", on_value=True, off_value=False)
+        super().__init__(
+            coordinator,
+            "laser",
+            "laser_toggle",
+            payload_key="enabled",
+            on_value=True,
+            off_value=False,
+        )
 
 
 class YarboUsbSwitch(YarboCommandSwitch):
@@ -258,7 +272,14 @@ class YarboUsbSwitch(YarboCommandSwitch):
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "usb", "usb_toggle", payload_key="enabled", on_value=True, off_value=False)
+        super().__init__(
+            coordinator,
+            "usb",
+            "usb_toggle",
+            payload_key="enabled",
+            on_value=True,
+            off_value=False,
+        )
 
 
 class YarboIgnoreObstaclesSwitch(YarboCommandSwitch):
