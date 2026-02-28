@@ -7,6 +7,7 @@ import contextlib
 import logging
 import time
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -82,7 +83,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             hass,
             _LOGGER,
             name=DOMAIN,
-            # No update_interval — push-based
+            # Periodic refresh for diagnostic requests (wifi, battery temps, odometer)
+            update_interval=timedelta(seconds=60),
         )
         self.client = client
         self._entry = entry
@@ -112,6 +114,12 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._plan_by_id: dict[str | int, PlanSummary] = {}
         self._plan_remaining_time: int | None = None
         self._selected_plan_id: str | int | None = None
+        self._plan_start_percent: int = 0
+        self._wifi_name: str | None = None
+        self._battery_cell_temp_min: float | None = None
+        self._battery_cell_temp_max: float | None = None
+        self._battery_cell_temp_avg: float | None = None
+        self._odometer_m: float | None = None
 
     def update_options(self, options: dict[str, Any]) -> None:
         """Apply updated config entry options without requiring a full reload.
@@ -182,6 +190,41 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Return remaining time for the last read plan, in seconds."""
         return self._plan_remaining_time
 
+    @property
+    def plan_start_percent(self) -> int:
+        """Return the configured plan start percentage."""
+        return self._plan_start_percent
+
+    def set_plan_start_percent(self, value: int) -> None:
+        """Update the stored plan start percentage (0-100)."""
+        self._plan_start_percent = max(0, min(100, int(value)))
+        self.async_update_listeners()
+
+    @property
+    def wifi_name(self) -> str | None:
+        """Return the last known WiFi network name."""
+        return self._wifi_name
+
+    @property
+    def battery_cell_temp_min(self) -> float | None:
+        """Return minimum battery cell temperature (°C)."""
+        return self._battery_cell_temp_min
+
+    @property
+    def battery_cell_temp_max(self) -> float | None:
+        """Return maximum battery cell temperature (°C)."""
+        return self._battery_cell_temp_max
+
+    @property
+    def battery_cell_temp_avg(self) -> float | None:
+        """Return average battery cell temperature (°C)."""
+        return self._battery_cell_temp_avg
+
+    @property
+    def odometer_m(self) -> float | None:
+        """Return odometer distance in meters."""
+        return self._odometer_m
+
     async def read_all_plans(self, timeout: float = 5.0) -> list[PlanSummary]:
         """Read all plan summaries from the robot."""
         response = await self._request_data_feedback("read_all_plan", {}, timeout)
@@ -196,11 +239,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             if plan_id is None or name is None:
                 continue
             area_ids_raw = plan.get("areaIds") or []
-            area_ids = (
-                list(area_ids_raw)
-                if isinstance(area_ids_raw, list)
-                else [str(area_ids_raw)]
-            )
+            area_ids = list(area_ids_raw) if isinstance(area_ids_raw, list) else [str(area_ids_raw)]
             summaries.append(PlanSummary(plan_id=plan_id, name=str(name), area_ids=area_ids))
         self._plan_summaries = summaries
         self._plan_by_id = {plan.plan_id: plan for plan in summaries}
@@ -228,7 +267,10 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Start a work plan by id."""
         async with self.command_lock:
             await self.client.get_controller(timeout=5.0)
-            await self.client.publish_command("start_plan", {"planId": plan_id})
+            await self.client.publish_command(
+                "start_plan",
+                {"planId": plan_id, "percent": self._plan_start_percent},
+            )
         self._selected_plan_id = plan_id
         self.async_update_listeners()
         try:
@@ -258,9 +300,121 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             return {}
         return response
 
-    async def _await_data_feedback(
-        self, topic: str, timeout: float
-    ) -> dict[str, Any] | None:
+    async def get_wifi_name(self, timeout: float = 5.0) -> str | None:
+        """Request the connected WiFi network name."""
+        response = await self._request_data_feedback("get_connect_wifi_name", {}, timeout)
+        data = response.get("data", response)
+        name: str | None = None
+        if isinstance(data, dict):
+            for key in ("wifi_name", "ssid", "name", "wifi", "wifiName"):
+                value = data.get(key)
+                if value:
+                    name = str(value)
+                    break
+        elif isinstance(data, (str, bytes)):
+            name = data.decode() if isinstance(data, bytes) else data
+        self._wifi_name = name
+        return name
+
+    async def get_battery_cell_temps(self, timeout: float = 5.0) -> tuple[float | None, ...]:
+        """Request battery cell temperature stats (min, max, avg)."""
+        response = await self._request_data_feedback("battery_cell_temp_msg", {}, timeout)
+        data = response.get("data", response)
+        min_val = max_val = avg_val = None
+
+        def _to_float(value: Any) -> float | None:
+            if isinstance(value, (int, float)):
+                return float(value)
+            if isinstance(value, str) and value.strip():
+                try:
+                    return float(value)
+                except ValueError:
+                    return None
+            return None
+
+        if isinstance(data, dict):
+            min_val = _to_float(
+                data.get("min")
+                or data.get("min_temp")
+                or data.get("min_temp_c")
+                or data.get("temp_min")
+            )
+            max_val = _to_float(
+                data.get("max")
+                or data.get("max_temp")
+                or data.get("max_temp_c")
+                or data.get("temp_max")
+            )
+            avg_val = _to_float(
+                data.get("avg")
+                or data.get("avg_temp")
+                or data.get("avg_temp_c")
+                or data.get("temp_avg")
+            )
+            temps = data.get("temps") or data.get("cell_temps") or data.get("temperature_list")
+            if temps is None:
+                temps = data.get("battery_cell_temp")
+            if isinstance(temps, list):
+                numeric = [val for val in (_to_float(t) for t in temps) if val is not None]
+                if numeric:
+                    min_val = min_val if min_val is not None else min(numeric)
+                    max_val = max_val if max_val is not None else max(numeric)
+                    avg_val = avg_val if avg_val is not None else sum(numeric) / len(numeric)
+        elif isinstance(data, list):
+            numeric = [val for val in (_to_float(t) for t in data) if val is not None]
+            if numeric:
+                min_val = min(numeric)
+                max_val = max(numeric)
+                avg_val = sum(numeric) / len(numeric)
+
+        self._battery_cell_temp_min = min_val
+        self._battery_cell_temp_max = max_val
+        self._battery_cell_temp_avg = avg_val
+        return min_val, max_val, avg_val
+
+    async def get_odometer(self, timeout: float = 5.0) -> float | None:
+        """Request odometer distance (meters)."""
+        response = await self._request_data_feedback("odometer_msg", {}, timeout)
+        data = response.get("data", response)
+
+        def _to_float(value: Any) -> float | None:
+            if isinstance(value, (int, float)):
+                return float(value)
+            if isinstance(value, str) and value.strip():
+                try:
+                    return float(value)
+                except ValueError:
+                    return None
+            return None
+
+        odometer_m: float | None = None
+        if isinstance(data, dict):
+            for key in (
+                "total_distance_m",
+                "distance_m",
+                "odometer_m",
+                "total_distance",
+                "distance",
+                "odometer",
+                "total",
+            ):
+                value = _to_float(data.get(key))
+                if value is not None:
+                    odometer_m = value
+                    break
+            if odometer_m is None:
+                for key in ("total_distance_km", "distance_km", "odometer_km", "total_km"):
+                    value = _to_float(data.get(key))
+                    if value is not None:
+                        odometer_m = value * 1000.0
+                        break
+        else:
+            odometer_m = _to_float(data)
+
+        self._odometer_m = odometer_m
+        return odometer_m
+
+    async def _await_data_feedback(self, topic: str, timeout: float) -> dict[str, Any] | None:
         """Await a data_feedback response for a command, if supported."""
         waiter = getattr(self.client, "wait_for_data_feedback", None)
         if callable(waiter):
@@ -427,6 +581,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         In normal operation, data comes from _telemetry_loop() via async_set_updated_data().
         """
         try:
+            await self.get_wifi_name()
+            await self.get_battery_cell_temps()
+            await self.get_odometer()
             return await self.client.get_status(timeout=5.0)
         except YarboConnectionError as err:
             raise UpdateFailed(f"Cannot connect to Yarbo: {err}") from err

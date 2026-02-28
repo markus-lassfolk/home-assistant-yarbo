@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from custom_components.yarbo.const import CONF_ROBOT_NAME, CONF_ROBOT_SERIAL
-from custom_components.yarbo.switch import YarboBuzzerSwitch
+from custom_components.yarbo.switch import YarboBuzzerSwitch, YarboPersonDetectSwitch
 
 
 def _make_coordinator() -> MagicMock:
@@ -18,6 +18,7 @@ def _make_coordinator() -> MagicMock:
     coord.client = MagicMock()
     coord.client.get_controller = AsyncMock()
     coord.client.buzzer = AsyncMock()
+    coord.client.publish_command = AsyncMock()
     coord._entry = MagicMock()
     coord._entry.data = {
         CONF_ROBOT_SERIAL: "TEST0002",
@@ -105,3 +106,45 @@ class TestYarboBuzzerSwitch:
             assert entity.is_on is True
             await entity.async_turn_off()
             assert entity.is_on is False
+
+
+class TestYarboPersonDetectSwitch:
+    """Tests for the person detect switch."""
+
+    def test_icon(self) -> None:
+        """Person detect uses mdi:account-eye icon."""
+        coord = _make_coordinator()
+        entity = YarboPersonDetectSwitch(coord)
+        assert entity.icon == "mdi:account-eye"
+
+    def test_translation_key(self) -> None:
+        """Translation key must be 'person_detect'."""
+        coord = _make_coordinator()
+        entity = YarboPersonDetectSwitch(coord)
+        assert entity.translation_key == "person_detect"
+
+    @pytest.mark.asyncio
+    async def test_turn_on_publishes_enable(self) -> None:
+        """turn_on publishes set_person_detect enable=1."""
+        coord = _make_coordinator()
+        entity = YarboPersonDetectSwitch(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+
+        coord.client.get_controller.assert_called_once_with(timeout=5.0)
+        coord.client.publish_command.assert_called_once_with("set_person_detect", {"enable": 1})
+        assert entity.is_on is True
+
+    @pytest.mark.asyncio
+    async def test_turn_off_publishes_disable(self) -> None:
+        """turn_off publishes set_person_detect enable=0."""
+        coord = _make_coordinator()
+        entity = YarboPersonDetectSwitch(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+            await entity.async_turn_off()
+
+        coord.client.publish_command.assert_called_with("set_person_detect", {"enable": 0})
+        assert entity.is_on is False

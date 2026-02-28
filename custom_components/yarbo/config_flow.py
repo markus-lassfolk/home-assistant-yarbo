@@ -165,7 +165,6 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-
     async def _probe_robot_identity(
         self, host: str, port: int, timeout: float = 8.0
     ) -> tuple[str | None, str | None]:
@@ -196,14 +195,13 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                     client.subscribe("snowbot/+/device/DeviceMSG")
                     client.subscribe("snowbot/+/device/heart_beat")
 
-            def on_message(
-                client: Any, userdata: Any, msg: Any
-            ) -> None:
+            def on_message(client: Any, userdata: Any, msg: Any) -> None:
                 parts = msg.topic.split("/")
                 if len(parts) >= 2 and parts[0] == "snowbot" and parts[1]:
                     result["sn"] = parts[1]
                 try:
                     import zlib
+
                     try:
                         raw = zlib.decompress(msg.payload)
                     except zlib.error:
@@ -260,28 +258,24 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
         _LOGGER.debug(
             "DHCP discovery: IP=%s MAC=%s hostname=%s",
-            ip, mac, hostname,
+            ip,
+            mac,
+            hostname,
         )
 
         # Probe MQTT to discover the robot serial number for unique identification
-        sn, bot_name = await self._probe_robot_identity(
-            ip, DEFAULT_BROKER_PORT, timeout=8.0
-        )
+        sn, bot_name = await self._probe_robot_identity(ip, DEFAULT_BROKER_PORT, timeout=8.0)
         if sn:
             self._robot_serial = sn
             self._robot_name = bot_name
             self.context["title_placeholders"] = {"name": sn}
             await self.async_set_unique_id(sn)
-            self._abort_if_unique_id_configured(
-                updates={CONF_BROKER_HOST: ip}
-            )
+            self._abort_if_unique_id_configured(updates={CONF_BROKER_HOST: ip})
         else:
             # Fallback: use MAC as unique_id if MQTT probe fails (robot sleeping)
             self.context["title_placeholders"] = {"name": ip}
             await self.async_set_unique_id(mac)
-            self._abort_if_unique_id_configured(
-                updates={CONF_BROKER_HOST: ip}
-            )
+            self._abort_if_unique_id_configured(updates={CONF_BROKER_HOST: ip})
 
         # Check by MAC address for IP changes (reconfigure)
         existing_entry = next(

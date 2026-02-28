@@ -29,6 +29,8 @@ async def async_setup_entry(
             YarboResumeButton(coordinator),
             YarboStopButton(coordinator),
             YarboEmergencyStopButton(coordinator),
+            YarboEmergencyUnlockButton(coordinator),
+            YarboPlaySoundButton(coordinator),
         ]
     )
 
@@ -118,3 +120,29 @@ class YarboEmergencyStopButton(YarboButton):
 
     async def async_press(self) -> None:
         await self._send_command("emergency_stop_active", {})
+
+
+class YarboEmergencyUnlockButton(YarboButton):
+    """Emergency unlock button."""
+
+    _attr_translation_key = "emergency_unlock"
+    _attr_icon = "mdi:lock-open-alert"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "emergency_unlock")
+
+    async def async_press(self) -> None:
+        await self._send_command("emergency_unlock", {})
+
+
+class YarboPlaySoundButton(YarboButton):
+    """Play the default sound."""
+
+    _attr_translation_key = "play_sound"
+    _attr_icon = "mdi:music-note"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "play_sound")
+
+    async def async_press(self) -> None:
+        await self._send_command("song_cmd", {"song_name": "default"})

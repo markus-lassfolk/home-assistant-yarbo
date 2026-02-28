@@ -90,7 +90,8 @@ async def _discover_from_arp(port: int = DEFAULT_BROKER_PORT) -> list[YarboEndpo
     endpoints: list[YarboEndpoint] = []
     try:
         proc = await asyncio.create_subprocess_exec(
-            "ip", "neigh",
+            "ip",
+            "neigh",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL,
         )

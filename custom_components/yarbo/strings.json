@@ -151,6 +151,9 @@
       "connection": {
         "name": "Connection"
       },
+      "wifi_network": {
+        "name": "WiFi Network"
+      },
       "error_code": {
         "name": "Error Code"
       },
@@ -177,6 +180,18 @@
       },
       "charging_power": {
         "name": "Charging Power"
+      },
+      "battery_cell_temp_min": {
+        "name": "Battery Cell Temp Min"
+      },
+      "battery_cell_temp_max": {
+        "name": "Battery Cell Temp Max"
+      },
+      "battery_cell_temp_avg": {
+        "name": "Battery Cell Temp Avg"
+      },
+      "odometer": {
+        "name": "Odometer"
       },
       "wireless_charge_state": {
         "name": "Wireless Charge State"
@@ -310,6 +325,12 @@
       },
       "emergency_stop": {
         "name": "Emergency Stop"
+      },
+      "emergency_unlock": {
+        "name": "Emergency Unlock"
+      },
+      "play_sound": {
+        "name": "Play Sound"
       }
     },
     "event": {
@@ -334,6 +355,9 @@
     "light": {
       "lights": {
         "name": "Lights"
+      },
+      "head_light": {
+        "name": "Head Light"
       },
       "led_head": {
         "name": "Head Light"
@@ -360,16 +384,37 @@
     "switch": {
       "buzzer": {
         "name": "Buzzer"
+      },
+      "person_detect": {
+        "name": "Person Detection"
       }
     },
     "number": {
       "chute_velocity": {
         "name": "Chute Velocity"
+      },
+      "blade_height": {
+        "name": "Blade Height"
+      },
+      "blade_speed": {
+        "name": "Blade Speed"
+      },
+      "blower_speed": {
+        "name": "Blower Speed"
+      },
+      "volume": {
+        "name": "Volume"
+      },
+      "plan_start_percent": {
+        "name": "Plan Start Percentage"
       }
     },
     "select": {
       "work_plan": {
         "name": "Work Plan"
+      },
+      "turn_type": {
+        "name": "Turn Type"
       }
     },
     "device_tracker": {

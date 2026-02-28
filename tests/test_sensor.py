@@ -11,6 +11,9 @@ from custom_components.yarbo.const import (
     HEAD_TYPE_SNOW_BLOWER,
 )
 from custom_components.yarbo.sensor import (
+    YarboBatteryCellTempAvgSensor,
+    YarboBatteryCellTempMaxSensor,
+    YarboBatteryCellTempMinSensor,
     YarboBatterySensor,
     YarboChargeCurrentSensor,
     YarboChargeVoltageSensor,
@@ -20,11 +23,13 @@ from custom_components.yarbo.sensor import (
     YarboHeadingSensor,
     YarboMqttAgeSensor,
     YarboOdomConfidenceSensor,
+    YarboOdometerSensor,
     YarboPlanRemainingTimeSensor,
     YarboRainSensor,
     YarboRtcmAgeSensor,
     YarboRtkStatusSensor,
     YarboSatelliteCountSensor,
+    YarboWifiNetworkSensor,
 )
 
 
@@ -38,6 +43,11 @@ def _make_coordinator(**telemetry_kwargs: object) -> MagicMock:
     }
     coord._entry.options = {}
     coord.last_update_success = True
+    coord.wifi_name = None
+    coord.battery_cell_temp_min = None
+    coord.battery_cell_temp_max = None
+    coord.battery_cell_temp_avg = None
+    coord.odometer_m = None
     telemetry = MagicMock()
     # Default telemetry values
     telemetry.battery_capacity = 83
@@ -257,6 +267,66 @@ class TestPlanRemainingTimeSensor:
         coord.plan_remaining_time = None
         entity = YarboPlanRemainingTimeSensor(coord)
         assert entity.native_value is None
+
+
+class TestWifiNetworkSensor:
+    """Tests for WiFi network sensor."""
+
+    def test_native_value(self) -> None:
+        """Returns WiFi name from coordinator."""
+        coord = _make_coordinator()
+        coord.wifi_name = "YarboNet"
+        entity = YarboWifiNetworkSensor(coord)
+        assert entity.native_value == "YarboNet"
+
+
+class TestBatteryCellTempSensors:
+    """Tests for battery cell temperature sensors."""
+
+    def test_min_value(self) -> None:
+        """Returns min cell temp."""
+        coord = _make_coordinator()
+        coord.battery_cell_temp_min = 18.5
+        entity = YarboBatteryCellTempMinSensor(coord)
+        assert entity.native_value == 18.5
+
+    def test_max_value(self) -> None:
+        """Returns max cell temp."""
+        coord = _make_coordinator()
+        coord.battery_cell_temp_max = 32.0
+        entity = YarboBatteryCellTempMaxSensor(coord)
+        assert entity.native_value == 32.0
+
+    def test_avg_value(self) -> None:
+        """Returns avg cell temp."""
+        coord = _make_coordinator()
+        coord.battery_cell_temp_avg = 24.2
+        entity = YarboBatteryCellTempAvgSensor(coord)
+        assert entity.native_value == 24.2
+
+    def test_disabled_by_default(self) -> None:
+        """Temp sensors are disabled by default."""
+        coord = _make_coordinator()
+        assert YarboBatteryCellTempMinSensor(coord).entity_registry_enabled_default is False
+        assert YarboBatteryCellTempMaxSensor(coord).entity_registry_enabled_default is False
+        assert YarboBatteryCellTempAvgSensor(coord).entity_registry_enabled_default is False
+
+
+class TestOdometerSensor:
+    """Tests for odometer sensor."""
+
+    def test_native_value(self) -> None:
+        """Returns odometer distance in meters."""
+        coord = _make_coordinator()
+        coord.odometer_m = 12345.0
+        entity = YarboOdometerSensor(coord)
+        assert entity.native_value == 12345.0
+
+    def test_disabled_by_default(self) -> None:
+        """Odometer sensor is disabled by default."""
+        coord = _make_coordinator()
+        entity = YarboOdometerSensor(coord)
+        assert entity.entity_registry_enabled_default is False
 
     def test_none_when_current_absent(self) -> None:
         """Returns None when current is not available."""

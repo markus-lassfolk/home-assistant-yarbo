@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import logging
+from types import MappingProxyType
+from typing import ClassVar
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DATA_COORDINATOR, DOMAIN
@@ -24,7 +27,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Yarbo select entities from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
-    async_add_entities([YarboPlanSelect(coordinator)])
+    async_add_entities([YarboPlanSelect(coordinator), YarboTurnTypeSelect(coordinator)])
 
 
 class YarboPlanSelect(YarboEntity, SelectEntity):
@@ -60,3 +63,39 @@ class YarboPlanSelect(YarboEntity, SelectEntity):
         if plan_id is None:
             raise HomeAssistantError(f"Unknown plan: {option}")
         await self.coordinator.start_plan(plan_id)
+
+
+class YarboTurnTypeSelect(YarboEntity, SelectEntity):
+    """Select the turn type for mowing."""
+
+    _attr_translation_key = "turn_type"
+    _attr_options: ClassVar[tuple[str, ...]] = ("u_turn", "three_point", "zero_radius")
+    _attr_icon = "mdi:rotate-right"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_assumed_state = True
+
+    _turn_type_map: ClassVar[dict[str, int]] = MappingProxyType(
+        {"u_turn": 0, "three_point": 1, "zero_radius": 2}
+    )
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "turn_type")
+        self._current_option: str | None = None
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the last selected turn type."""
+        return self._current_option
+
+    async def async_select_option(self, option: str) -> None:
+        """Set the turn type."""
+        if option not in self._turn_type_map:
+            raise HomeAssistantError(f"Unknown turn type: {option}")
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command(
+                "set_turn_type",
+                {"turn_type": self._turn_type_map[option]},
+            )
+        self._current_option = option
+        self.async_write_ha_state()

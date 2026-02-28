@@ -10,7 +10,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTime
+from homeassistant.const import UnitOfLength, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -139,6 +139,11 @@ async def async_setup_entry(
             YarboHeadGyroRollSensor(coordinator),
             YarboMachineControllerSensor(coordinator),
             YarboPlanRemainingTimeSensor(coordinator),
+            YarboWifiNetworkSensor(coordinator),
+            YarboBatteryCellTempMinSensor(coordinator),
+            YarboBatteryCellTempMaxSensor(coordinator),
+            YarboBatteryCellTempAvgSensor(coordinator),
+            YarboOdometerSensor(coordinator),
             YarboRoutePriorityHg0Sensor(coordinator),
             YarboRoutePriorityWlan0Sensor(coordinator),
             YarboRoutePriorityWwan0Sensor(coordinator),
@@ -1023,6 +1028,98 @@ class YarboPlanRemainingTimeSensor(YarboSensor):
     def native_value(self) -> int | None:
         """Return remaining plan time in seconds."""
         return self.coordinator.plan_remaining_time
+
+
+class YarboWifiNetworkSensor(YarboSensor):
+    """Diagnostic sensor for connected WiFi network."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_translation_key = "wifi_network"
+    _attr_icon = "mdi:wifi"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "wifi_network")
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the last known WiFi network name."""
+        return self.coordinator.wifi_name
+
+
+class YarboBatteryCellTempMinSensor(YarboSensor):
+    """Minimum battery cell temperature."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = "°C"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "battery_cell_temp_min"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "battery_cell_temp_min")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return minimum cell temperature."""
+        return self.coordinator.battery_cell_temp_min
+
+
+class YarboBatteryCellTempMaxSensor(YarboSensor):
+    """Maximum battery cell temperature."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = "°C"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "battery_cell_temp_max"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "battery_cell_temp_max")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return maximum cell temperature."""
+        return self.coordinator.battery_cell_temp_max
+
+
+class YarboBatteryCellTempAvgSensor(YarboSensor):
+    """Average battery cell temperature."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = "°C"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "battery_cell_temp_avg"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "battery_cell_temp_avg")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return average cell temperature."""
+        return self.coordinator.battery_cell_temp_avg
+
+
+class YarboOdometerSensor(YarboSensor):
+    """Total distance traveled."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_device_class = SensorDeviceClass.DISTANCE
+    _attr_native_unit_of_measurement = UnitOfLength.METERS
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_translation_key = "odometer"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "odometer")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return odometer distance in meters."""
+        return self.coordinator.odometer_m
 
 
 class YarboRoutePriorityHg0Sensor(YarboSensor):
