@@ -52,26 +52,25 @@ DEFAULT_AUTO_CONTROLLER = True
 DEFAULT_CLOUD_ENABLED = False
 DEFAULT_ACTIVITY_PERSONALITY = False  # Boolean: False=standard, True=fun/verbose descriptions
 
-# Head types — MQTT wire values (NOT Dart enum indices, which differ!)
-# Wire 1 = Snow Blower confirmed via live telemetry + visual inspection.
-# Wire 0 assumed Lawn Mower (Dart enum has these two swapped).
-# Wire 2-6 assumed to match Dart enum order (unverified, single-head test).
-HEAD_TYPE_LAWN_MOWER = 0
+# Head types — MQTT wire values from APK _HEAD_TYPE_MAP (Smi-decoded keys)
+# Confirmed via Blutter decompilation of deviceRules.dart + live telemetry.
+# Wire 1 = Snow Blower confirmed via live MQTT + visual inspection.
+HEAD_TYPE_NONE = 0
 HEAD_TYPE_SNOW_BLOWER = 1
-HEAD_TYPE_LAWN_MOWER_PRO = 2
-HEAD_TYPE_LEAF_BLOWER = 3
+HEAD_TYPE_LEAF_BLOWER = 2
+HEAD_TYPE_LAWN_MOWER = 3
 HEAD_TYPE_SMART_COVER = 4  # SAM / patrol / sentry
-HEAD_TYPE_TRIMMER = 5
-HEAD_TYPE_NONE = 6
+HEAD_TYPE_LAWN_MOWER_PRO = 5
+HEAD_TYPE_TRIMMER = 99
 
 HEAD_TYPE_NAMES: dict[int, str] = {
-    HEAD_TYPE_SNOW_BLOWER: "Snow Blower",
-    HEAD_TYPE_LAWN_MOWER: "Lawn Mower",
-    HEAD_TYPE_LAWN_MOWER_PRO: "Lawn Mower Pro",
-    HEAD_TYPE_LEAF_BLOWER: "Leaf Blower",
-    HEAD_TYPE_SMART_COVER: "Smart Cover",
-    HEAD_TYPE_TRIMMER: "Trimmer",
     HEAD_TYPE_NONE: "None",
+    HEAD_TYPE_SNOW_BLOWER: "Snow Blower",
+    HEAD_TYPE_LEAF_BLOWER: "Leaf Blower",
+    HEAD_TYPE_LAWN_MOWER: "Lawn Mower",
+    HEAD_TYPE_SMART_COVER: "Smart Cover",
+    HEAD_TYPE_LAWN_MOWER_PRO: "Lawn Mower Pro",
+    HEAD_TYPE_TRIMMER: "Trimmer",
 }
 
 # Heartbeat timeout before raising a repair issue
