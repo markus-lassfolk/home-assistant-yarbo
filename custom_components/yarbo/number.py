@@ -246,6 +246,7 @@ class YarboBlowerSpeedNumber(YarboEntity, NumberEntity):
         """Set blower speed."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # TODO: Verify command name against live robot — APK may use "cmd_roller" instead
             await self.coordinator.client.publish_command(
                 "blower_speed",
                 {"speed": int(value)},

@@ -356,8 +356,9 @@ class YarboUsbSwitch(YarboEntity, SwitchEntity):
 class YarboIgnoreObstaclesSwitch(YarboCommandSwitch):
     """Obstacle detection bypass.
 
-    Note: APK uses function name setIgnoreObstacle / topic ignore_obstacles.
-    TODO: Verify against live robot — docs may say obstacle_toggle instead.
+    Per robot docs: topic is obstacle_toggle with {enabled: bool}.
+    APK also references setIgnoreObstacle / ignore_obstacles — verify against
+    live robot if behaviour is unexpected.
     """
 
     _attr_translation_key = "ignore_obstacles"
@@ -366,7 +367,14 @@ class YarboIgnoreObstaclesSwitch(YarboCommandSwitch):
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "ignore_obstacles", "ignore_obstacles", payload_key="state")
+        super().__init__(
+            coordinator,
+            "ignore_obstacles",
+            "obstacle_toggle",
+            payload_key="enabled",
+            on_value=True,
+            off_value=False,
+        )
 
 
 class YarboDrawModeSwitch(YarboCommandSwitch):

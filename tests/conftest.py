@@ -64,6 +64,19 @@ class _YarboLightState:
     def __init__(self, **_kwargs: object) -> None:
         pass
 
+    @classmethod
+    def all_off(cls) -> _YarboLightState:
+        """Return a YarboLightState with all channels set to 0."""
+        return cls(
+            led_head=0,
+            led_left_w=0,
+            led_right_w=0,
+            body_left_r=0,
+            body_right_r=0,
+            tail_left_r=0,
+            tail_right_r=0,
+        )
+
 
 _yarbo_module.YarboLocalClient = _YarboLocalClient
 _yarbo_module.YarboTelemetry = _YarboTelemetry

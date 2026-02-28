@@ -55,6 +55,8 @@ class PlanSummary:
 
 def _to_float(value: Any) -> float | None:
     """Convert a value to float, returning None on failure (not None-safe for 0.0)."""
+    if isinstance(value, bool):
+        return None
     if isinstance(value, (int, float)):
         return float(value)
     if isinstance(value, str) and value.strip():
@@ -114,7 +116,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     On connection error, the loop retries after TELEMETRY_RETRY_DELAY_SECONDS.
 
-    The update_interval (60s) triggers periodic diagnostic polling for wifi,
+    The update_interval (300s) triggers periodic diagnostic polling for wifi,
     battery cell temps, odometer, and other non-streaming data via
     _async_update_data(). Core telemetry continues via the push stream.
 
@@ -131,15 +133,17 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     ) -> None:
         """Initialize the coordinator.
 
-        Push-based telemetry with periodic diagnostic polling (update_interval=60s).
+        Push-based telemetry with periodic diagnostic polling (update_interval=300s).
         Core telemetry updates are triggered by incoming MQTT messages.
         """
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            # Periodic refresh for diagnostic requests (wifi, battery temps, odometer)
-            update_interval=timedelta(seconds=60),
+            # Periodic refresh for diagnostic requests (wifi, battery temps, odometer).
+            # 300s is a reasonable interval — frequent enough to stay current,
+            # infrequent enough to give the robot sleep time between requests.
+            update_interval=timedelta(seconds=300),
         )
         self.client = client
         self._entry = entry
@@ -708,6 +712,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_clean_areas(self, timeout: float = 5.0) -> list[Any]:
         """Request clean area list."""
+        # TODO: Verify command name against live robot — APK may use "readCleanArea" instead
         response = await self._request_data_feedback("read_all_clean_area", {}, timeout)
         data = response.get("data", response)
         areas: list[Any] = []

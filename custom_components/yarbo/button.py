@@ -152,8 +152,7 @@ class YarboPlaySoundButton(YarboButton):
         super().__init__(coordinator, "play_sound")
 
     async def async_press(self) -> None:
-        # TODO: Verify payload against APK — may need {"songId": 0} or similar
-        await self._send_command("song_cmd", {"song_name": "default"})
+        await self._send_command("song_cmd", {"songId": 0})
 
 
 class YarboShutdownButton(YarboButton):
@@ -167,6 +166,7 @@ class YarboShutdownButton(YarboButton):
         super().__init__(coordinator, "shutdown")
 
     async def async_press(self) -> None:
+        # TODO: Verify command name against live robot — APK may use "shutdownYarbo" instead
         await self._send_command("shutdown", {})
 
 

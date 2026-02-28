@@ -117,7 +117,7 @@ class YarboSnowPushDirectionSelect(YarboEntity, SelectEntity):
     _attr_entity_category = EntityCategory.CONFIG
     _attr_assumed_state = True
 
-    _direction_map: ClassVar[dict[str, int]] = MappingProxyType(
+    _direction_map: ClassVar[Mapping[str, int]] = MappingProxyType(
         {"left": 0, "right": 1, "center": 2}
     )
 

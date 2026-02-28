@@ -93,7 +93,7 @@ class TestYarboPlaySoundButton:
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
         coord.client.publish_command.assert_called_once_with(
             "song_cmd",
-            {"song_name": "default"},
+            {"songId": 0},
         )
 
 
