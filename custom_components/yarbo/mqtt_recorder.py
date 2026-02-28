@@ -71,7 +71,7 @@ class MqttRecorder:
         with self._write_lock:
             if not self._enabled:
                 return
-            
+
             if self._file:
                 entry = {
                     "ts": datetime.now(UTC).isoformat(),
@@ -89,10 +89,10 @@ class MqttRecorder:
                     self._bytes_written += len(line.encode("utf-8"))
                 except OSError as err:
                     _LOGGER.warning("Failed to write final MQTT recording entry: %s", err)
-                
+
                 self._file.close()
                 self._file = None
-            
+
             self._enabled = False
             _LOGGER.info(
                 "MQTT recording stopped: %s (%.1f KB)",

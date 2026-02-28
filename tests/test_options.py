@@ -14,7 +14,6 @@ from custom_components.yarbo.const import (
     OPT_ACTIVITY_PERSONALITY,
     OPT_AUTO_CONTROLLER,
     OPT_CLOUD_ENABLED,
-    OPT_DEBUG_LOGGING,
     OPT_TELEMETRY_THROTTLE,
 )
 from custom_components.yarbo.coordinator import YarboDataCoordinator
