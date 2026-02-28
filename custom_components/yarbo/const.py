@@ -52,7 +52,10 @@ DEFAULT_AUTO_CONTROLLER = True
 DEFAULT_CLOUD_ENABLED = False
 DEFAULT_ACTIVITY_PERSONALITY = False  # Boolean: False=standard, True=fun/verbose descriptions
 
-# Head types (confirmed via live MQTT telemetry + visual verification)
+# Head types — MQTT wire values (NOT Dart enum indices, which differ!)
+# Wire 1 = Snow Blower confirmed via live telemetry + visual inspection.
+# Wire 0 assumed Lawn Mower (Dart enum has these two swapped).
+# Wire 2-6 assumed to match Dart enum order (unverified, single-head test).
 HEAD_TYPE_LAWN_MOWER = 0
 HEAD_TYPE_SNOW_BLOWER = 1
 HEAD_TYPE_LAWN_MOWER_PRO = 2
