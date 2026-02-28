@@ -556,9 +556,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         async def _execute_command() -> Any:
             feedback_coro = self._await_data_feedback(normalized_command, timeout)
             feedback_task = asyncio.create_task(feedback_coro)
-            await asyncio.sleep(0)
-            await self.client.publish_command(normalized_command, payload)
             try:
+                await asyncio.sleep(0)
+                await self.client.publish_command(normalized_command, payload)
                 if self._recorder.enabled:
                     try:
                         await self.hass.async_add_executor_job(
@@ -568,6 +568,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
                 return await feedback_task
             except asyncio.CancelledError:
+                feedback_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await feedback_task
+                raise
+            except Exception:
                 feedback_task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await feedback_task
