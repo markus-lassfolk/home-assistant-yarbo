@@ -709,8 +709,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_clean_areas(self, timeout: float = 5.0) -> list[Any]:
         """Request clean area list."""
-        # TODO: Verify command name against live robot — APK may use "readCleanArea" instead
-        response = await self._request_data_feedback("read_all_clean_area", {}, timeout)
+        # Verified against live robot: "read_clean_area" is the correct command.
+        # "read_all_clean_area" and "readCleanArea" are silently ignored.
+        response = await self._request_data_feedback("read_clean_area", {}, timeout)
         data = response.get("data", response)
         areas: list[Any] = []
         if isinstance(data, list):
