@@ -50,6 +50,9 @@ class _YarboLocalClient:
     def __init__(self, *_args: object, **_kwargs: object) -> None:
         pass
 
+    connect = AsyncMock()
+    disconnect = AsyncMock()
+
 
 class _YarboTelemetry:
     """Stub for YarboTelemetry."""

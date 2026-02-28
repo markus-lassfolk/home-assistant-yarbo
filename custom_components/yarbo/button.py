@@ -173,7 +173,7 @@ class YarboShutdownButton(YarboButton):
         super().__init__(coordinator, "shutdown")
 
     async def async_press(self) -> None:
-        # Verified: "shutdown" is correct (tested live). Powers off completely — requires physical restart!
+        # Verified live: "shutdown" correct. Powers off robot — physical restart required.
         await self._send_command("shutdown", {})
 
 

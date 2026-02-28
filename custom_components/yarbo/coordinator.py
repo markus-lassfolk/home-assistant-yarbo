@@ -9,7 +9,6 @@ import logging
 from pathlib import Path
 import time
 from dataclasses import dataclass
-from datetime import timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -158,7 +157,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     On connection error, the loop retries after TELEMETRY_RETRY_DELAY_SECONDS.
 
-    A separate diagnostic polling task runs every 60s to fetch wifi, battery cell
+    A separate diagnostic polling task runs every 300s to fetch wifi, battery cell
     temps, odometer, and other non-streaming data. Core telemetry continues via
     the push stream without interruption.
 
@@ -1032,33 +1031,34 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     async def _diagnostic_polling_loop(self) -> None:
         """Periodically poll diagnostic data without overwriting push-stream telemetry.
 
-        Runs every 60 seconds to fetch non-streaming data like wifi, battery temps,
+        Runs every 300 seconds to fetch non-streaming data like wifi, battery temps,
         odometer, etc. Does not modify self.data, only updates internal state.
         """
         try:
             while True:
-                await asyncio.sleep(60)
-                diagnostic_coros = [
-                    self.get_wifi_name(),
-                    self.get_battery_cell_temps(),
-                    self.get_odometer(),
-                    self.get_no_charge_period(),
-                    self.get_schedules(),
-                    self.get_body_current(),
-                    self.get_head_current(),
-                    self.get_speed(),
-                    self.get_product_code(),
-                    self.get_hub_info(),
-                    self.get_recharge_point(),
-                    self.get_wifi_list(),
-                    self.get_map_backups(),
-                    self.get_clean_areas(),
-                    self.get_motor_temp(),
+                await asyncio.sleep(300)
+                diagnostic_methods = [
+                    self.get_wifi_name,
+                    self.get_battery_cell_temps,
+                    self.get_odometer,
+                    self.get_no_charge_period,
+                    self.get_schedules,
+                    self.get_body_current,
+                    self.get_head_current,
+                    self.get_speed,
+                    self.get_product_code,
+                    self.get_hub_info,
+                    self.get_recharge_point,
+                    self.get_wifi_list,
+                    self.get_map_backups,
+                    self.get_clean_areas,
+                    self.get_motor_temp,
                 ]
-                results = await asyncio.gather(*diagnostic_coros, return_exceptions=True)
-                for result in results:
-                    if isinstance(result, Exception):
-                        _LOGGER.debug("Diagnostic request failed (non-fatal): %s", result)
+                for method in diagnostic_methods:
+                    try:
+                        await method()
+                    except Exception as err:
+                        _LOGGER.debug("Diagnostic request failed (non-fatal): %s", err)
                 self.async_update_listeners()
         except asyncio.CancelledError:
             _LOGGER.debug("Diagnostic polling loop cancelled")

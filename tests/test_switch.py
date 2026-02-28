@@ -480,7 +480,7 @@ class TestYarboIgnoreObstaclesSwitch:
 
     @pytest.mark.asyncio
     async def test_turn_on_publishes_command(self) -> None:
-        """turn_on publishes obstacle_toggle enabled=True."""
+        """turn_on publishes ignore_obstacles state=1 (verified live 2026-02-28)."""
         coord = _make_coordinator()
         entity = YarboIgnoreObstaclesSwitch(coord)
 
@@ -488,7 +488,7 @@ class TestYarboIgnoreObstaclesSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("obstacle_toggle", {"enabled": True})
+        coord.client.publish_command.assert_called_once_with("ignore_obstacles", {"state": 1})
         assert entity.is_on is True
 
 
