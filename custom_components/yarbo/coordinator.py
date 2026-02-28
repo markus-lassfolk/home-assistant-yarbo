@@ -445,8 +445,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         timeout: float,
     ) -> dict[str, Any]:
         """Publish a command and await matching data_feedback."""
-        await self.client.publish_command(command, payload)
-        response = await self._await_data_feedback(command, timeout)
+        async with self.command_lock:
+            await self.client.publish_command(command, payload)
+            response = await self._await_data_feedback(command, timeout)
         if not isinstance(response, dict):
             return {}
         return response
@@ -934,6 +935,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 for result in results:
                     if isinstance(result, Exception):
                         _LOGGER.debug("Diagnostic request failed (non-fatal): %s", result)
+                self.async_update_listeners()
         except asyncio.CancelledError:
             _LOGGER.debug("Diagnostic polling loop cancelled")
             raise
