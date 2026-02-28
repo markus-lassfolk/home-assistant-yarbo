@@ -104,8 +104,8 @@ class YarboCommandSwitch(YarboEntity, SwitchEntity):
         entity_key: str,
         command: str,
         payload_key: str = "state",
-        on_value: int = 1,
-        off_value: int = 0,
+        on_value: int | bool = 1,
+        off_value: int | bool = 0,
     ) -> None:
         super().__init__(coordinator, entity_key)
         self._command = command
@@ -119,7 +119,7 @@ class YarboCommandSwitch(YarboEntity, SwitchEntity):
         """Return True if the switch is on."""
         return self._is_on
 
-    async def _publish(self, value: int) -> None:
+    async def _publish(self, value: int | bool) -> None:
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
             await self.coordinator.client.publish_command(
@@ -140,40 +140,15 @@ class YarboCommandSwitch(YarboEntity, SwitchEntity):
         self.async_write_ha_state()
 
 
-class YarboPersonDetectSwitch(YarboEntity, SwitchEntity):
+class YarboPersonDetectSwitch(YarboCommandSwitch):
     """Person detection toggle switch."""
 
     _attr_translation_key = "person_detect"
-    _attr_assumed_state = True
     _attr_icon = "mdi:account-eye"
     _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "person_detect")
-        self._is_on: bool = False
-
-    @property
-    def is_on(self) -> bool:
-        """Return True if person detection is enabled."""
-        return self._is_on
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Enable person detection."""
-        async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
-            # ⚠️ Verified 2026-02-28: recognized but returns state=-1 (may need camera)
-            await self.coordinator.client.publish_command("set_person_detect", {"enable": 1})
-        self._is_on = True
-        self.async_write_ha_state()
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Disable person detection."""
-        async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
-            # ⚠️ Verified 2026-02-28: recognized but returns state=-1 (may need camera)
-            await self.coordinator.client.publish_command("set_person_detect", {"enable": 0})
-        self._is_on = False
-        self.async_write_ha_state()
+        super().__init__(coordinator, "person_detect", "set_person_detect", payload_key="enable")
 
 
 class YarboHeatingFilmSwitch(YarboCommandSwitch):
@@ -250,115 +225,40 @@ class YarboTrimmerSwitch(YarboCommandSwitch):
         return self.telemetry.head_type == HEAD_TYPE_TRIMMER
 
 
-class YarboCameraSwitch(YarboEntity, SwitchEntity):
+class YarboCameraSwitch(YarboCommandSwitch):
     """Camera toggle — sends {"enabled": true/false} per docs."""
 
     _attr_translation_key = "camera"
     _attr_icon = "mdi:camera"
-    _attr_assumed_state = True
     _attr_entity_category = EntityCategory.CONFIG
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "camera")
-        self._is_on: bool = False
-
-    @property
-    def is_on(self) -> bool:
-        """Return True if camera is enabled."""
-        return self._is_on
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Enable the camera."""
-        async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await self.coordinator.client.publish_command("camera_toggle", {"enabled": True})
-        self._is_on = True
-        self.async_write_ha_state()
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Disable the camera."""
-        async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await self.coordinator.client.publish_command("camera_toggle", {"enabled": False})
-        self._is_on = False
-        self.async_write_ha_state()
+        super().__init__(coordinator, "camera", "camera_toggle", payload_key="enabled", on_value=True, off_value=False)
 
 
-class YarboLaserSwitch(YarboEntity, SwitchEntity):
+class YarboLaserSwitch(YarboCommandSwitch):
     """Laser toggle — sends {"enabled": true/false} per docs."""
 
     _attr_translation_key = "laser"
     _attr_icon = "mdi:laser-pointer"
-    _attr_assumed_state = True
     _attr_entity_category = EntityCategory.CONFIG
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "laser")
-        self._is_on: bool = False
-
-    @property
-    def is_on(self) -> bool:
-        """Return True if laser is enabled."""
-        return self._is_on
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Enable the laser."""
-        async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await self.coordinator.client.publish_command("laser_toggle", {"enabled": True})
-        self._is_on = True
-        self.async_write_ha_state()
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Disable the laser."""
-        async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await self.coordinator.client.publish_command("laser_toggle", {"enabled": False})
-        self._is_on = False
-        self.async_write_ha_state()
+        super().__init__(coordinator, "laser", "laser_toggle", payload_key="enabled", on_value=True, off_value=False)
 
 
-class YarboUsbSwitch(YarboEntity, SwitchEntity):
+class YarboUsbSwitch(YarboCommandSwitch):
     """USB power toggle — sends {"enabled": true/false} per docs."""
 
     _attr_translation_key = "usb"
     _attr_icon = "mdi:usb"
-    _attr_assumed_state = True
     _attr_entity_category = EntityCategory.CONFIG
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "usb")
-        self._is_on: bool = False
-
-    @property
-    def is_on(self) -> bool:
-        """Return True if USB power is enabled."""
-        return self._is_on
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Enable USB power."""
-        async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await self.coordinator.client.publish_command("usb_toggle", {"enabled": True})
-        self._is_on = True
-        self.async_write_ha_state()
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Disable USB power."""
-        async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await self.coordinator.client.publish_command("usb_toggle", {"enabled": False})
-        self._is_on = False
-        self.async_write_ha_state()
+        super().__init__(coordinator, "usb", "usb_toggle", payload_key="enabled", on_value=True, off_value=False)
 
 
 class YarboIgnoreObstaclesSwitch(YarboCommandSwitch):
@@ -506,75 +406,25 @@ class YarboMowerHeadSensorSwitch(YarboCommandSwitch):
         return self.telemetry.head_type in {HEAD_TYPE_LAWN_MOWER, HEAD_TYPE_LAWN_MOWER_PRO}
 
 
-class YarboRoofLightsSwitch(YarboEntity, SwitchEntity):
+class YarboRoofLightsSwitch(YarboCommandSwitch):
     """Roof lights enable toggle (#96)."""
 
     _attr_translation_key = "roof_lights"
     _attr_icon = "mdi:car-light-dimmed"
-    _attr_assumed_state = True
     _attr_entity_category = EntityCategory.CONFIG
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "roof_lights")
-        self._is_on: bool = False
-
-    @property
-    def is_on(self) -> bool:
-        """Return True if roof lights are enabled."""
-        return self._is_on
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Enable roof lights."""
-        async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await self.coordinator.client.publish_command("roof_lights_enable", {"enable": 1})
-        self._is_on = True
-        self.async_write_ha_state()
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Disable roof lights."""
-        async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await self.coordinator.client.publish_command("roof_lights_enable", {"enable": 0})
-        self._is_on = False
-        self.async_write_ha_state()
+        super().__init__(coordinator, "roof_lights", "roof_lights_enable", payload_key="enable")
 
 
-class YarboSoundEnableSwitch(YarboEntity, SwitchEntity):
+class YarboSoundEnableSwitch(YarboCommandSwitch):
     """Sound enable toggle (#97)."""
 
     _attr_translation_key = "sound_enable"
     _attr_icon = "mdi:volume-off"
-    _attr_assumed_state = True
     _attr_entity_category = EntityCategory.CONFIG
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "sound_enable")
-        self._is_on: bool = False
-
-    @property
-    def is_on(self) -> bool:
-        """Return True if sound is enabled."""
-        return self._is_on
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Enable sound."""
-        async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await self.coordinator.client.publish_command("set_sound_param", {"enable": 1})
-        self._is_on = True
-        self.async_write_ha_state()
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Disable sound."""
-        async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await self.coordinator.client.publish_command("set_sound_param", {"enable": 0})
-        self._is_on = False
-        self.async_write_ha_state()
+        super().__init__(coordinator, "sound_enable", "set_sound_param", payload_key="enable")

@@ -114,15 +114,9 @@ def _to_float(value: Any) -> float | None:
 
 def _extract_float(data: Any) -> float | None:
     """Best-effort numeric extraction from feedback payloads."""
-    if isinstance(data, bool):
-        return None
-    if isinstance(data, (int, float)):
-        return float(data)
-    if isinstance(data, str) and data.strip():
-        try:
-            return float(data)
-        except ValueError:
-            return None
+    scalar = _to_float(data)
+    if scalar is not None:
+        return scalar
     if isinstance(data, dict):
         for key in ("value", "current", "speed", "temp", "temperature", "data"):
             value = data.get(key)
@@ -207,7 +201,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._debug_logging: bool = entry.options.get(
             OPT_DEBUG_LOGGING, DEFAULT_DEBUG_LOGGING
         )
-        self._apply_debug_logging(self._debug_logging)
+        if self._debug_logging:
+            self._apply_debug_logging(True)
 
         # MQTT recorder for diagnostics
         storage_dir = Path(hass.config.config_dir)

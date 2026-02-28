@@ -336,13 +336,13 @@
       "manual_controller": {
         "name": "Manual Controller"
       },
-    "rain_detected": {
-      "name": "Rain Detected"
+      "rain_detected": {
+        "name": "Rain Detected"
+      },
+      "no_charge_period": {
+        "name": "No-Charge Period"
+      }
     },
-    "no_charge_period": {
-      "name": "No-Charge Period"
-    }
-  },
     "button": {
       "beep": {
         "name": "Beep"
@@ -365,28 +365,28 @@
       "emergency_unlock": {
         "name": "Emergency Unlock"
       },
-    "play_sound": {
-      "name": "Play Sound"
+      "play_sound": {
+        "name": "Play Sound"
+      },
+      "shutdown": {
+        "name": "Shutdown"
+      },
+      "restart": {
+        "name": "Restart"
+      },
+      "manual_stop": {
+        "name": "Manual Stop"
+      },
+      "save_charging_point": {
+        "name": "Save Charging Point"
+      },
+      "start_hotspot": {
+        "name": "Start Hotspot"
+      },
+      "save_map_backup": {
+        "name": "Save Map Backup"
+      }
     },
-    "shutdown": {
-      "name": "Shutdown"
-    },
-    "restart": {
-      "name": "Restart"
-    },
-    "manual_stop": {
-      "name": "Manual Stop"
-    },
-    "save_charging_point": {
-      "name": "Save Charging Point"
-    },
-    "start_hotspot": {
-      "name": "Start Hotspot"
-    },
-    "save_map_backup": {
-      "name": "Save Map Backup"
-    }
-  },
     "event": {
       "events": {
         "name": "Events",
@@ -439,76 +439,76 @@
       "buzzer": {
         "name": "Buzzer"
       },
-    "person_detect": {
-      "name": "Person Detection"
+      "person_detect": {
+        "name": "Person Detection"
+      },
+      "roller": {
+        "name": "Roller"
+      },
+      "heating_film": {
+        "name": "Heating Film"
+      },
+      "follow_mode": {
+        "name": "Follow Mode"
+      },
+      "auto_update": {
+        "name": "Auto Update"
+      },
+      "camera_ota": {
+        "name": "Camera OTA"
+      },
+      "trimmer": {
+        "name": "Trimmer"
+      },
+      "camera": {
+        "name": "Camera"
+      },
+      "laser": {
+        "name": "Laser"
+      },
+      "usb": {
+        "name": "USB"
+      },
+      "ignore_obstacles": {
+        "name": "Ignore Obstacles"
+      },
+      "draw_mode": {
+        "name": "Draw Mode"
+      },
+      "module_lock": {
+        "name": "Module Lock"
+      },
+      "wire_charging_lock": {
+        "name": "Wire Charging Lock"
+      },
+      "smart_blowing": {
+        "name": "Smart Blowing"
+      },
+      "edge_blowing": {
+        "name": "Edge Blowing"
+      },
+      "motor_protect": {
+        "name": "Motor Protection"
+      },
+      "mower_head_sensor": {
+        "name": "Mower Head Sensor"
+      },
+      "roof_lights": {
+        "name": "Roof Lights"
+      },
+      "sound_enable": {
+        "name": "Sound"
+      }
     },
-    "roller": {
-      "name": "Roller"
-    },
-    "heating_film": {
-      "name": "Heating Film"
-    },
-    "follow_mode": {
-      "name": "Follow Mode"
-    },
-    "auto_update": {
-      "name": "Auto Update"
-    },
-    "camera_ota": {
-      "name": "Camera OTA"
-    },
-    "trimmer": {
-      "name": "Trimmer"
-    },
-    "camera": {
-      "name": "Camera"
-    },
-    "laser": {
-      "name": "Laser"
-    },
-    "usb": {
-      "name": "USB"
-    },
-    "ignore_obstacles": {
-      "name": "Ignore Obstacles"
-    },
-    "draw_mode": {
-      "name": "Draw Mode"
-    },
-    "module_lock": {
-      "name": "Module Lock"
-    },
-    "wire_charging_lock": {
-      "name": "Wire Charging Lock"
-    },
-    "smart_blowing": {
-      "name": "Smart Blowing"
-    },
-    "edge_blowing": {
-      "name": "Edge Blowing"
-    },
-    "motor_protect": {
-      "name": "Motor Protection"
-    },
-    "mower_head_sensor": {
-      "name": "Mower Head Sensor"
-    },
-    "roof_lights": {
-      "name": "Roof Lights"
-    },
-    "sound_enable": {
-      "name": "Sound"
-    }
-  },
     "number": {
-    "chute_velocity": {
-      "name": "Chute Velocity"
-    },
-    "chute_steering_work": {
-      "name": "Chute Steering (Work)"
-    },
-    "blade_height": {
-      "name": "Blade Height"
+      "chute_velocity": {
+        "name": "Chute Velocity"
+      },
+      "chute_steering_work": {
+        "name": "Chute Steering (Work)"
+      },
+      "blade_height": {
+        "name": "Blade Height"
       },
       "blade_speed": {
         "name": "Blade Speed"
@@ -536,13 +536,13 @@
       "work_plan": {
         "name": "Work Plan"
       },
-    "turn_type": {
-      "name": "Turn Type"
+      "turn_type": {
+        "name": "Turn Type"
+      },
+      "snow_push_direction": {
+        "name": "Snow Push Direction"
+      }
     },
-    "snow_push_direction": {
-      "name": "Snow Push Direction"
-    }
-  },
     "device_tracker": {
       "location": {
         "name": "Location"
