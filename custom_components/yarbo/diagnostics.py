@@ -63,14 +63,18 @@ async def async_get_config_entry_diagnostics(
             "serial_number": _redact_sn(getattr(client, "serial_number", "")),
         },
     }
-    
+
     if hasattr(coordinator, "recorder"):
         diagnostics["mqtt_recording"] = {
             "enabled": coordinator.recorder.enabled,
-            "path": str(coordinator.recorder.recording_path) if coordinator.recorder.recording_path else None,
+            "path": (
+                str(coordinator.recorder.recording_path)
+                if coordinator.recorder.recording_path
+                else None
+            ),
             "files": [str(p) for p in coordinator.recorder.list_recordings()[:5]],
         }
-    
+
     return diagnostics
 
 

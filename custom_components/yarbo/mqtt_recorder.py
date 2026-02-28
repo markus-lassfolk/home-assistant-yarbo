@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 _LOGGER = logging.getLogger(__name__)
@@ -49,9 +49,9 @@ class MqttRecorder:
 
         self._dir.mkdir(parents=True, exist_ok=True)
         safe_serial = self._serial[-8:] if len(self._serial) > 8 else self._serial
-        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         self._current_path = self._dir / f"yarbo_{safe_serial}_{ts}.jsonl"
-        self._file = open(self._current_path, "a", encoding="utf-8")  # noqa: SIM115
+        self._file = open(self._current_path, "a", encoding="utf-8")
         self._bytes_written = (
             self._current_path.stat().st_size if self._current_path.exists() else 0
         )
@@ -61,7 +61,7 @@ class MqttRecorder:
         self._write_entry("META", "recording_start", {
             "serial": self._serial,
             "max_size_bytes": self._max_size,
-            "started_at": datetime.now(timezone.utc).isoformat(),
+            "started_at": datetime.now(UTC).isoformat(),
         })
         return self._current_path
 
@@ -69,7 +69,7 @@ class MqttRecorder:
         if not self._enabled:
             return
         self._write_entry("META", "recording_stop", {
-            "stopped_at": datetime.now(timezone.utc).isoformat(),
+            "stopped_at": datetime.now(UTC).isoformat(),
             "bytes_written": self._bytes_written,
         })
         self._enabled = False
@@ -119,7 +119,7 @@ class MqttRecorder:
             payload_out = payload
 
         entry: dict = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "dir": direction,
             "topic": topic,
             "payload": payload_out,
@@ -149,7 +149,7 @@ class MqttRecorder:
             if self._current_path.exists():
                 self._current_path.rename(rotated)
 
-        self._file = open(self._current_path, "a", encoding="utf-8")  # noqa: SIM115
+        self._file = open(self._current_path, "a", encoding="utf-8")
         self._bytes_written = 0
         _LOGGER.info("MQTT recording rotated: %s", self._current_path)
 

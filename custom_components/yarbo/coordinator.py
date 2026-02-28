@@ -6,9 +6,9 @@ import asyncio
 import contextlib
 import json
 import logging
-from pathlib import Path
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -18,7 +18,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from yarbo import YarboLocalClient
 from yarbo.exceptions import YarboConnectionError
 
-from .mqtt_recorder import MqttRecorder
 from .const import (
     CONF_ALTERNATE_BROKER_HOST,
     CONF_BROKER_ENDPOINTS,
@@ -26,23 +25,25 @@ from .const import (
     CONF_BROKER_PORT,
     CONF_CONNECTION_PATH,
     CONF_ROBOT_NAME,
+    CONF_ROBOT_SERIAL,
     CONF_ROVER_IP,
     DATA_CLIENT,
     DEFAULT_BROKER_PORT,
+    DEFAULT_DEBUG_LOGGING,
+    DEFAULT_MQTT_RECORDING,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
     ENDPOINT_TYPE_DC,
     ENDPOINT_TYPE_ROVER,
     HEARTBEAT_TIMEOUT_SECONDS,
-    OPT_DEBUG_LOGGING,
-    DEFAULT_DEBUG_LOGGING,
-    OPT_MQTT_RECORDING,
-    DEFAULT_MQTT_RECORDING,
     MQTT_RECORDING_MAX_SIZE_BYTES,
+    OPT_DEBUG_LOGGING,
+    OPT_MQTT_RECORDING,
     OPT_TELEMETRY_THROTTLE,
     TELEMETRY_RETRY_DELAY_SECONDS,
 )
 from .models import YarboTelemetry
+from .mqtt_recorder import MqttRecorder
 from .repairs import (
     async_create_controller_lost_issue,
     async_create_mqtt_disconnect_issue,
