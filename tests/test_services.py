@@ -22,6 +22,7 @@ def mock_client_and_coordinator() -> tuple[AsyncMock, MagicMock]:
     client.publish_command = AsyncMock()
 
     coordinator = MagicMock()
+    coordinator.client = client
     coordinator.command_lock = asyncio.Lock()
     telemetry = MagicMock()
     telemetry.head_type = HEAD_TYPE_SNOW_BLOWER
@@ -125,8 +126,10 @@ class TestStartPlanService:
         """start_plan calls get_controller before publish_command."""
         client, coordinator = mock_client_and_coordinator
         call_order: list[str] = []
-        client.get_controller.side_effect = lambda **_kw: call_order.append("get_controller")
-        client.publish_command.side_effect = lambda *_a, **_kw: call_order.append("publish_command")
+        async def _get_controller(**_kw): call_order.append("get_controller")
+        client.get_controller.side_effect = _get_controller
+        async def _publish(*_a, **_kw): call_order.append("publish_command")
+        client.publish_command.side_effect = _publish
 
         with patch(
             "custom_components.yarbo.services._get_client_and_coordinator",
