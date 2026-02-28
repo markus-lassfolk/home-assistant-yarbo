@@ -106,8 +106,16 @@ class MqttRecorder:
             if not self._file:
                 return
 
-            if self._bytes_written >= self._max_size:
-                self._rotate()
+            try:
+                if self._bytes_written >= self._max_size:
+                    self._rotate()
+            except OSError as err:
+                _LOGGER.warning("Failed to rotate MQTT recording: %s", err)
+                self._enabled = False
+                if self._file:
+                    self._file.close()
+                    self._file = None
+                return
 
             if isinstance(payload, bytes):
                 try:

@@ -525,23 +525,45 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         command: str,
         payload: dict[str, Any],
         timeout: float,
+        skip_lock: bool = False,
     ) -> dict[str, Any]:
-        """Publish a command and await matching data_feedback."""
-        async with self.command_lock:
+        """Publish a command and await matching data_feedback.
+        
+        Args:
+            command: MQTT command name
+            payload: Command payload
+            timeout: Response timeout in seconds
+            skip_lock: If True, skip command_lock acquisition (for low-priority diagnostics)
+        """
+        if skip_lock:
             await self.client.publish_command(command, payload)
             if self._recorder.enabled:
-                await self.hass.async_add_executor_job(
-                    self._recorder.record_tx, command, payload or {}
-                )
+                try:
+                    await self.hass.async_add_executor_job(
+                        self._recorder.record_tx, command, payload or {}
+                    )
+                except Exception as rec_err:
+                    _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
             response = await self._await_data_feedback(command, timeout)
+        else:
+            async with self.command_lock:
+                await self.client.publish_command(command, payload)
+                if self._recorder.enabled:
+                    try:
+                        await self.hass.async_add_executor_job(
+                            self._recorder.record_tx, command, payload or {}
+                        )
+                    except Exception as rec_err:
+                        _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
+                response = await self._await_data_feedback(command, timeout)
         if not isinstance(response, dict):
             return {}
         return response
 
-    async def get_wifi_name(self, timeout: float = 5.0) -> str | None:
+    async def get_wifi_name(self, timeout: float = 5.0, skip_lock: bool = False) -> str | None:
         """Request the connected WiFi network name."""
         # ✅ Verified 2026-02-28: returns SSID, IP, signal
-        response = await self._request_data_feedback("get_connect_wifi_name", {}, timeout)
+        response = await self._request_data_feedback("get_connect_wifi_name", {}, timeout, skip_lock)
         data = response.get("data", response)
         name: str | None = None
         if isinstance(data, dict):
@@ -555,10 +577,10 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._wifi_name = name
         return name
 
-    async def get_battery_cell_temps(self, timeout: float = 5.0) -> tuple[float | None, ...]:
+    async def get_battery_cell_temps(self, timeout: float = 5.0, skip_lock: bool = False) -> tuple[float | None, ...]:
         """Request battery cell temperature stats (min, max, avg)."""
         # ❓ No response while idle — may need active state
-        response = await self._request_data_feedback("battery_cell_temp_msg", {}, timeout)
+        response = await self._request_data_feedback("battery_cell_temp_msg", {}, timeout, skip_lock)
         data = response.get("data", response)
         min_val = max_val = avg_val = None
 
@@ -597,10 +619,10 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._battery_cell_temp_avg = avg_val
         return min_val, max_val, avg_val
 
-    async def get_odometer(self, timeout: float = 5.0) -> float | None:
+    async def get_odometer(self, timeout: float = 5.0, skip_lock: bool = False) -> float | None:
         """Request odometer distance (meters)."""
         # ❓ No response while idle — may need active state
-        response = await self._request_data_feedback("odometer_msg", {}, timeout)
+        response = await self._request_data_feedback("odometer_msg", {}, timeout, skip_lock)
         data = response.get("data", response)
         odometer_m: float | None = None
         if isinstance(data, dict):
@@ -629,10 +651,10 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._odometer_m = odometer_m
         return odometer_m
 
-    async def get_no_charge_period(self, timeout: float = 5.0) -> dict[str, Any]:
+    async def get_no_charge_period(self, timeout: float = 5.0, skip_lock: bool = False) -> dict[str, Any]:
         """Request no-charge period settings."""
         # ✅ Verified 2026-02-28: returns data_feedback
-        response = await self._request_data_feedback("read_no_charge_period", {}, timeout)
+        response = await self._request_data_feedback("read_no_charge_period", {}, timeout, skip_lock)
         data = response.get("data", response)
         active: bool | None = None
         start_time: str | None = None
@@ -682,10 +704,10 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._no_charge_period_periods = periods
         return response if isinstance(response, dict) else {}
 
-    async def get_schedules(self, timeout: float = 5.0) -> list[Any]:
+    async def get_schedules(self, timeout: float = 5.0, skip_lock: bool = False) -> list[Any]:
         """Request schedules list."""
         # ❓ No response while idle — may need active state
-        response = await self._request_data_feedback("read_schedules", {}, timeout)
+        response = await self._request_data_feedback("read_schedules", {}, timeout, skip_lock)
         data = response.get("data", response)
         schedules: list[Any] = []
         if isinstance(data, list):
@@ -699,50 +721,50 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._schedules = schedules
         return schedules
 
-    async def get_body_current(self, timeout: float = 5.0) -> float | None:
+    async def get_body_current(self, timeout: float = 5.0, skip_lock: bool = False) -> float | None:
         """Request body current (A)."""
         # ❓ No response while idle — may need active state
-        response = await self._request_data_feedback("body_current_msg", {}, timeout)
+        response = await self._request_data_feedback("body_current_msg", {}, timeout, skip_lock)
         data = response.get("data", response)
         self._body_current = _extract_float(data)
         return self._body_current
 
-    async def get_head_current(self, timeout: float = 5.0) -> float | None:
+    async def get_head_current(self, timeout: float = 5.0, skip_lock: bool = False) -> float | None:
         """Request head current (A)."""
         # ❓ No response while idle — may need active state
-        response = await self._request_data_feedback("head_current_msg", {}, timeout)
+        response = await self._request_data_feedback("head_current_msg", {}, timeout, skip_lock)
         data = response.get("data", response)
         self._head_current = _extract_float(data)
         return self._head_current
 
-    async def get_speed(self, timeout: float = 5.0) -> float | None:
+    async def get_speed(self, timeout: float = 5.0, skip_lock: bool = False) -> float | None:
         """Request speed (m/s)."""
         # ❓ No response while idle — may need active state
-        response = await self._request_data_feedback("speed_msg", {}, timeout)
+        response = await self._request_data_feedback("speed_msg", {}, timeout, skip_lock)
         data = response.get("data", response)
         self._speed_m_s = _extract_float(data)
         return self._speed_m_s
 
-    async def get_product_code(self, timeout: float = 5.0) -> str | None:
+    async def get_product_code(self, timeout: float = 5.0, skip_lock: bool = False) -> str | None:
         """Request product code."""
         # ❓ No response while idle — may need active state
-        response = await self._request_data_feedback("product_code_msg", {}, timeout)
+        response = await self._request_data_feedback("product_code_msg", {}, timeout, skip_lock)
         data = response.get("data", response)
         self._product_code = _extract_text(data, ("product_code", "product", "code"))
         return self._product_code
 
-    async def get_hub_info(self, timeout: float = 5.0) -> str | None:
+    async def get_hub_info(self, timeout: float = 5.0, skip_lock: bool = False) -> str | None:
         """Request hub info."""
         # ❓ No response while idle — may need active state
-        response = await self._request_data_feedback("hub_info", {}, timeout)
+        response = await self._request_data_feedback("hub_info", {}, timeout, skip_lock)
         data = response.get("data", response)
         self._hub_info = _extract_text(data, ("hub_info", "info", "hub"))
         return self._hub_info
 
-    async def get_recharge_point(self, timeout: float = 5.0) -> str | None:
+    async def get_recharge_point(self, timeout: float = 5.0, skip_lock: bool = False) -> str | None:
         """Request recharge point status."""
         # ❓ No response while idle — may need active state
-        response = await self._request_data_feedback("read_recharge_point", {}, timeout)
+        response = await self._request_data_feedback("read_recharge_point", {}, timeout, skip_lock)
         data = response.get("data", response)
         status: str | None = None
         details: dict[str, Any] | None = None
@@ -774,10 +796,10 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._recharge_point_details = details
         return status
 
-    async def get_wifi_list(self, timeout: float = 5.0) -> list[Any]:
+    async def get_wifi_list(self, timeout: float = 5.0, skip_lock: bool = False) -> list[Any]:
         """Request available WiFi list."""
         # ❓ No response while idle — may need active state
-        response = await self._request_data_feedback("get_wifi_list", {}, timeout)
+        response = await self._request_data_feedback("get_wifi_list", {}, timeout, skip_lock)
         data = response.get("data", response)
         wifi_list: list[Any] = []
         if isinstance(data, list):
@@ -791,10 +813,10 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._wifi_list = wifi_list
         return wifi_list
 
-    async def get_map_backups(self, timeout: float = 5.0) -> list[Any]:
+    async def get_map_backups(self, timeout: float = 5.0, skip_lock: bool = False) -> list[Any]:
         """Request map backup list."""
         # ❓ No response while idle — may need active state
-        response = await self._request_data_feedback("get_all_map_backup", {}, timeout)
+        response = await self._request_data_feedback("get_all_map_backup", {}, timeout, skip_lock)
         data = response.get("data", response)
         backups: list[Any] = []
         if isinstance(data, list):
@@ -808,12 +830,12 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._map_backups = backups
         return backups
 
-    async def get_clean_areas(self, timeout: float = 5.0) -> list[Any]:
+    async def get_clean_areas(self, timeout: float = 5.0, skip_lock: bool = False) -> list[Any]:
         """Request clean area list."""
         # Verified against live robot: "read_clean_area" is the correct command.
         # "read_all_clean_area" and "readCleanArea" are silently ignored.
         # ✅ Verified 2026-02-28: correct (not read_all_clean_area or readCleanArea)
-        response = await self._request_data_feedback("read_clean_area", {}, timeout)
+        response = await self._request_data_feedback("read_clean_area", {}, timeout, skip_lock)
         data = response.get("data", response)
         areas: list[Any] = []
         if isinstance(data, list):
@@ -827,10 +849,10 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._clean_areas = areas
         return areas
 
-    async def get_motor_temp(self, timeout: float = 5.0) -> float | None:
+    async def get_motor_temp(self, timeout: float = 5.0, skip_lock: bool = False) -> float | None:
         """Request motor temperature (°C)."""
         # ❓ No response while idle — may need active state
-        response = await self._request_data_feedback("motor_temp_samp", {}, timeout)
+        response = await self._request_data_feedback("motor_temp_samp", {}, timeout, skip_lock)
         data = response.get("data", response)
         self._motor_temp_c = _extract_float(data)
         return self._motor_temp_c
@@ -912,11 +934,14 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     self._last_seen = now
                     # Record raw telemetry for diagnostics
                     if self._recorder.enabled:
-                        await self.hass.async_add_executor_job(
-                            self._recorder.record_rx,
-                            "telemetry",
-                            telemetry.raw if hasattr(telemetry, "raw") else str(telemetry),
-                        )
+                        try:
+                            await self.hass.async_add_executor_job(
+                                self._recorder.record_rx,
+                                "telemetry",
+                                telemetry.raw if hasattr(telemetry, "raw") else str(telemetry),
+                            )
+                        except Exception as rec_err:
+                            _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
                     if now - self._last_update < self._throttle_interval:
                         continue
                     self._last_update = now
@@ -1061,8 +1086,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         Runs every 300 seconds to fetch non-streaming data like wifi, battery temps,
         odometer, etc. Does not modify self.data, only updates internal state.
         
-        Uses a reduced timeout (1.0s) to minimize blocking user commands, since many
-        diagnostic commands do not respond when the robot is idle/docked.
+        Uses skip_lock=True to avoid blocking user commands during diagnostic polling.
         """
         try:
             while True:
@@ -1087,7 +1111,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     ]
                     for method in diagnostic_methods:
                         try:
-                            await method(timeout=1.0)
+                            await method(timeout=1.0, skip_lock=True)
                         except Exception as err:
                             _LOGGER.debug("Diagnostic request failed (non-fatal): %s", err)
                     self.async_update_listeners()
