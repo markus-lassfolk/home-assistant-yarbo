@@ -69,7 +69,7 @@ try:
 except ImportError:  # pragma: no cover
     YarboCloudClient = None
 
-from .const import (
+from .const import (  # noqa: E402
     CONF_ALTERNATE_BROKER_HOST,
     CONF_BROKER_ENDPOINTS,
     CONF_BROKER_HOST,
@@ -94,8 +94,8 @@ from .const import (
     OPT_CLOUD_ENABLED,
     OPT_TELEMETRY_THROTTLE,
 )
-from .discovery import YarboEndpoint, async_discover_endpoints
-from .repairs import async_delete_cloud_token_expired_issue
+from .discovery import YarboEndpoint, async_discover_endpoints  # noqa: E402
+from .repairs import async_delete_cloud_token_expired_issue  # noqa: E402
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -282,10 +282,11 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                 c.connect(host, port, keepalive=10)
                 c.loop_start()
                 got_telemetry.wait(timeout=timeout)
-                c.loop_stop()
-                c.disconnect()
             except Exception:
                 pass
+            finally:
+                c.loop_stop()
+                c.disconnect()
             return (result["sn"], result["name"])
 
         try:
