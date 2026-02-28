@@ -166,7 +166,7 @@ class YarboShutdownButton(YarboButton):
         super().__init__(coordinator, "shutdown")
 
     async def async_press(self) -> None:
-        # TODO: Verify command name against live robot — APK may use "shutdownYarbo" instead
+        # Verified: "shutdown" is correct (tested live). Powers off completely — requires physical restart!
         await self._send_command("shutdown", {})
 
 
