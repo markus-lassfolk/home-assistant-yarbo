@@ -218,7 +218,7 @@ class YarboBladeSpeedNumber(YarboEntity, NumberEntity):
 class YarboBlowerSpeedNumber(YarboEntity, NumberEntity):
     """Leaf blower speed control."""
 
-    # ❓ Unverified: no response while idle. cmd_roller also rejected. Needs active-state testing.
+    # ❌ DISABLED: command name "blower_speed" confirmed wrong by live testing (see coordinator.py)
     _attr_translation_key = "blower_speed"
     _attr_native_min_value = 1.0
     _attr_native_max_value = 10.0
@@ -226,9 +226,9 @@ class YarboBlowerSpeedNumber(YarboEntity, NumberEntity):
     _attr_mode = NumberMode.SLIDER
     _attr_icon = "mdi:weather-windy"
     _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        # ❓ Unverified while idle; cmd_roller also rejected. Needs active-state testing.
         super().__init__(coordinator, "blower_speed")
         self._current_speed: float = 1.0
 
@@ -250,7 +250,6 @@ class YarboBlowerSpeedNumber(YarboEntity, NumberEntity):
         """Set blower speed."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            # ❓ Unverified while idle. MQTT docs list cmd_roller for roller speed.
             await self.coordinator.client.publish_command(
                 "blower_speed",
                 {"speed": int(value)},
@@ -327,6 +326,7 @@ class YarboPlanStartPercentNumber(YarboEntity, NumberEntity):
 class YarboRollerSpeedNumber(YarboEntity, NumberEntity):
     """Roller/blade RPM control for lawn mower heads (bug #4 — replaces roller switch)."""
 
+    # ❌ DISABLED: command name "cmd_roller" confirmed wrong by live testing (see coordinator.py)
     _attr_translation_key = "roller_speed"
     _attr_native_min_value = 0.0
     _attr_native_max_value = 3500.0
@@ -334,6 +334,7 @@ class YarboRollerSpeedNumber(YarboEntity, NumberEntity):
     _attr_mode = NumberMode.SLIDER
     _attr_icon = "mdi:saw-blade"
     _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "roller_speed")
@@ -358,7 +359,7 @@ class YarboRollerSpeedNumber(YarboEntity, NumberEntity):
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
             await self.coordinator.client.publish_command(
-                "cmd_roller",  # ❓ Unverified while idle; needs active-state testing
+                "cmd_roller",
                 {"speed": int(value)},
             )
         self._current_speed = value

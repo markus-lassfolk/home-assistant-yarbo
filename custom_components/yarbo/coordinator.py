@@ -535,7 +535,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             timeout: Response timeout in seconds
             skip_lock: If True, skip command_lock acquisition (for low-priority diagnostics)
         """
-        if skip_lock:
+        async def _execute_command():
             await self.client.publish_command(command, payload)
             if self._recorder.enabled:
                 try:
@@ -544,18 +544,14 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     )
                 except Exception as rec_err:
                     _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
-            response = await self._await_data_feedback(command, timeout)
+            return await self._await_data_feedback(command, timeout)
+        
+        if skip_lock:
+            response = await _execute_command()
         else:
             async with self.command_lock:
-                await self.client.publish_command(command, payload)
-                if self._recorder.enabled:
-                    try:
-                        await self.hass.async_add_executor_job(
-                            self._recorder.record_tx, command, payload or {}
-                        )
-                    except Exception as rec_err:
-                        _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
-                response = await self._await_data_feedback(command, timeout)
+                response = await _execute_command()
+        
         if not isinstance(response, dict):
             return {}
         return response

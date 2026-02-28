@@ -68,17 +68,32 @@ class MqttRecorder:
         return self._current_path
 
     def stop(self) -> None:
-        if not self._enabled:
-            return
-        self._write_entry("META", "recording_stop", {
-            "stopped_at": datetime.now(UTC).isoformat(),
-            "bytes_written": self._bytes_written,
-        })
         with self._write_lock:
-            self._enabled = False
+            if not self._enabled:
+                return
+            
             if self._file:
+                entry = {
+                    "ts": datetime.now(UTC).isoformat(),
+                    "dir": "META",
+                    "topic": "recording_stop",
+                    "payload": {
+                        "stopped_at": datetime.now(UTC).isoformat(),
+                        "bytes_written": self._bytes_written,
+                    },
+                }
+                line = json.dumps(entry, ensure_ascii=False, default=str) + "\n"
+                try:
+                    self._file.write(line)
+                    self._file.flush()
+                    self._bytes_written += len(line.encode("utf-8"))
+                except OSError as err:
+                    _LOGGER.warning("Failed to write final MQTT recording entry: %s", err)
+                
                 self._file.close()
                 self._file = None
+            
+            self._enabled = False
             _LOGGER.info(
                 "MQTT recording stopped: %s (%.1f KB)",
                 self._current_path,
