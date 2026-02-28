@@ -45,6 +45,18 @@ start_plan:
       example: "abc123-def456"
       selector:
         text:
+    percent:
+      name: Start percent
+      description: >
+        Percentage of the plan to start from (0–100). Defaults to the value
+        configured in the Number entity.
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          unit_of_measurement: "%"
 
 pause:
   name: Pause current job
@@ -230,13 +242,10 @@ delete_plan:
           integration: yarbo
     plan_id:
       name: Plan ID
-      description: Numeric plan id to delete.
+      description: Plan ID to delete (string or UUID — must match exactly).
       required: true
       selector:
-        number:
-          min: 0
-          max: 2147483647
-          mode: box
+        text:
 
 delete_all_plans:
   name: Delete all plans
