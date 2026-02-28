@@ -168,7 +168,7 @@ class YarboConnectionSensor(YarboSensor):
     @property
     def native_value(self) -> str:
         """Return connection path label with active IP, e.g. 'Data Center (<dc-ip>)'."""
-        entry = self.coordinator._entry
+        entry = self.coordinator.entry
         # Prefer the active client's host (reflects failover); fall back to entry data
         host = (
             getattr(self.coordinator.client, "host", None) or entry.data.get(CONF_BROKER_HOST) or ""
@@ -185,7 +185,7 @@ class YarboConnectionSensor(YarboSensor):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return rover_ip when known (other endpoint for info)."""
-        entry = self.coordinator._entry
+        entry = self.coordinator.entry
         rover_ip = entry.data.get(CONF_ROVER_IP)
         if not rover_ip:
             return {}

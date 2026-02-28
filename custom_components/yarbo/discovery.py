@@ -1,7 +1,12 @@
-"""Discover Yarbo MQTT endpoints via python-yarbo (Rover vs DC).
+"""Discover Yarbo MQTT endpoints (Rover vs DC).
 
-This module only delegates to the python-yarbo library. All discovery logic,
-Rover/DC classification, and broker verification live in the library.
+This module attempts to discover Yarbo MQTT brokers using the python-yarbo
+library's discover() API when available. When the library provides no discovery,
+it falls back to scanning the local ARP table via 'ip neigh' for devices with
+the Yarbo OUI (C8:FE:0F). Discovered hosts are normalized to YarboEndpoint
+objects with colon-delimited MACs and a canonical endpoint_type. If discovery
+yields no results, a seed_host (e.g. from DHCP) is used as a single fallback
+endpoint so the config flow can still proceed.
 See: https://github.com/markus-lassfolk/home-assistant-yarbo/issues/50
 """
 
@@ -90,7 +95,8 @@ async def _discover_from_arp(port: int = DEFAULT_BROKER_PORT) -> list[YarboEndpo
     endpoints: list[YarboEndpoint] = []
     try:
         proc = await asyncio.create_subprocess_exec(
-            "ip", "neigh",
+            "ip",
+            "neigh",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL,
         )
@@ -109,7 +115,7 @@ async def _discover_from_arp(port: int = DEFAULT_BROKER_PORT) -> list[YarboEndpo
                             YarboEndpoint(
                                 host=ip,
                                 port=port,
-                                mac=mac.replace(":", ""),
+                                mac=mac,  # already colon-delimited from 'ip neigh'
                                 endpoint_type=ENDPOINT_TYPE_UNKNOWN,
                                 recommended=False,
                             )

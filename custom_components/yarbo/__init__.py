@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import SOURCE_DHCP, ConfigEntry
 from homeassistant.const import __version__
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -56,7 +56,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             hass.async_create_task(
                 hass.config_entries.flow.async_init(
                     DOMAIN,
-                    context={"source": "dhcp"},
+                    context={"source": SOURCE_DHCP},
                     data={"ip": ep.host, "macaddress": ep.mac or "", "hostname": "yarbo"},
                 )
             )

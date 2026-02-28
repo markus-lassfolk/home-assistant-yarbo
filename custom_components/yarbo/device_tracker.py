@@ -52,9 +52,7 @@ class YarboDeviceTracker(YarboEntity, TrackerEntity):
 
             charging_status = getattr(telemetry, "charging_status", None)
             if charging_status is None:
-                charging_status = get_nested_raw_value(
-                    telemetry, "StateMSG", "charging_status"
-                )
+                charging_status = get_nested_raw_value(telemetry, "StateMSG", "charging_status")
             if charging_status in (1, 2, 3):
                 self._attr_location_name = STATE_HOME
             else:

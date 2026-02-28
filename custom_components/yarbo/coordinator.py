@@ -23,10 +23,13 @@ from .const import (
     CONF_BROKER_PORT,
     CONF_CONNECTION_PATH,
     CONF_ROBOT_NAME,
+    CONF_ROVER_IP,
     DATA_CLIENT,
     DEFAULT_BROKER_PORT,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
+    ENDPOINT_TYPE_DC,
+    ENDPOINT_TYPE_ROVER,
     HEARTBEAT_TIMEOUT_SECONDS,
     OPT_TELEMETRY_THROTTLE,
     TELEMETRY_RETRY_DELAY_SECONDS,
@@ -196,11 +199,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             if plan_id is None or name is None:
                 continue
             area_ids_raw = plan.get("areaIds") or []
-            area_ids = (
-                list(area_ids_raw)
-                if isinstance(area_ids_raw, list)
-                else [str(area_ids_raw)]
-            )
+            area_ids = list(area_ids_raw) if isinstance(area_ids_raw, list) else [str(area_ids_raw)]
             summaries.append(PlanSummary(plan_id=plan_id, name=str(name), area_ids=area_ids))
         self._plan_summaries = summaries
         self._plan_by_id = {plan.plan_id: plan for plan in summaries}
@@ -258,9 +257,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             return {}
         return response
 
-    async def _await_data_feedback(
-        self, topic: str, timeout: float
-    ) -> dict[str, Any] | None:
+    async def _await_data_feedback(self, topic: str, timeout: float) -> dict[str, Any] | None:
         """Await a data_feedback response for a command, if supported."""
         waiter = getattr(self.client, "wait_for_data_feedback", None)
         if callable(waiter):
@@ -354,12 +351,14 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                             # Persist current host so next failover uses it
                             new_data = dict(self._entry.data)
                             new_data[CONF_BROKER_HOST] = next_host
-                            # Update connection path: swap current label on failover
-                            current_path = self._entry.data.get(CONF_CONNECTION_PATH, "")
-                            if current_path == "dc":
-                                new_data[CONF_CONNECTION_PATH] = "rover"
-                            elif current_path == "rover":
-                                new_data[CONF_CONNECTION_PATH] = "dc"
+                            # Update connection path based on actual endpoint metadata
+                            rover_ip = self._entry.data.get(CONF_ROVER_IP)
+                            if rover_ip:
+                                if next_host == rover_ip:
+                                    new_data[CONF_CONNECTION_PATH] = ENDPOINT_TYPE_ROVER
+                                else:
+                                    new_data[CONF_CONNECTION_PATH] = ENDPOINT_TYPE_DC
+                            # If rover_ip unknown, leave connection path unchanged
                             self.hass.config_entries.async_update_entry(self._entry, data=new_data)
                             # Disconnect old client; suppress errors to avoid leaking
                             with contextlib.suppress(Exception):
@@ -370,6 +369,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         except Exception as ctrl_err:
                             _LOGGER.warning("Failover controller acquisition failed: %s", ctrl_err)
                         _LOGGER.info("Failover to %s succeeded", next_host)
+                        await asyncio.sleep(2)
                         continue
                     except Exception as connect_err:
                         _LOGGER.warning(

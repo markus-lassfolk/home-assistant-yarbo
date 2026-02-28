@@ -108,7 +108,17 @@ class YarboAllLightsGroup(YarboLight):
         """Turn off all lights."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.set_lights(YarboLightState.all_off())
+            await self.coordinator.client.set_lights(
+                YarboLightState(
+                    led_head=0,
+                    led_left_w=0,
+                    led_right_w=0,
+                    body_left_r=0,
+                    body_right_r=0,
+                    tail_left_r=0,
+                    tail_right_r=0,
+                )
+            )
             for channel in self.coordinator.light_state:
                 self.coordinator.light_state[channel] = 0
         self._brightness = 0
