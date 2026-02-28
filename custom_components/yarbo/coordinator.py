@@ -116,9 +116,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     On connection error, the loop retries after TELEMETRY_RETRY_DELAY_SECONDS.
 
-    The update_interval (300s) triggers periodic diagnostic polling for wifi,
-    battery cell temps, odometer, and other non-streaming data via
-    _async_update_data(). Core telemetry continues via the push stream.
+    A separate diagnostic polling task runs every 60s to fetch wifi, battery cell
+    temps, odometer, and other non-streaming data. Core telemetry continues via
+    the push stream without interruption.
 
     Repair issues managed here:
     - mqtt_disconnect: raised by _heartbeat_watchdog when no telemetry for > 60s
@@ -133,22 +133,19 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     ) -> None:
         """Initialize the coordinator.
 
-        Push-based telemetry with periodic diagnostic polling (update_interval=300s).
+        Push-based telemetry with periodic diagnostic polling in a separate task.
         Core telemetry updates are triggered by incoming MQTT messages.
         """
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            # Periodic refresh for diagnostic requests (wifi, battery temps, odometer).
-            # 300s is a reasonable interval — frequent enough to stay current,
-            # infrequent enough to give the robot sleep time between requests.
-            update_interval=timedelta(seconds=300),
         )
         self.client = client
         self._entry = entry
         self._telemetry_task: asyncio.Task[None] | None = None
         self._watchdog_task: asyncio.Task[None] | None = None
+        self._diagnostic_task: asyncio.Task[None] | None = None
         self._last_update: float = 0.0
         self._last_seen: float = 0.0
         self._issue_active = False
@@ -448,9 +445,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         timeout: float,
     ) -> dict[str, Any]:
         """Publish a command and await matching data_feedback."""
-        async with self.command_lock:
-            await self.client.publish_command(command, payload)
-            response = await self._await_data_feedback(command, timeout)
+        await self.client.publish_command(command, payload)
+        response = await self._await_data_feedback(command, timeout)
         if not isinstance(response, dict):
             return {}
         return response
@@ -763,6 +759,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             self._telemetry_task = asyncio.create_task(self._telemetry_loop())
         if self._watchdog_task is None:
             self._watchdog_task = asyncio.create_task(self._heartbeat_watchdog())
+        if self._diagnostic_task is None:
+            self._diagnostic_task = asyncio.create_task(self._diagnostic_polling_loop())
 
     async def _telemetry_loop(self) -> None:
         """Listen to python-yarbo telemetry stream and push updates.
@@ -895,38 +893,50 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             raise
 
     async def _async_update_data(self) -> YarboTelemetry:
-        """Periodic diagnostic poll — called every 60s by the coordinator framework.
+        """Fallback status fetch for initial data load.
 
         In normal operation, core telemetry arrives via _telemetry_loop() using
-        async_set_updated_data(). This method handles non-streaming diagnostic
-        requests. All diagnostic calls run in parallel; individual failures are
-        logged but do not block the status fetch.
+        async_set_updated_data(). This method only runs once at startup to provide
+        initial data before the push stream is established.
         """
         try:
-            diagnostic_coros = [
-                self.get_wifi_name(),
-                self.get_battery_cell_temps(),
-                self.get_odometer(),
-                self.get_no_charge_period(),
-                self.get_schedules(),
-                self.get_body_current(),
-                self.get_head_current(),
-                self.get_speed(),
-                self.get_product_code(),
-                self.get_hub_info(),
-                self.get_recharge_point(),
-                self.get_wifi_list(),
-                self.get_map_backups(),
-                self.get_clean_areas(),
-                self.get_motor_temp(),
-            ]
-            results = await asyncio.gather(*diagnostic_coros, return_exceptions=True)
-            for result in results:
-                if isinstance(result, Exception):
-                    _LOGGER.debug("Diagnostic request failed (non-fatal): %s", result)
             return await self.client.get_status(timeout=5.0)
         except YarboConnectionError as err:
             raise UpdateFailed(f"Cannot connect to Yarbo: {err}") from err
+
+    async def _diagnostic_polling_loop(self) -> None:
+        """Periodically poll diagnostic data without overwriting push-stream telemetry.
+
+        Runs every 60 seconds to fetch non-streaming data like wifi, battery temps,
+        odometer, etc. Does not modify self.data, only updates internal state.
+        """
+        try:
+            while True:
+                await asyncio.sleep(60)
+                diagnostic_coros = [
+                    self.get_wifi_name(),
+                    self.get_battery_cell_temps(),
+                    self.get_odometer(),
+                    self.get_no_charge_period(),
+                    self.get_schedules(),
+                    self.get_body_current(),
+                    self.get_head_current(),
+                    self.get_speed(),
+                    self.get_product_code(),
+                    self.get_hub_info(),
+                    self.get_recharge_point(),
+                    self.get_wifi_list(),
+                    self.get_map_backups(),
+                    self.get_clean_areas(),
+                    self.get_motor_temp(),
+                ]
+                results = await asyncio.gather(*diagnostic_coros, return_exceptions=True)
+                for result in results:
+                    if isinstance(result, Exception):
+                        _LOGGER.debug("Diagnostic request failed (non-fatal): %s", result)
+        except asyncio.CancelledError:
+            _LOGGER.debug("Diagnostic polling loop cancelled")
+            raise
 
     async def async_config_entry_first_refresh(self) -> None:
         """Start push telemetry before the first refresh."""
@@ -945,4 +955,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             with contextlib.suppress(asyncio.CancelledError):
                 await self._watchdog_task
             self._watchdog_task = None
+        if self._diagnostic_task:
+            self._diagnostic_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._diagnostic_task
+            self._diagnostic_task = None
         await super().async_shutdown()
