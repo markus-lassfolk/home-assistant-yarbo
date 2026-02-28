@@ -77,6 +77,7 @@ class YarboReturnToDockButton(YarboButton):
         super().__init__(coordinator, "return_to_dock")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("cmd_recharge", {})
 
 
@@ -89,6 +90,7 @@ class YarboPauseButton(YarboButton):
         super().__init__(coordinator, "pause")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("planning_paused", {})
 
 
@@ -101,6 +103,7 @@ class YarboResumeButton(YarboButton):
         super().__init__(coordinator, "resume")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("resume", {})
 
 
@@ -113,6 +116,7 @@ class YarboStopButton(YarboButton):
         super().__init__(coordinator, "stop")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("dstop", {})
 
 
@@ -126,6 +130,7 @@ class YarboEmergencyStopButton(YarboButton):
         super().__init__(coordinator, "emergency_stop")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("emergency_stop_active", {})
 
 
@@ -139,6 +144,7 @@ class YarboEmergencyUnlockButton(YarboButton):
         super().__init__(coordinator, "emergency_unlock")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("emergency_unlock", {})
 
 
@@ -152,6 +158,7 @@ class YarboPlaySoundButton(YarboButton):
         super().__init__(coordinator, "play_sound")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("song_cmd", {"songId": 0})
 
 
@@ -181,6 +188,7 @@ class YarboRestartButton(YarboButton):
         super().__init__(coordinator, "restart")
 
     async def async_press(self) -> None:
+        # ✅ Verified 2026-02-28: correct command, restarts EMQX container
         await self._send_command("restart_container", {})
 
 
@@ -194,6 +202,7 @@ class YarboManualStopButton(YarboButton):
         super().__init__(coordinator, "manual_stop")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("cmd_vel", {"vel": 0, "rev": 0})
 
 
@@ -208,6 +217,7 @@ class YarboSaveChargingPointButton(YarboButton):
         super().__init__(coordinator, "save_charging_point")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("save_charging_point", {})
 
 
@@ -222,6 +232,7 @@ class YarboStartHotspotButton(YarboButton):
         super().__init__(coordinator, "start_hotspot")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("start_hotspot", {})
 
 
@@ -236,4 +247,5 @@ class YarboSaveMapBackupButton(YarboButton):
         super().__init__(coordinator, "save_map_backup")
 
     async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("save_map_backup", {})

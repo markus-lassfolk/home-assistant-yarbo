@@ -159,6 +159,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
             await client.publish_command("start_plan", {"planId": plan_id, "percent": percent})
 
     async def handle_pause(call: ServiceCall) -> None:
@@ -167,6 +168,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
             await client.publish_command("planning_paused", {})
 
     async def handle_resume(call: ServiceCall) -> None:
@@ -175,6 +177,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
             await client.publish_command("resume", {})
 
     async def handle_return_to_dock(call: ServiceCall) -> None:
@@ -183,6 +186,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
             await client.publish_command("cmd_recharge", {})
 
     async def handle_set_lights(call: ServiceCall) -> None:
@@ -240,6 +244,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
             await client.publish_command("cmd_vel", {"vel": linear, "rev": angular})
 
     async def handle_go_to_waypoint(call: ServiceCall) -> None:
@@ -251,6 +256,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
             await client.publish_command("start_way_point", {"index": index})
 
     async def handle_delete_plan(call: ServiceCall) -> None:
@@ -262,6 +268,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
             await client.publish_command("del_plan", {"planId": plan_id})
 
     async def handle_delete_all_plans(call: ServiceCall) -> None:
@@ -272,6 +279,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
+            # 🔇 Fire-and-forget: no data_feedback response
             await client.publish_command("del_all_plan", {})
 
     services = {

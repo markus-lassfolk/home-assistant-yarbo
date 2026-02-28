@@ -161,6 +161,7 @@ class YarboPersonDetectSwitch(YarboEntity, SwitchEntity):
         """Enable person detection."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # ⚠️ Verified 2026-02-28: recognized but returns state=-1 (may need camera)
             await self.coordinator.client.publish_command("set_person_detect", {"enable": 1})
         self._is_on = True
         self.async_write_ha_state()
@@ -169,6 +170,7 @@ class YarboPersonDetectSwitch(YarboEntity, SwitchEntity):
         """Disable person detection."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # ⚠️ Verified 2026-02-28: recognized but returns state=-1 (may need camera)
             await self.coordinator.client.publish_command("set_person_detect", {"enable": 0})
         self._is_on = False
         self.async_write_ha_state()
@@ -270,6 +272,7 @@ class YarboCameraSwitch(YarboEntity, SwitchEntity):
         """Enable the camera."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
             await self.coordinator.client.publish_command("camera_toggle", {"enabled": True})
         self._is_on = True
         self.async_write_ha_state()
@@ -278,6 +281,7 @@ class YarboCameraSwitch(YarboEntity, SwitchEntity):
         """Disable the camera."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
             await self.coordinator.client.publish_command("camera_toggle", {"enabled": False})
         self._is_on = False
         self.async_write_ha_state()
@@ -305,6 +309,7 @@ class YarboLaserSwitch(YarboEntity, SwitchEntity):
         """Enable the laser."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
             await self.coordinator.client.publish_command("laser_toggle", {"enabled": True})
         self._is_on = True
         self.async_write_ha_state()
@@ -313,6 +318,7 @@ class YarboLaserSwitch(YarboEntity, SwitchEntity):
         """Disable the laser."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
             await self.coordinator.client.publish_command("laser_toggle", {"enabled": False})
         self._is_on = False
         self.async_write_ha_state()
@@ -340,6 +346,7 @@ class YarboUsbSwitch(YarboEntity, SwitchEntity):
         """Enable USB power."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
             await self.coordinator.client.publish_command("usb_toggle", {"enabled": True})
         self._is_on = True
         self.async_write_ha_state()
@@ -348,6 +355,7 @@ class YarboUsbSwitch(YarboEntity, SwitchEntity):
         """Disable USB power."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
             await self.coordinator.client.publish_command("usb_toggle", {"enabled": False})
         self._is_on = False
         self.async_write_ha_state()
@@ -520,6 +528,7 @@ class YarboRoofLightsSwitch(YarboEntity, SwitchEntity):
         """Enable roof lights."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
             await self.coordinator.client.publish_command("roof_lights_enable", {"enable": 1})
         self._is_on = True
         self.async_write_ha_state()
@@ -528,6 +537,7 @@ class YarboRoofLightsSwitch(YarboEntity, SwitchEntity):
         """Disable roof lights."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
             await self.coordinator.client.publish_command("roof_lights_enable", {"enable": 0})
         self._is_on = False
         self.async_write_ha_state()
@@ -555,6 +565,7 @@ class YarboSoundEnableSwitch(YarboEntity, SwitchEntity):
         """Enable sound."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
             await self.coordinator.client.publish_command("set_sound_param", {"enable": 1})
         self._is_on = True
         self.async_write_ha_state()
@@ -563,6 +574,7 @@ class YarboSoundEnableSwitch(YarboEntity, SwitchEntity):
         """Disable sound."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
             await self.coordinator.client.publish_command("set_sound_param", {"enable": 0})
         self._is_on = False
         self.async_write_ha_state()

@@ -41,6 +41,41 @@ from .repairs import (
     async_delete_mqtt_disconnect_issue,
 )
 
+# ──────────────────────────────────────────────────────────────────────
+# MQTT Command Verification Status (tested live 2026-02-28, SN 24400102L8HO5227)
+#
+# ✅ CONFIRMED (data_feedback response received):
+#   get_controller        → {"state": 0, "msg": "Successfully connected..."}
+#   shutdown              → {"state": 0, "msg": "success"} — POWERS OFF ROBOT!
+#   restart_container     → {"state": 0, "msg": "Container restarted successfully."}
+#   read_clean_area       → {"state": -2} when no areas (command recognized)
+#   ignore_obstacles      → {"state": 0} with payload {"state": int}
+#   read_no_charge_period → {"state": 0, "data": []}
+#   get_connect_wifi_name → {"state": 0, "data": {"name":"LWLML-IOT","ip":"..."}}
+#
+# ⚠️ RECOGNIZED BUT ERROR:
+#   set_person_detect     → {"state": -1} — may require camera hardware
+#
+# 🔇 FIRE-AND-FORGET (no data_feedback, execute silently):
+#   head_light, roof_lights_enable, laser_toggle, camera_toggle,
+#   set_sound_param, song_cmd, usb_toggle, cmd_vel, cmd_recharge,
+#   planning_paused, resume, dstop, emergency_stop_active,
+#   emergency_unlock, save_charging_point, start_hotspot,
+#   save_map_backup, in_plan_action, start_plan, del_plan,
+#   del_all_plan, start_way_point
+#
+# ❓ NO RESPONSE WHILE IDLE (may need active/mowing state):
+#   battery_cell_temp_msg, motor_temp_samp, body_current_msg,
+#   head_current_msg, speed_msg, odometer_msg, product_code_msg,
+#   hub_info, get_wifi_list, read_recharge_point, get_all_map_backup,
+#   read_schedules, read_all_plan, read_plan
+#
+# ❌ WRONG NAMES (silently ignored by robot):
+#   obstacle_toggle, setIgnoreObstacle, read_all_clean_area,
+#   readCleanArea, shutdownYarbo, restart_yarbo_system,
+#   cmd_roller, blower_speed, set_roller_speed
+# ──────────────────────────────────────────────────────────────────────
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -379,6 +414,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def read_all_plans(self, timeout: float = 5.0) -> list[PlanSummary]:
         """Read all plan summaries from the robot."""
+        # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("read_all_plan", {}, timeout)
         data = response.get("data") if isinstance(response, dict) else None
         plans = data if isinstance(data, list) else []
@@ -400,6 +436,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def read_plan(self, plan_id: str | int, timeout: float = 5.0) -> dict[str, Any]:
         """Read a specific plan detail and update remaining time."""
+        # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("read_plan", {"id": plan_id}, timeout)
         detail: dict[str, Any] = {}
         if isinstance(response, dict):
@@ -436,6 +473,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             raise ValueError(f"Unsupported plan action: {action}")
         async with self.command_lock:
             await self.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
             await self.client.publish_command("in_plan_action", {"action": action})
 
     async def _request_data_feedback(
@@ -454,6 +492,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_wifi_name(self, timeout: float = 5.0) -> str | None:
         """Request the connected WiFi network name."""
+        # ✅ Verified 2026-02-28: returns SSID, IP, signal
         response = await self._request_data_feedback("get_connect_wifi_name", {}, timeout)
         data = response.get("data", response)
         name: str | None = None
@@ -470,6 +509,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_battery_cell_temps(self, timeout: float = 5.0) -> tuple[float | None, ...]:
         """Request battery cell temperature stats (min, max, avg)."""
+        # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("battery_cell_temp_msg", {}, timeout)
         data = response.get("data", response)
         min_val = max_val = avg_val = None
@@ -509,6 +549,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_odometer(self, timeout: float = 5.0) -> float | None:
         """Request odometer distance (meters)."""
+        # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("odometer_msg", {}, timeout)
         data = response.get("data", response)
         odometer_m: float | None = None
@@ -540,6 +581,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_no_charge_period(self, timeout: float = 5.0) -> dict[str, Any]:
         """Request no-charge period settings."""
+        # ✅ Verified 2026-02-28: returns data_feedback
         response = await self._request_data_feedback("read_no_charge_period", {}, timeout)
         data = response.get("data", response)
         active: bool | None = None
@@ -592,6 +634,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_schedules(self, timeout: float = 5.0) -> list[Any]:
         """Request schedules list."""
+        # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("read_schedules", {}, timeout)
         data = response.get("data", response)
         schedules: list[Any] = []
@@ -608,6 +651,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_body_current(self, timeout: float = 5.0) -> float | None:
         """Request body current (A)."""
+        # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("body_current_msg", {}, timeout)
         data = response.get("data", response)
         self._body_current = _extract_float(data)
@@ -615,6 +659,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_head_current(self, timeout: float = 5.0) -> float | None:
         """Request head current (A)."""
+        # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("head_current_msg", {}, timeout)
         data = response.get("data", response)
         self._head_current = _extract_float(data)
@@ -622,6 +667,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_speed(self, timeout: float = 5.0) -> float | None:
         """Request speed (m/s)."""
+        # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("speed_msg", {}, timeout)
         data = response.get("data", response)
         self._speed_m_s = _extract_float(data)
@@ -629,6 +675,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_product_code(self, timeout: float = 5.0) -> str | None:
         """Request product code."""
+        # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("product_code_msg", {}, timeout)
         data = response.get("data", response)
         self._product_code = _extract_text(data, ("product_code", "product", "code"))
@@ -636,6 +683,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_hub_info(self, timeout: float = 5.0) -> str | None:
         """Request hub info."""
+        # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("hub_info", {}, timeout)
         data = response.get("data", response)
         self._hub_info = _extract_text(data, ("hub_info", "info", "hub"))
@@ -643,6 +691,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_recharge_point(self, timeout: float = 5.0) -> str | None:
         """Request recharge point status."""
+        # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("read_recharge_point", {}, timeout)
         data = response.get("data", response)
         status: str | None = None
@@ -677,6 +726,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_wifi_list(self, timeout: float = 5.0) -> list[Any]:
         """Request available WiFi list."""
+        # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("get_wifi_list", {}, timeout)
         data = response.get("data", response)
         wifi_list: list[Any] = []
@@ -693,6 +743,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_map_backups(self, timeout: float = 5.0) -> list[Any]:
         """Request map backup list."""
+        # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("get_all_map_backup", {}, timeout)
         data = response.get("data", response)
         backups: list[Any] = []
@@ -711,6 +762,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Request clean area list."""
         # Verified against live robot: "read_clean_area" is the correct command.
         # "read_all_clean_area" and "readCleanArea" are silently ignored.
+        # ✅ Verified 2026-02-28: correct (not read_all_clean_area or readCleanArea)
         response = await self._request_data_feedback("read_clean_area", {}, timeout)
         data = response.get("data", response)
         areas: list[Any] = []
@@ -727,6 +779,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_motor_temp(self, timeout: float = 5.0) -> float | None:
         """Request motor temperature (°C)."""
+        # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("motor_temp_samp", {}, timeout)
         data = response.get("data", response)
         self._motor_temp_c = _extract_float(data)

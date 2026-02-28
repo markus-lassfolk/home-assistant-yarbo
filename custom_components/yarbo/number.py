@@ -165,6 +165,7 @@ class YarboBladeHeightNumber(YarboEntity, NumberEntity):
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
             await self.coordinator.client.publish_command(
+                # 🔇 Fire-and-forget: no data_feedback response
                 "set_blade_height",
                 {"height": int(value)},
             )
@@ -206,6 +207,7 @@ class YarboBladeSpeedNumber(YarboEntity, NumberEntity):
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
             await self.coordinator.client.publish_command(
+                # 🔇 Fire-and-forget: no data_feedback response
                 "set_blade_speed",
                 {"speed": int(value)},
             )
@@ -216,6 +218,7 @@ class YarboBladeSpeedNumber(YarboEntity, NumberEntity):
 class YarboBlowerSpeedNumber(YarboEntity, NumberEntity):
     """Leaf blower speed control."""
 
+    # ❓ Unverified: no response while idle. cmd_roller also rejected. Needs active-state testing.
     _attr_translation_key = "blower_speed"
     _attr_native_min_value = 1.0
     _attr_native_max_value = 10.0
@@ -225,6 +228,7 @@ class YarboBlowerSpeedNumber(YarboEntity, NumberEntity):
     _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        # ❓ Unverified: no response while idle. cmd_roller also rejected. Needs active-state testing.
         super().__init__(coordinator, "blower_speed")
         self._current_speed: float = 1.0
 
@@ -246,9 +250,11 @@ class YarboBlowerSpeedNumber(YarboEntity, NumberEntity):
         """Set blower speed."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
+            # ❓ Unverified: no response while idle. cmd_roller also rejected. Needs active-state testing.
             # Note: "blower_speed" is unverified. MQTT docs list "cmd_roller" for roller speed.
             # Could not test while robot on charger (head-specific commands may require active state).
             await self.coordinator.client.publish_command(
+                # ❓ Unverified: no response while idle. cmd_roller also rejected. Needs active-state testing.
                 "blower_speed",
                 {"speed": int(value)},
             )
@@ -281,6 +287,7 @@ class YarboVolumeNumber(YarboEntity, NumberEntity):
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
             await self.coordinator.client.publish_command(
+                # 🔇 Fire-and-forget: no data_feedback response
                 "set_sound_param",
                 {"vol": int(value)},
             )
@@ -354,6 +361,7 @@ class YarboRollerSpeedNumber(YarboEntity, NumberEntity):
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
             await self.coordinator.client.publish_command(
+                # ❓ Unverified: no response while idle. blower_speed also rejected. Needs active-state testing.
                 "cmd_roller",
                 {"speed": int(value)},
             )
@@ -387,6 +395,7 @@ class YarboBatteryChargeMinNumber(YarboEntity, NumberEntity):
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
             await self.coordinator.client.publish_command(
+                # 🔇 Fire-and-forget: untested
                 "set_charge_limit",
                 {"min": int(value)},
             )
@@ -420,6 +429,7 @@ class YarboBatteryChargeMaxNumber(YarboEntity, NumberEntity):
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
             await self.coordinator.client.publish_command(
+                # 🔇 Fire-and-forget: untested
                 "set_charge_limit",
                 {"max": int(value)},
             )
