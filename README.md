@@ -18,7 +18,7 @@ Local-first Home Assistant integration for [Yarbo](https://www.yarbo.com/) — t
 |---|---|---|
 | Latency | 2–10 s | **< 100 ms** |
 | Works offline | ❌ | **✅** |
-| Multi-head | N/A | **✅ snow / mow / leaf / SAM** |
+| Multi-head | Same | **✅ snow / mow / leaf / SAM** |
 | RTK GPS | ❌ | **✅** |
 | LED control (7 ch) | ❌ | **✅** |
 | Weather blueprints | ❌ | **✅ (4 shipped)** |
