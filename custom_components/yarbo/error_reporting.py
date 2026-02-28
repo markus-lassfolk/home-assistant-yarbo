@@ -7,6 +7,10 @@ import os
 
 _LOGGER = logging.getLogger(__name__)
 
+# Default DSN for the Yarbo HA integration GlitchTip project.
+# Opt-out: set YARBO_SENTRY_DSN="" to disable error reporting.
+_DEFAULT_DSN = "https://c9d816d9a8714ac288e86b49c683b533@villapolly.duckdns.org/4"
+
 
 def init_error_reporting(
     dsn: str | None = None,
@@ -16,12 +20,15 @@ def init_error_reporting(
 ) -> None:
     """Initialize Sentry/GlitchTip error reporting for the Yarbo HA integration.
 
-    Opt-in only: no data is sent unless YARBO_SENTRY_DSN is explicitly set.
-    To enable, set the YARBO_SENTRY_DSN environment variable to your project DSN.
+    Enabled by default during the beta — errors are reported to help identify
+    and fix bugs. No PII is collected; credentials are scrubbed before sending.
+
+    To disable, set the YARBO_SENTRY_DSN environment variable to an empty string.
+    To use a custom DSN, set YARBO_SENTRY_DSN to your project DSN.
 
     Args:
-        dsn: Sentry DSN. If None, falls back to YARBO_SENTRY_DSN env var.
-             No default is provided — reporting is disabled unless DSN is explicitly set.
+        dsn: Sentry DSN override. If None, falls back to YARBO_SENTRY_DSN env var,
+             then to the built-in default DSN.
         environment: Environment tag (production/development/testing).
         enabled: Master switch. If False, no SDK initialization occurs.
         tags: Optional extra tags (e.g. robot_serial, ha_version, integration_version).
@@ -29,12 +36,15 @@ def init_error_reporting(
     if not enabled:
         return
 
-    # Resolve DSN: explicit arg > YARBO_SENTRY_DSN env var
-    # No hardcoded default — opt-in only
-    effective_dsn = dsn or os.environ.get("YARBO_SENTRY_DSN")
+    # Resolve DSN: explicit arg > YARBO_SENTRY_DSN env var > built-in default
+    env_dsn = os.environ.get("YARBO_SENTRY_DSN")
+    if env_dsn is not None and env_dsn == "":
+        # Explicit opt-out: YARBO_SENTRY_DSN="" disables reporting
+        _LOGGER.debug("Error reporting explicitly disabled via YARBO_SENTRY_DSN=\"\"")
+        return
+    effective_dsn = dsn or env_dsn or _DEFAULT_DSN
 
     if not effective_dsn:
-        # No DSN configured — error reporting disabled (opt-in model)
         return
 
     try:

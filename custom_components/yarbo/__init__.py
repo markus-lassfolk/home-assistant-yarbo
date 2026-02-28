@@ -111,7 +111,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         pass
 
-    # Opt-in error reporting: only active if YARBO_SENTRY_DSN env var is set
+    # Opt-out error reporting: set YARBO_SENTRY_DSN="" to disable
     _serial = entry.data.get(CONF_ROBOT_SERIAL, "unknown")
     init_error_reporting(
         tags={
