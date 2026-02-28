@@ -159,6 +159,28 @@ def is_active_operation(telemetry: YarboTelemetry | None) -> bool:
     return get_activity_state(telemetry) == "working"
 
 
+def validate_head_type_for_command(
+    command: str, current_head_type: int | None
+) -> tuple[bool, str | None]:
+    """Validate if current head type matches command requirements.
+
+    Args:
+        command: The normalized command name
+        current_head_type: The current head type from telemetry (or None)
+
+    Returns:
+        Tuple of (is_valid, error_message). If valid, error_message is None.
+        If invalid, error_message contains a human-readable error string.
+    """
+    required_head = required_head_type_for_command(command)
+    if required_head is None:
+        return (True, None)
+    if current_head_type == required_head:
+        return (True, None)
+    head_name = HEAD_TYPE_NAMES.get(required_head, str(required_head))
+    return (False, f"Command {command} requires head type {head_name}")
+
+
 # Light channel names (for LED control)
 LIGHT_CHANNEL_HEAD = "led_head"
 LIGHT_CHANNEL_LEFT_W = "led_left_w"

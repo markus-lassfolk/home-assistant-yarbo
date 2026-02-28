@@ -13,9 +13,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import (
     DATA_COORDINATOR,
     DOMAIN,
-    HEAD_TYPE_NAMES,
     normalize_command_name,
-    required_head_type_for_command,
+    validate_head_type_for_command,
 )
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
@@ -48,15 +47,11 @@ class YarboButton(YarboEntity, ButtonEntity):
 
     async def _send_command(self, command: str, payload: dict[str, Any]) -> None:
         normalized_command = normalize_command_name(command)
-        required_head = required_head_type_for_command(normalized_command)
-        if required_head is not None:
-            telemetry = self.telemetry
-            current_head = telemetry.head_type if telemetry else None
-            if current_head != required_head:
-                head_name = HEAD_TYPE_NAMES.get(required_head, str(required_head))
-                raise HomeAssistantError(
-                    f"Command {normalized_command} requires head type {head_name}"
-                )
+        telemetry = self.telemetry
+        current_head = telemetry.head_type if telemetry else None
+        is_valid, error_message = validate_head_type_for_command(normalized_command, current_head)
+        if not is_valid:
+            raise HomeAssistantError(error_message)
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
             await self.coordinator.client.publish_command(normalized_command, payload)

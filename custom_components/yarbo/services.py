@@ -17,10 +17,9 @@ from .const import (
     DATA_COORDINATOR,
     DEFAULT_AUTO_CONTROLLER,
     DOMAIN,
-    HEAD_TYPE_NAMES,
     OPT_AUTO_CONTROLLER,
     normalize_command_name,
-    required_head_type_for_command,
+    validate_head_type_for_command,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -123,15 +122,11 @@ def async_register_services(hass: HomeAssistant) -> None:
             payload,
         )
         client, coordinator = _get_client_and_coordinator(hass, device_id)
-        required_head = required_head_type_for_command(normalized_command)
-        if required_head is not None:
-            telemetry = getattr(coordinator, "data", None)
-            current_head = getattr(telemetry, "head_type", None) if telemetry else None
-            if current_head != required_head:
-                head_name = HEAD_TYPE_NAMES.get(required_head, str(required_head))
-                raise ServiceValidationError(
-                    f"Command {normalized_command} requires head type {head_name}"
-                )
+        telemetry = getattr(coordinator, "data", None)
+        current_head = getattr(telemetry, "head_type", None) if telemetry else None
+        is_valid, error_message = validate_head_type_for_command(normalized_command, current_head)
+        if not is_valid:
+            raise ServiceValidationError(error_message)
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
