@@ -18,6 +18,8 @@ from .const import (
     DEFAULT_AUTO_CONTROLLER,
     DOMAIN,
     OPT_AUTO_CONTROLLER,
+    normalize_command_name,
+    validate_head_type_for_command,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -139,15 +141,24 @@ def async_register_services(hass: HomeAssistant) -> None:
         device_id: str = call.data["device_id"]
         command: str = call.data["command"]
         payload: dict[str, Any] = call.data.get("payload") or {}
+        normalized_command = normalize_command_name(command)
         _LOGGER.debug(
-            "yarbo.send_command: device=%s command=%s payload=%s", device_id, command, payload
+            "yarbo.send_command: device=%s command=%s payload=%s",
+            device_id,
+            normalized_command,
+            payload,
         )
         _, coordinator = _get_client_and_coordinator(hass, device_id)
+        telemetry = getattr(coordinator, "data", None)
+        current_head = getattr(telemetry, "head_type", None) if telemetry else None
+        is_valid, error_message = validate_head_type_for_command(normalized_command, current_head)
+        if not is_valid:
+            raise ServiceValidationError(error_message)
         async with coordinator.command_lock:
             client = coordinator.client
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            await client.publish_raw(command, payload)
+            await client.publish_raw(normalized_command, payload)
 
     async def handle_start_plan(call: ServiceCall) -> None:
         """Handle yarbo.start_plan — start a saved work plan by ID."""

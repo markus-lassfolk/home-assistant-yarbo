@@ -159,7 +159,7 @@ class TestYarboPersonDetectSwitch:
 
     @pytest.mark.asyncio
     async def test_turn_on_publishes_enable(self) -> None:
-        """turn_on publishes set_person_detect enable=1."""
+        """turn_on publishes set_person_detect disable=False."""
         coord = _make_coordinator()
         entity = YarboPersonDetectSwitch(coord)
 
@@ -167,12 +167,14 @@ class TestYarboPersonDetectSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("set_person_detect", {"enable": 1})
+        coord.client.publish_command.assert_called_once_with(
+            "set_person_detect", {"disable": False}
+        )
         assert entity.is_on is True
 
     @pytest.mark.asyncio
     async def test_turn_off_publishes_disable(self) -> None:
-        """turn_off publishes set_person_detect enable=0."""
+        """turn_off publishes set_person_detect disable=True."""
         coord = _make_coordinator()
         entity = YarboPersonDetectSwitch(coord)
 
@@ -180,7 +182,7 @@ class TestYarboPersonDetectSwitch:
             await entity.async_turn_on()
             await entity.async_turn_off()
 
-        coord.client.publish_command.assert_called_with("set_person_detect", {"enable": 0})
+        coord.client.publish_command.assert_called_with("set_person_detect", {"disable": True})
         assert entity.is_on is False
 
 

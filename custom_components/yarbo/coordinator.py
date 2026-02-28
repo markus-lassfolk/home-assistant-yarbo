@@ -41,6 +41,9 @@ from .const import (
     OPT_MQTT_RECORDING,
     OPT_TELEMETRY_THROTTLE,
     TELEMETRY_RETRY_DELAY_SECONDS,
+    is_active_only_diagnostic_command,
+    is_active_operation,
+    normalize_command_name,
 )
 from .models import YarboTelemetry
 from .mqtt_recorder import MqttRecorder
@@ -536,25 +539,37 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             payload: Command payload
             timeout: Response timeout in seconds
             skip_lock: If True, skip command_lock acquisition (for low-priority diagnostics)
+
+        Note: diagnostic commands in ACTIVE_ONLY_DIAGNOSTIC_COMMANDS only
+        respond while the robot is actively working, so requests are skipped
+        when the robot is idle or charging.
         """
+        normalized_command = normalize_command_name(command)
+        if is_active_only_diagnostic_command(normalized_command) and not is_active_operation(
+            self.data
+        ):
+            _LOGGER.debug(
+                "Skipping %s data_feedback: robot not in active operation state",
+                normalized_command,
+            )
+            return {}
 
         async def _execute_command() -> Any:
-            await self.client.publish_command(command, payload)
+            await self.client.publish_command(normalized_command, payload)
             if self._recorder.enabled:
                 try:
                     await self.hass.async_add_executor_job(
-                        self._recorder.record_tx, command, payload or {}
+                        self._recorder.record_tx, normalized_command, payload or {}
                     )
                 except Exception as rec_err:
                     _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
-            return await self._await_data_feedback(command, timeout)
+            return await self._await_data_feedback(normalized_command, timeout)
 
         if skip_lock:
             response = await _execute_command()
         else:
             async with self.command_lock:
                 response = await _execute_command()
-
         if not isinstance(response, dict):
             return {}
         return response

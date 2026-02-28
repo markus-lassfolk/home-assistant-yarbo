@@ -7,6 +7,7 @@ from typing import Any
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -17,6 +18,8 @@ from .const import (
     HEAD_TYPE_LAWN_MOWER_PRO,
     HEAD_TYPE_LEAF_BLOWER,
     HEAD_TYPE_TRIMMER,
+    normalize_command_name,
+    validate_head_type_for_command,
 )
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
@@ -120,10 +123,18 @@ class YarboCommandSwitch(YarboEntity, SwitchEntity):
         return self._is_on
 
     async def _publish(self, value: int | bool) -> None:
+        normalized_command = normalize_command_name(self._command)
+        telemetry = self.telemetry
+        current_head = telemetry.head_type if telemetry else None
+        is_valid, error_message = validate_head_type_for_command(
+            normalized_command, current_head
+        )
+        if not is_valid:
+            raise HomeAssistantError(error_message)
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
             await self.coordinator.client.publish_command(
-                self._command,
+                normalized_command,
                 {self._payload_key: value},
             )
 
@@ -148,9 +159,14 @@ class YarboPersonDetectSwitch(YarboCommandSwitch):
     _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "person_detect", "set_person_detect", payload_key="enable")
-
-
+        super().__init__(
+            coordinator,
+            "person_detect",
+            "set_person_detect",
+            payload_key="disable",
+            on_value=False,
+            off_value=True,
+        )
 class YarboHeatingFilmSwitch(YarboCommandSwitch):
     """Heating film toggle."""
 
