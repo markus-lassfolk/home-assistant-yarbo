@@ -46,30 +46,31 @@ class MqttRecorder:
         return self._current_path
 
     def start(self) -> Path:
-        if self._enabled and self._current_path:
+        with self._write_lock:
+            if self._enabled and self._current_path:
+                return self._current_path
+
+            self._dir.mkdir(parents=True, exist_ok=True)
+            safe_serial = self._serial[-8:] if len(self._serial) > 8 else self._serial
+            ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+            self._current_path = self._dir / f"yarbo_{safe_serial}_{ts}.jsonl"
+            self._file = open(self._current_path, "a", encoding="utf-8")
+            self._bytes_written = (
+                self._current_path.stat().st_size if self._current_path.exists() else 0
+            )
+            self._enabled = True
+
+            _LOGGER.info("MQTT recording started: %s", self._current_path)
+            self._write_entry_unlocked(
+                "META",
+                "recording_start",
+                {
+                    "serial": self._serial,
+                    "max_size_bytes": self._max_size,
+                    "started_at": datetime.now(UTC).isoformat(),
+                },
+            )
             return self._current_path
-
-        self._dir.mkdir(parents=True, exist_ok=True)
-        safe_serial = self._serial[-8:] if len(self._serial) > 8 else self._serial
-        ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-        self._current_path = self._dir / f"yarbo_{safe_serial}_{ts}.jsonl"
-        self._file = open(self._current_path, "a", encoding="utf-8")
-        self._bytes_written = (
-            self._current_path.stat().st_size if self._current_path.exists() else 0
-        )
-        self._enabled = True
-
-        _LOGGER.info("MQTT recording started: %s", self._current_path)
-        self._write_entry(
-            "META",
-            "recording_start",
-            {
-                "serial": self._serial,
-                "max_size_bytes": self._max_size,
-                "started_at": datetime.now(UTC).isoformat(),
-            },
-        )
-        return self._current_path
 
     def stop(self) -> None:
         with self._write_lock:
@@ -122,49 +123,58 @@ class MqttRecorder:
         raw_len: int = 0,
     ) -> None:
         with self._write_lock:
-            if not self._file:
-                return
+            self._write_entry_unlocked(direction, topic, payload, raw_len)
 
+    def _write_entry_unlocked(
+        self,
+        direction: str,
+        topic: str,
+        payload: dict | str | bytes,
+        raw_len: int = 0,
+    ) -> None:
+        if not self._file:
+            return
+
+        try:
+            if self._bytes_written >= self._max_size:
+                self._rotate()
+        except OSError as err:
+            _LOGGER.warning("Failed to rotate MQTT recording: %s", err)
+            self._enabled = False
+            if self._file:
+                self._file.close()
+                self._file = None
+            return
+
+        if isinstance(payload, bytes):
             try:
-                if self._bytes_written >= self._max_size:
-                    self._rotate()
-            except OSError as err:
-                _LOGGER.warning("Failed to rotate MQTT recording: %s", err)
-                self._enabled = False
-                if self._file:
-                    self._file.close()
-                    self._file = None
-                return
-
-            if isinstance(payload, bytes):
-                try:
-                    payload_out: dict | str = json.loads(payload)
-                except (json.JSONDecodeError, UnicodeDecodeError):
-                    payload_out = payload.hex()
-            elif isinstance(payload, str):
-                try:
-                    payload_out = json.loads(payload)
-                except json.JSONDecodeError:
-                    payload_out = payload
-            else:
+                payload_out: dict | str = json.loads(payload)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                payload_out = payload.hex()
+        elif isinstance(payload, str):
+            try:
+                payload_out = json.loads(payload)
+            except json.JSONDecodeError:
                 payload_out = payload
+        else:
+            payload_out = payload
 
-            entry: dict = {
-                "ts": datetime.now(UTC).isoformat(),
-                "dir": direction,
-                "topic": topic,
-                "payload": payload_out,
-            }
-            if raw_len:
-                entry["raw_len"] = raw_len
+        entry: dict = {
+            "ts": datetime.now(UTC).isoformat(),
+            "dir": direction,
+            "topic": topic,
+            "payload": payload_out,
+        }
+        if raw_len:
+            entry["raw_len"] = raw_len
 
-            line = json.dumps(entry, ensure_ascii=False, default=str) + "\n"
-            try:
-                self._file.write(line)
-                self._file.flush()
-                self._bytes_written += len(line.encode("utf-8"))
-            except OSError as err:
-                _LOGGER.warning("Failed to write MQTT recording: %s", err)
+        line = json.dumps(entry, ensure_ascii=False, default=str) + "\n"
+        try:
+            self._file.write(line)
+            self._file.flush()
+            self._bytes_written += len(line.encode("utf-8"))
+        except OSError as err:
+            _LOGGER.warning("Failed to write MQTT recording: %s", err)
 
     def _rotate(self) -> None:
         if self._file:

@@ -589,6 +589,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         response = await self._request_data_feedback(
             "get_connect_wifi_name", {}, timeout, skip_lock
         )
+        if not response:
+            return self._wifi_name
         data = response.get("data", response)
         name: str | None = None
         if isinstance(data, dict):
@@ -696,6 +698,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         response = await self._request_data_feedback(
             "read_no_charge_period", {}, timeout, skip_lock
         )
+        if not response:
+            return {}
         data = response.get("data", response)
         active: bool | None = None
         start_time: str | None = None
@@ -749,6 +753,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Request schedules list."""
         # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("read_schedules", {}, timeout, skip_lock)
+        if not response:
+            return self._schedules
         data = response.get("data", response)
         schedules: list[Any] = []
         if isinstance(data, list):
@@ -816,6 +822,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Request recharge point status."""
         # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("read_recharge_point", {}, timeout, skip_lock)
+        if not response:
+            return self._recharge_point_status
         data = response.get("data", response)
         status: str | None = None
         details: dict[str, Any] | None = None
@@ -851,6 +859,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Request available WiFi list."""
         # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("get_wifi_list", {}, timeout, skip_lock)
+        if not response:
+            return self._wifi_list
         data = response.get("data", response)
         wifi_list: list[Any] = []
         if isinstance(data, list):
@@ -868,6 +878,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Request map backup list."""
         # ❓ No response while idle — may need active state
         response = await self._request_data_feedback("get_all_map_backup", {}, timeout, skip_lock)
+        if not response:
+            return self._map_backups
         data = response.get("data", response)
         backups: list[Any] = []
         if isinstance(data, list):
@@ -887,6 +899,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         # "read_all_clean_area" and "readCleanArea" are silently ignored.
         # ✅ Verified 2026-02-28: correct (not read_all_clean_area or readCleanArea)
         response = await self._request_data_feedback("read_clean_area", {}, timeout, skip_lock)
+        if not response:
+            return self._clean_areas
         data = response.get("data", response)
         areas: list[Any] = []
         if isinstance(data, list):
@@ -936,7 +950,10 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._controller_lost_active = False
 
         if self._recorder_enabled_option and not self._recorder.enabled:
-            await self._async_start_recorder()
+            try:
+                await self._async_start_recorder()
+            except Exception as err:
+                _LOGGER.warning("Failed to start MQTT recorder (non-fatal): %s", err)
 
         if self._telemetry_task is None:
             self._telemetry_task = asyncio.create_task(self._telemetry_loop())
@@ -1158,7 +1175,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     ]
                     for method in diagnostic_methods:
                         try:
-                            await method(timeout=1.0, skip_lock=False)
+                            await method(timeout=1.0, skip_lock=True)
                         except Exception as err:
                             _LOGGER.debug("Diagnostic request failed (non-fatal): %s", err)
                     self.async_update_listeners()
