@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 
-from custom_components.yarbo.const import DOMAIN
+from custom_components.yarbo.const import DOMAIN, HEAD_TYPE_LEAF_BLOWER, HEAD_TYPE_SNOW_BLOWER
 from custom_components.yarbo.services import async_register_services, async_unregister_services
 
 
@@ -22,7 +23,11 @@ def mock_client_and_coordinator() -> tuple[AsyncMock, MagicMock]:
     client.publish_command = AsyncMock()
 
     coordinator = MagicMock()
+    coordinator.client = client
     coordinator.command_lock = asyncio.Lock()
+    telemetry = MagicMock()
+    telemetry.head_type = HEAD_TYPE_SNOW_BLOWER
+    coordinator.data = telemetry
     return client, coordinator
 
 
@@ -122,8 +127,16 @@ class TestStartPlanService:
         """start_plan calls get_controller before publish_command."""
         client, coordinator = mock_client_and_coordinator
         call_order: list[str] = []
-        client.get_controller.side_effect = lambda **_kw: call_order.append("get_controller")
-        client.publish_command.side_effect = lambda *_a, **_kw: call_order.append("publish_command")
+
+        async def _get_controller(**_kw: Any) -> None:
+            call_order.append("get_controller")
+
+        client.get_controller.side_effect = _get_controller
+
+        async def _publish(*_a: Any, **_kw: Any) -> None:
+            call_order.append("publish_command")
+
+        client.publish_command.side_effect = _publish
 
         with patch(
             "custom_components.yarbo.services._get_client_and_coordinator",
@@ -138,6 +151,77 @@ class TestStartPlanService:
             )
 
         assert call_order == ["get_controller", "publish_command"]
+
+
+class TestSendCommandService:
+    """Tests for the yarbo.send_command service and head validation."""
+
+    async def test_send_command_passes_command(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """send_command passes the command through to publish_raw."""
+        client, coordinator = mock_client_and_coordinator
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            await hass.services.async_call(
+                DOMAIN,
+                "send_command",
+                {"device_id": "dev-id", "command": "read_clean_area", "payload": {}},
+                blocking=True,
+            )
+
+        client.publish_raw.assert_awaited_once_with("read_clean_area", {})
+
+    async def test_send_command_rejects_wrong_head_type(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """send_command rejects head-specific commands on wrong head type."""
+        client, coordinator = mock_client_and_coordinator
+        coordinator.data.head_type = HEAD_TYPE_SNOW_BLOWER
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            with pytest.raises(ServiceValidationError):
+                await hass.services.async_call(
+                    DOMAIN,
+                    "send_command",
+                    {"device_id": "dev-id", "command": "cmd_roller", "payload": {}},
+                    blocking=True,
+                )
+
+    async def test_send_command_allows_correct_head_type(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """send_command allows head-specific commands on matching head type."""
+        client, coordinator = mock_client_and_coordinator
+        coordinator.data.head_type = HEAD_TYPE_LEAF_BLOWER
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            await hass.services.async_call(
+                DOMAIN,
+                "send_command",
+                {"device_id": "dev-id", "command": "cmd_roller", "payload": {}},
+                blocking=True,
+            )
+
+        client.publish_raw.assert_awaited_once_with("cmd_roller", {})
 
 
 class TestGetClientAndCoordinator:

@@ -7,9 +7,15 @@ from typing import Any
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DATA_COORDINATOR, DOMAIN
+from .const import (
+    DATA_COORDINATOR,
+    DOMAIN,
+    normalize_command_name,
+    validate_head_type_for_command,
+)
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 
@@ -40,9 +46,15 @@ class YarboButton(YarboEntity, ButtonEntity):
         super().__init__(coordinator, entity_key)
 
     async def _send_command(self, command: str, payload: dict[str, Any]) -> None:
+        normalized_command = normalize_command_name(command)
+        telemetry = self.telemetry
+        current_head = telemetry.head_type if telemetry else None
+        is_valid, error_message = validate_head_type_for_command(normalized_command, current_head)
+        if not is_valid:
+            raise HomeAssistantError(error_message)
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_command(command, payload)
+            await self.coordinator.client.publish_command(normalized_command, payload)
 
 
 class YarboBeepButton(YarboButton):

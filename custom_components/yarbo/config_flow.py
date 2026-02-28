@@ -56,8 +56,10 @@ def _run_mqtt_test_sync(host: str, port: int) -> tuple[Any, str | None]:
             try:
                 telemetry = await asyncio.wait_for(async_gen.__anext__(), timeout=30.0)
                 serial = (
-                    getattr(telemetry, "serial_number", None) if telemetry else None
-                ) or getattr(client, "serial_number", None) or sn
+                    (getattr(telemetry, "serial_number", None) if telemetry else None)
+                    or getattr(client, "serial_number", None)
+                    or sn
+                )
                 return telemetry, (serial or "").strip() or None
             finally:
                 await async_gen.aclose()
@@ -65,6 +67,7 @@ def _run_mqtt_test_sync(host: str, port: int) -> tuple[Any, str | None]:
             await client.disconnect()
 
     return asyncio.run(_test())
+
 
 try:
     from yarbo.cloud import YarboCloudClient
