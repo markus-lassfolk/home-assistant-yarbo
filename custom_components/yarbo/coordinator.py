@@ -528,14 +528,14 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         skip_lock: bool = False,
     ) -> dict[str, Any]:
         """Publish a command and await matching data_feedback.
-        
+
         Args:
             command: MQTT command name
             payload: Command payload
             timeout: Response timeout in seconds
             skip_lock: If True, skip command_lock acquisition (for low-priority diagnostics)
         """
-        async def _execute_command():
+        async def _execute_command() -> Any:
             await self.client.publish_command(command, payload)
             if self._recorder.enabled:
                 try:
@@ -545,13 +545,13 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 except Exception as rec_err:
                     _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
             return await self._await_data_feedback(command, timeout)
-        
+
         if skip_lock:
             response = await _execute_command()
         else:
             async with self.command_lock:
                 response = await _execute_command()
-        
+
         if not isinstance(response, dict):
             return {}
         return response
@@ -559,7 +559,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     async def get_wifi_name(self, timeout: float = 5.0, skip_lock: bool = False) -> str | None:
         """Request the connected WiFi network name."""
         # ✅ Verified 2026-02-28: returns SSID, IP, signal
-        response = await self._request_data_feedback("get_connect_wifi_name", {}, timeout, skip_lock)
+        response = await self._request_data_feedback(
+            "get_connect_wifi_name", {}, timeout, skip_lock
+        )
         data = response.get("data", response)
         name: str | None = None
         if isinstance(data, dict):
@@ -573,10 +575,14 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._wifi_name = name
         return name
 
-    async def get_battery_cell_temps(self, timeout: float = 5.0, skip_lock: bool = False) -> tuple[float | None, ...]:
+    async def get_battery_cell_temps(
+        self, timeout: float = 5.0, skip_lock: bool = False
+    ) -> tuple[float | None, ...]:
         """Request battery cell temperature stats (min, max, avg)."""
         # ❓ No response while idle — may need active state
-        response = await self._request_data_feedback("battery_cell_temp_msg", {}, timeout, skip_lock)
+        response = await self._request_data_feedback(
+            "battery_cell_temp_msg", {}, timeout, skip_lock
+        )
         data = response.get("data", response)
         min_val = max_val = avg_val = None
 
@@ -647,10 +653,14 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._odometer_m = odometer_m
         return odometer_m
 
-    async def get_no_charge_period(self, timeout: float = 5.0, skip_lock: bool = False) -> dict[str, Any]:
+    async def get_no_charge_period(
+        self, timeout: float = 5.0, skip_lock: bool = False
+    ) -> dict[str, Any]:
         """Request no-charge period settings."""
         # ✅ Verified 2026-02-28: returns data_feedback
-        response = await self._request_data_feedback("read_no_charge_period", {}, timeout, skip_lock)
+        response = await self._request_data_feedback(
+            "read_no_charge_period", {}, timeout, skip_lock
+        )
         data = response.get("data", response)
         active: bool | None = None
         start_time: str | None = None
@@ -1077,7 +1087,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
         Runs every 300 seconds to fetch non-streaming data like wifi, battery temps,
         odometer, etc. Does not modify self.data, only updates internal state.
-        
+
         Uses skip_lock=True to avoid blocking user commands during diagnostic polling.
         """
         try:
