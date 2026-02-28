@@ -263,7 +263,7 @@ class YarboRainDetectedSensor(YarboBinarySensor):
             )
         if value is None:
             return None
-        return value > 0
+        return value != 0
 
 
 class YarboNoChargePeriodSensor(YarboBinarySensor):

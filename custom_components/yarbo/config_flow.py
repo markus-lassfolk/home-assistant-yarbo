@@ -16,11 +16,60 @@ from yarbo import YarboLocalClient
 from yarbo.exceptions import YarboConnectionError
 
 try:
+    from yarbo import discover_yarbo
+except ImportError:  # pragma: no cover — older python-yarbo
+    discover_yarbo = None
+
+
+def _run_mqtt_test_sync(host: str, port: int) -> tuple[Any, str | None]:
+    """Run MQTT connect + first telemetry + disconnect in a thread.
+
+    The robot's MQTT topics are snowbot/{SN}/device/... so we must know the
+    serial number (SN) before subscribing. We use the library's discover_yarbo
+    (wildcard snowbot/+/device/...) to get the SN, then connect with that SN.
+
+    python-yarbo or its deps perform blocking I/O (e.g. importlib.metadata
+    listdir/read_text) during connect, which would block the event loop.
+    Running the whole test in a thread avoids that.
+    """
+
+    async def _discover_sn() -> str:
+        if discover_yarbo is None:
+            return ""
+        # Probe this host (and known IPs); subnet=/32 adds this host to candidates.
+        robots = await discover_yarbo(
+            timeout=25.0,
+            port=port,
+            subnet=f"{host}/32",
+        )
+        for r in robots:
+            if r.broker_host == host and (r.sn or "").strip():
+                return (r.sn or "").strip()
+        return ""
+
+    async def _test() -> tuple[Any, str | None]:
+        sn = await _discover_sn()
+        client = YarboLocalClient(broker=host, sn=sn, port=port)
+        await client.connect()
+        async_gen = client.watch_telemetry()
+        try:
+            telemetry = await asyncio.wait_for(async_gen.__anext__(), timeout=30.0)
+            serial = (
+                getattr(telemetry, "serial_number", None) if telemetry else None
+            ) or getattr(client, "serial_number", None) or sn
+            return telemetry, (serial or "").strip() or None
+        finally:
+            await async_gen.aclose()
+            await client.disconnect()
+
+    return asyncio.run(_test())
+
+try:
     from yarbo.cloud import YarboCloudClient
 except ImportError:  # pragma: no cover
     YarboCloudClient = None
 
-from .const import (
+from .const import (  # noqa: E402
     CONF_ALTERNATE_BROKER_HOST,
     CONF_BROKER_ENDPOINTS,
     CONF_BROKER_HOST,
@@ -47,8 +96,8 @@ from .const import (
     DEFAULT_MQTT_RECORDING,
     OPT_TELEMETRY_THROTTLE,
 )
-from .discovery import YarboEndpoint, async_discover_endpoints
-from .repairs import async_delete_cloud_token_expired_issue
+from .discovery import YarboEndpoint, async_discover_endpoints  # noqa: E402
+from .repairs import async_delete_cloud_token_expired_issue  # noqa: E402
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -176,6 +225,11 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         blocking-call warnings from HA's event loop detector (paho's import
         and connect trigger synchronous file I/O).
 
+        TODO: Replace direct paho-mqtt usage with the python-yarbo library once
+        the library exposes a lightweight probe/identify API that doesn't require
+        a full YarboLocalClient lifecycle. Until then, paho>=1.6 is required for
+        CallbackAPIVersion.VERSION2 support (paho 2.x is also supported).
+
         Returns (serial_number, bot_name) — either may be None.
         """
 
@@ -230,10 +284,14 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                 c.connect(host, port, keepalive=10)
                 c.loop_start()
                 got_telemetry.wait(timeout=timeout)
-                c.loop_stop()
-                c.disconnect()
             except Exception:
                 pass
+            finally:
+                try:
+                    c.loop_stop()
+                    c.disconnect()
+                except Exception:
+                    pass
             return (result["sn"], result["name"])
 
         try:
@@ -260,9 +318,9 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
 
         # MAC is a hardware identifier — log only last octet to avoid leaking full address
         _LOGGER.debug(
-            "DHCP discovery: IP=%s MAC=**:**:**:**:**:%s hostname=%s",
+            "DHCP discovery: IP=%s MAC=%s hostname=%s",
             ip,
-            mac[-2:] if mac else "??",
+            (mac[:8] + "***") if mac else "",
             hostname,
         )
 
@@ -332,11 +390,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         self._alternate_host = None
         self._broker_endpoints_ordered = [ep.host]
 
-        # If SN was discovered during probe, skip MQTT test — go straight to confirm
-        if self._robot_serial:
-            return await self.async_step_confirm()
-
-        # Robot sleeping — fall back to full MQTT test flow
+        # Go to confirm step — if SN is known it skips MQTT test, otherwise falls through
         return await self.async_step_confirm()
 
     async def async_step_select_endpoint(
@@ -421,17 +475,9 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         if self._broker_host is None:
             return self.async_abort(reason="cannot_connect")
 
-        client = YarboLocalClient(broker=self._broker_host, port=self._broker_port)
-        telemetry = None
-        async_gen = None
         try:
-            await client.connect()
-            async_gen = client.watch_telemetry()
-            telemetry = await asyncio.wait_for(async_gen.__anext__(), timeout=10.0)
-            self._robot_serial = (
-                telemetry.serial_number
-                if telemetry and telemetry.serial_number
-                else client.serial_number
+            _telemetry, self._robot_serial = await self.hass.async_add_executor_job(
+                _run_mqtt_test_sync, self._broker_host, self._broker_port
             )
         except YarboConnectionError:
             errors["base"] = "cannot_connect"
@@ -440,10 +486,6 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         except Exception:
             _LOGGER.exception("Failed to decode Yarbo telemetry")
             errors["base"] = "decode_error"
-        finally:
-            if async_gen is not None:
-                await async_gen.aclose()
-            await client.disconnect()
 
         if errors:
             return self.async_show_form(

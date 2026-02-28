@@ -26,10 +26,13 @@ from .const import (
     CONF_BROKER_PORT,
     CONF_CONNECTION_PATH,
     CONF_ROBOT_NAME,
+    CONF_ROVER_IP,
     DATA_CLIENT,
     DEFAULT_BROKER_PORT,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
+    ENDPOINT_TYPE_DC,
+    ENDPOINT_TYPE_ROVER,
     HEARTBEAT_TIMEOUT_SECONDS,
     OPT_DEBUG_LOGGING,
     DEFAULT_DEBUG_LOGGING,
@@ -944,28 +947,35 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                             await new_client.connect()
                             old_client = self.client
                             self.client = new_client
-                            entry_data = self.hass.data.get(DOMAIN, {})
-                            if self._entry.entry_id in entry_data:
-                                entry_data[self._entry.entry_id][DATA_CLIENT] = new_client
-                            # Persist current host so next failover uses it
-                            new_data = dict(self._entry.data)
-                            new_data[CONF_BROKER_HOST] = next_host
-                            # Update connection path: swap current label on failover
-                            current_path = self._entry.data.get(CONF_CONNECTION_PATH, "")
-                            if current_path == "dc":
-                                new_data[CONF_CONNECTION_PATH] = "rover"
-                            elif current_path == "rover":
-                                new_data[CONF_CONNECTION_PATH] = "dc"
-                            self.hass.config_entries.async_update_entry(self._entry, data=new_data)
-                            # Disconnect old client; suppress errors to avoid leaking
-                            with contextlib.suppress(Exception):
-                                await old_client.disconnect()
+                            try:
+                                entry_data = self.hass.data.get(DOMAIN, {})
+                                if self._entry.entry_id in entry_data:
+                                    entry_data[self._entry.entry_id][DATA_CLIENT] = new_client
+                                # Persist current host so next failover uses it
+                                new_data = dict(self._entry.data)
+                                new_data[CONF_BROKER_HOST] = next_host
+                                # Update connection path based on actual endpoint metadata
+                                rover_ip = self._entry.data.get(CONF_ROVER_IP)
+                                if rover_ip:
+                                    if next_host == rover_ip:
+                                        new_data[CONF_CONNECTION_PATH] = ENDPOINT_TYPE_ROVER
+                                    else:
+                                        new_data[CONF_CONNECTION_PATH] = ENDPOINT_TYPE_DC
+                                # If rover_ip unknown, leave connection path unchanged
+                                self.hass.config_entries.async_update_entry(
+                                    self._entry, data=new_data
+                                )
+                            finally:
+                                # Always disconnect old client to avoid leak on mid-swap exception
+                                with contextlib.suppress(Exception):
+                                    await old_client.disconnect()
                         # Re-acquire controller on failover (matches async_setup_entry)
                         try:
                             await new_client.get_controller(timeout=5.0)
                         except Exception as ctrl_err:
                             _LOGGER.warning("Failover controller acquisition failed: %s", ctrl_err)
                         _LOGGER.info("Failover to %s succeeded", next_host)
+                        await asyncio.sleep(2)
                         continue
                     except Exception as connect_err:
                         _LOGGER.warning(
