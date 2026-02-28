@@ -33,6 +33,9 @@ from .const import (
     HEARTBEAT_TIMEOUT_SECONDS,
     OPT_TELEMETRY_THROTTLE,
     TELEMETRY_RETRY_DELAY_SECONDS,
+    is_active_only_diagnostic_command,
+    is_active_operation,
+    normalize_command_name,
 )
 from .models import YarboTelemetry
 from .repairs import (
@@ -249,10 +252,24 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         payload: dict[str, Any],
         timeout: float,
     ) -> dict[str, Any]:
-        """Publish a command and await matching data_feedback."""
+        """Publish a command and await matching data_feedback.
+
+        Note: diagnostic commands in ACTIVE_ONLY_DIAGNOSTIC_COMMANDS only
+        respond while the robot is actively working, so requests are skipped
+        when the robot is idle or charging.
+        """
+        normalized_command = normalize_command_name(command)
+        if is_active_only_diagnostic_command(normalized_command) and not is_active_operation(
+            self.data
+        ):
+            _LOGGER.debug(
+                "Skipping %s data_feedback: robot not in active operation state",
+                normalized_command,
+            )
+            return {}
         async with self.command_lock:
-            await self.client.publish_command(command, payload)
-            response = await self._await_data_feedback(command, timeout)
+            await self.client.publish_command(normalized_command, payload)
+            response = await self._await_data_feedback(normalized_command, timeout)
         if not isinstance(response, dict):
             return {}
         return response

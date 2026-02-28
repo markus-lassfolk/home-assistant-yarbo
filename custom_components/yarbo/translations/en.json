@@ -360,6 +360,9 @@
     "switch": {
       "buzzer": {
         "name": "Buzzer"
+      },
+      "person_detect": {
+        "name": "Person Detection"
       }
     },
     "number": {

@@ -74,6 +74,34 @@ HEAD_TYPE_NAMES: dict[int, str] = {
     HEAD_TYPE_TRIMMER: "Trimmer",
 }
 
+# Command name aliases (Dart/UI naming confusion)
+COMMAND_ALIASES: dict[str, str] = {
+    "read_all_clean_area": "read_clean_area",
+    "readCleanArea": "read_clean_area",
+    "setIgnoreObstacle": "ignore_obstacles",
+    "shutdownYarbo": "shutdown",
+    "restart_yarbo_system": "restart_container",
+    "set_roller_speed": "cmd_roller",
+}
+
+# Head-specific commands and their required head types
+COMMAND_REQUIRED_HEAD_TYPE: dict[str, int] = {
+    "cmd_roller": HEAD_TYPE_LEAF_BLOWER,
+    "blower_speed": HEAD_TYPE_SNOW_BLOWER,
+}
+
+# Diagnostic commands only valid during active operation (working state)
+ACTIVE_ONLY_DIAGNOSTIC_COMMANDS: set[str] = {
+    "battery_cell_temp_msg",
+    "motor_temp_samp",
+    "body_current_msg",
+    "head_current_msg",
+    "speed_msg",
+    "odometer_msg",
+    "product_code_msg",
+    "hub_info",
+}
+
 # Heartbeat timeout before raising a repair issue
 HEARTBEAT_TIMEOUT_SECONDS = 60
 
@@ -107,6 +135,28 @@ def get_activity_state(telemetry: YarboTelemetry) -> str:
     if telemetry.state == 6:
         return "error"
     return "idle"
+
+
+def normalize_command_name(command: str) -> str:
+    """Normalize command names to MQTT wire names."""
+    return COMMAND_ALIASES.get(command, command)
+
+
+def required_head_type_for_command(command: str) -> int | None:
+    """Return required head type for a head-specific command, if any."""
+    return COMMAND_REQUIRED_HEAD_TYPE.get(command)
+
+
+def is_active_only_diagnostic_command(command: str) -> bool:
+    """Return True for diagnostic commands that only work during active operation."""
+    return command in ACTIVE_ONLY_DIAGNOSTIC_COMMANDS
+
+
+def is_active_operation(telemetry: YarboTelemetry | None) -> bool:
+    """Return True when telemetry indicates the robot is actively working."""
+    if telemetry is None:
+        return False
+    return get_activity_state(telemetry) == "working"
 
 
 # Light channel names (for LED control)

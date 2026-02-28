@@ -76,7 +76,7 @@ class TestYarboChuteVelocityNumber:
         assert entity.native_value == 0.0
 
     def test_available_snow_blower(self) -> None:
-        """Available when head_type is snow blower (0)."""
+        """Available when head_type is snow blower (1)."""
         coord = _make_coordinator(head_type=HEAD_TYPE_SNOW_BLOWER)
         entity = YarboChuteVelocityNumber(coord)
         # CoordinatorEntity.available checks coordinator.last_update_success

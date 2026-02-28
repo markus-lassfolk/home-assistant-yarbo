@@ -17,7 +17,10 @@ from .const import (
     DATA_COORDINATOR,
     DEFAULT_AUTO_CONTROLLER,
     DOMAIN,
+    HEAD_TYPE_NAMES,
     OPT_AUTO_CONTROLLER,
+    normalize_command_name,
+    required_head_type_for_command,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -112,14 +115,27 @@ def async_register_services(hass: HomeAssistant) -> None:
         device_id: str = call.data["device_id"]
         command: str = call.data["command"]
         payload: dict[str, Any] = call.data.get("payload") or {}
+        normalized_command = normalize_command_name(command)
         _LOGGER.debug(
-            "yarbo.send_command: device=%s command=%s payload=%s", device_id, command, payload
+            "yarbo.send_command: device=%s command=%s payload=%s",
+            device_id,
+            normalized_command,
+            payload,
         )
         client, coordinator = _get_client_and_coordinator(hass, device_id)
+        required_head = required_head_type_for_command(normalized_command)
+        if required_head is not None:
+            telemetry = getattr(coordinator, "data", None)
+            current_head = getattr(telemetry, "head_type", None) if telemetry else None
+            if current_head != required_head:
+                head_name = HEAD_TYPE_NAMES.get(required_head, str(required_head))
+                raise ServiceValidationError(
+                    f"Command {normalized_command} requires head type {head_name}"
+                )
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            await client.publish_raw(command, payload)
+            await client.publish_raw(normalized_command, payload)
 
     async def handle_start_plan(call: ServiceCall) -> None:
         """Handle yarbo.start_plan — start a saved work plan by ID."""

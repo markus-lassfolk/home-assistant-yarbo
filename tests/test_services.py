@@ -9,7 +9,7 @@ import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 
-from custom_components.yarbo.const import DOMAIN
+from custom_components.yarbo.const import DOMAIN, HEAD_TYPE_LEAF_BLOWER, HEAD_TYPE_SNOW_BLOWER
 from custom_components.yarbo.services import async_register_services, async_unregister_services
 
 
@@ -23,6 +23,9 @@ def mock_client_and_coordinator() -> tuple[AsyncMock, MagicMock]:
 
     coordinator = MagicMock()
     coordinator.command_lock = asyncio.Lock()
+    telemetry = MagicMock()
+    telemetry.head_type = HEAD_TYPE_SNOW_BLOWER
+    coordinator.data = telemetry
     return client, coordinator
 
 
@@ -138,6 +141,77 @@ class TestStartPlanService:
             )
 
         assert call_order == ["get_controller", "publish_command"]
+
+
+class TestSendCommandService:
+    """Tests for the yarbo.send_command service and head validation."""
+
+    async def test_send_command_passes_command(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """send_command passes the command through to publish_raw."""
+        client, coordinator = mock_client_and_coordinator
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            await hass.services.async_call(
+                DOMAIN,
+                "send_command",
+                {"device_id": "dev-id", "command": "read_clean_area", "payload": {}},
+                blocking=True,
+            )
+
+        client.publish_raw.assert_awaited_once_with("read_clean_area", {})
+
+    async def test_send_command_rejects_wrong_head_type(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """send_command rejects head-specific commands on wrong head type."""
+        client, coordinator = mock_client_and_coordinator
+        coordinator.data.head_type = HEAD_TYPE_SNOW_BLOWER
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            with pytest.raises(ServiceValidationError):
+                await hass.services.async_call(
+                    DOMAIN,
+                    "send_command",
+                    {"device_id": "dev-id", "command": "cmd_roller", "payload": {}},
+                    blocking=True,
+                )
+
+    async def test_send_command_allows_correct_head_type(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """send_command allows head-specific commands on matching head type."""
+        client, coordinator = mock_client_and_coordinator
+        coordinator.data.head_type = HEAD_TYPE_LEAF_BLOWER
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            await hass.services.async_call(
+                DOMAIN,
+                "send_command",
+                {"device_id": "dev-id", "command": "cmd_roller", "payload": {}},
+                blocking=True,
+            )
+
+        client.publish_raw.assert_awaited_once_with("cmd_roller", {})
 
 
 class TestGetClientAndCoordinator:

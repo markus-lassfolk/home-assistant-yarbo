@@ -136,7 +136,7 @@ MOCK_TELEMETRY: dict[str, Any] = {
             "planning_paused": 0,
             "on_going_recharging": 0,
         },
-        "HeadMsg": {"head_type": 0},  # Snow blower
+        "HeadMsg": {"head_type": 1},  # Snow blower
         "RTKMSG": {"status": 4, "heading": 180.0},
         "RunningStatusMSG": {
             "chute_angle": 90,
