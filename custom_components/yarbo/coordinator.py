@@ -113,6 +113,8 @@ def _to_float(value: Any) -> float | None:
 
 def _extract_float(data: Any) -> float | None:
     """Best-effort numeric extraction from feedback payloads."""
+    if isinstance(data, bool):
+        return None
     if isinstance(data, (int, float)):
         return float(data)
     if isinstance(data, str) and data.strip():
@@ -562,7 +564,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             for key in keys:
                 raw = data.get(key)
                 if raw is not None:
-                    return _to_float(raw)
+                    converted = _to_float(raw)
+                    if converted is not None:
+                        return converted
             return None
 
         if isinstance(data, dict):
@@ -863,7 +867,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     @staticmethod
     def _apply_debug_logging(enabled: bool) -> None:
         """Toggle debug logging for all yarbo components."""
-        level = logging.DEBUG if enabled else logging.WARNING
+        level = logging.DEBUG if enabled else logging.NOTSET
         for name in (
             "custom_components.yarbo",
             "yarbo",
@@ -876,7 +880,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         if enabled:
             _LOGGER.info("Yarbo debug logging ENABLED")
         else:
-            _LOGGER.info("Yarbo debug logging DISABLED (WARNING+ only)")
+            _LOGGER.info("Yarbo debug logging DISABLED")
 
     @property
     def recorder(self) -> MqttRecorder:
