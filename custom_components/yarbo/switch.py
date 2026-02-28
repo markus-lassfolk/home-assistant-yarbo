@@ -203,6 +203,8 @@ class YarboAutoUpdateSwitch(YarboCommandSwitch):
             "auto_update",
             "set_greengrass_auto_update_switch",
             payload_key="enable",
+            on_value=True,
+            off_value=False,
         )
 
 
@@ -220,6 +222,8 @@ class YarboCameraOtaSwitch(YarboCommandSwitch):
             "camera_ota",
             "set_ipcamera_ota_switch",
             payload_key="enable",
+            on_value=True,
+            off_value=False,
         )
 
 
@@ -453,7 +457,14 @@ class YarboRoofLightsSwitch(YarboCommandSwitch):
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "roof_lights", "roof_lights_enable", payload_key="enable")
+        super().__init__(
+            coordinator,
+            "roof_lights",
+            "roof_lights_enable",
+            payload_key="enable",
+            on_value=True,
+            off_value=False,
+        )
 
 
 class YarboSoundEnableSwitch(YarboCommandSwitch):
@@ -465,4 +476,11 @@ class YarboSoundEnableSwitch(YarboCommandSwitch):
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "sound_enable", "set_sound_param", payload_key="enable")
+        super().__init__(
+            coordinator,
+            "sound_enable",
+            "set_sound_param",
+            payload_key="enable",
+            on_value=True,
+            off_value=False,
+        )

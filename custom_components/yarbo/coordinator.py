@@ -354,7 +354,6 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     def set_plan_start_percent(self, value: int) -> None:
         """Update the stored plan start percentage (0-100)."""
         self._plan_start_percent = max(0, min(100, int(value)))
-        self.async_update_listeners()
 
     @property
     def wifi_name(self) -> str | None:
@@ -555,10 +554,10 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             return {}
 
         async def _execute_command() -> Any:
+            feedback_coro = self._await_data_feedback(normalized_command, timeout)
+            feedback_task = asyncio.create_task(feedback_coro)
+            await asyncio.sleep(0)
             await self.client.publish_command(normalized_command, payload)
-            feedback_task = asyncio.create_task(
-                self._await_data_feedback(normalized_command, timeout)
-            )
             try:
                 if self._recorder.enabled:
                     try:
@@ -1002,6 +1001,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 async for telemetry in self.client.watch_telemetry():
                     now = time.monotonic()
                     self._last_seen = now
+                    if now - self._last_update < self._throttle_interval:
+                        continue
                     # Record raw telemetry for diagnostics
                     if self._recorder.enabled:
                         try:
@@ -1012,8 +1013,6 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                             )
                         except Exception as rec_err:
                             _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
-                    if now - self._last_update < self._throttle_interval:
-                        continue
                     self._last_update = now
                     self._update_count += 1
                     self.async_set_updated_data(telemetry)
