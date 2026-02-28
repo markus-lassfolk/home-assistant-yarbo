@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import json
 import logging
+from pathlib import Path
 import time
 from dataclasses import dataclass
 from datetime import timedelta
@@ -18,6 +19,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from yarbo import YarboLocalClient
 from yarbo.exceptions import YarboConnectionError
 
+from .mqtt_recorder import MqttRecorder
 from .const import (
     CONF_ALTERNATE_BROKER_HOST,
     CONF_BROKER_ENDPOINTS,
@@ -30,6 +32,11 @@ from .const import (
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
     HEARTBEAT_TIMEOUT_SECONDS,
+    OPT_DEBUG_LOGGING,
+    DEFAULT_DEBUG_LOGGING,
+    OPT_MQTT_RECORDING,
+    DEFAULT_MQTT_RECORDING,
+    MQTT_RECORDING_MAX_SIZE_BYTES,
     OPT_TELEMETRY_THROTTLE,
     TELEMETRY_RETRY_DELAY_SECONDS,
 )
@@ -189,6 +196,23 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE
         )
         self._update_count: int = 0
+
+        # Debug logging toggle
+        self._debug_logging: bool = entry.options.get(
+            OPT_DEBUG_LOGGING, DEFAULT_DEBUG_LOGGING
+        )
+        self._apply_debug_logging(self._debug_logging)
+
+        # MQTT recorder for diagnostics
+        storage_dir = Path(hass.config.config_dir)
+        serial = entry.data.get(CONF_ROBOT_SERIAL, "unknown")
+        self._recorder = MqttRecorder(
+            storage_dir=storage_dir,
+            serial_number=serial,
+            max_size_bytes=MQTT_RECORDING_MAX_SIZE_BYTES,
+        )
+        if entry.options.get(OPT_MQTT_RECORDING, DEFAULT_MQTT_RECORDING):
+            self._recorder.start()
         self.command_lock = asyncio.Lock()
         self.light_state: dict[str, int] = {
             "led_head": 0,
@@ -238,7 +262,22 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         - telemetry_throttle: debounce interval for pushing updates to HA
         """
         self._throttle_interval = options.get(OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE)
-        _LOGGER.debug("Yarbo options updated — throttle=%.1fs", self._throttle_interval)
+
+        # Debug logging
+        new_debug = options.get(OPT_DEBUG_LOGGING, DEFAULT_DEBUG_LOGGING)
+        if new_debug != self._debug_logging:
+            self._debug_logging = new_debug
+            self._apply_debug_logging(new_debug)
+
+        # MQTT recording
+        new_recording = options.get(OPT_MQTT_RECORDING, DEFAULT_MQTT_RECORDING)
+        if new_recording and not self._recorder.enabled:
+            self._recorder.start()
+        elif not new_recording and self._recorder.enabled:
+            self._recorder.stop()
+
+        _LOGGER.debug("Yarbo options updated — throttle=%.1fs, debug=%s, recording=%s",
+                       self._throttle_interval, self._debug_logging, self._recorder.enabled)
 
     def report_controller_lost(self) -> None:
         """Raise an ERROR repair issue when the controller session is stolen.
@@ -485,6 +524,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Publish a command and await matching data_feedback."""
         async with self.command_lock:
             await self.client.publish_command(command, payload)
+            if self._recorder.enabled:
+                self._recorder.record_tx(command, payload or {})
             response = await self._await_data_feedback(command, timeout)
         if not isinstance(response, dict):
             return {}
@@ -817,6 +858,29 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         if self._diagnostic_task is None:
             self._diagnostic_task = asyncio.create_task(self._diagnostic_polling_loop())
 
+    @staticmethod
+    def _apply_debug_logging(enabled: bool) -> None:
+        """Toggle debug logging for all yarbo components."""
+        level = logging.DEBUG if enabled else logging.WARNING
+        for name in (
+            "custom_components.yarbo",
+            "yarbo",
+            "yarbo.client",
+            "yarbo.local",
+            "yarbo.mqtt",
+            "yarbo.cloud",
+        ):
+            logging.getLogger(name).setLevel(level)
+        if enabled:
+            _LOGGER.info("Yarbo debug logging ENABLED")
+        else:
+            _LOGGER.info("Yarbo debug logging DISABLED (WARNING+ only)")
+
+    @property
+    def recorder(self) -> MqttRecorder:
+        """Return the MQTT recorder instance."""
+        return self._recorder
+
     async def _telemetry_loop(self) -> None:
         """Listen to python-yarbo telemetry stream and push updates.
 
@@ -828,6 +892,12 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 async for telemetry in self.client.watch_telemetry():
                     now = time.monotonic()
                     self._last_seen = now
+                    # Record raw telemetry for diagnostics
+                    if self._recorder.enabled:
+                        self._recorder.record_rx(
+                            "telemetry",
+                            telemetry.raw if hasattr(telemetry, "raw") else str(telemetry),
+                        )
                     if now - self._last_update < self._throttle_interval:
                         continue
                     self._last_update = now

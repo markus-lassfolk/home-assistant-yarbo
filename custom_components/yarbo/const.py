@@ -137,3 +137,10 @@ VERBOSE_ACTIVITY_DESCRIPTIONS: dict[str, str] = {
     "returning": "Heading home to the dock 🏠",
     "error": "Oops! Something went wrong 🚨",
 }
+
+# Debug & Recording options
+OPT_DEBUG_LOGGING = "debug_logging"
+OPT_MQTT_RECORDING = "mqtt_recording"
+DEFAULT_DEBUG_LOGGING = False
+DEFAULT_MQTT_RECORDING = False
+MQTT_RECORDING_MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB

@@ -43,6 +43,10 @@ from .const import (
     OPT_ACTIVITY_PERSONALITY,
     OPT_AUTO_CONTROLLER,
     OPT_CLOUD_ENABLED,
+    OPT_DEBUG_LOGGING,
+    DEFAULT_DEBUG_LOGGING,
+    OPT_MQTT_RECORDING,
+    DEFAULT_MQTT_RECORDING,
     OPT_TELEMETRY_THROTTLE,
 )
 from .discovery import YarboEndpoint, async_discover_endpoints
@@ -692,15 +696,35 @@ class YarboOptionsFlow(OptionsFlow):
         schema = vol.Schema(
             {
                 vol.Optional(
-                    OPT_TELEMETRY_THROTTLE,
+                    OPT_DEBUG_LOGGING,
+    DEFAULT_DEBUG_LOGGING,
+    OPT_MQTT_RECORDING,
+    DEFAULT_MQTT_RECORDING,
+    OPT_TELEMETRY_THROTTLE,
                     default=self._config_entry.options.get(
-                        OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE
+                        OPT_DEBUG_LOGGING,
+    DEFAULT_DEBUG_LOGGING,
+    OPT_MQTT_RECORDING,
+    DEFAULT_MQTT_RECORDING,
+    OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE
                     ),
                 ): vol.All(vol.Coerce(float), vol.Range(min=1.0, max=10.0)),
                 vol.Optional(
                     OPT_AUTO_CONTROLLER,
                     default=self._config_entry.options.get(
                         OPT_AUTO_CONTROLLER, DEFAULT_AUTO_CONTROLLER
+                    ),
+                ): bool,
+                vol.Optional(
+                    OPT_DEBUG_LOGGING,
+                    default=self._config_entry.options.get(
+                        OPT_DEBUG_LOGGING, DEFAULT_DEBUG_LOGGING
+                    ),
+                ): bool,
+                vol.Optional(
+                    OPT_MQTT_RECORDING,
+                    default=self._config_entry.options.get(
+                        OPT_MQTT_RECORDING, DEFAULT_MQTT_RECORDING
                     ),
                 ): bool,
                 # Cloud features hidden for beta — uncomment when cloud API is tested

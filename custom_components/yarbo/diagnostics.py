@@ -79,6 +79,15 @@ def _redact_config(config: dict[str, Any]) -> dict[str, Any]:
     redacted = dict(config)
     if CONF_ROBOT_SERIAL in redacted:
         redacted[CONF_ROBOT_SERIAL] = _redact_sn(redacted[CONF_ROBOT_SERIAL])
+    # Include recording file path if active
+    coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if coordinator and hasattr(coordinator, "recorder"):
+        data["mqtt_recording"] = {
+            "enabled": coordinator.recorder.enabled,
+            "path": str(coordinator.recorder.recording_path) if coordinator.recorder.recording_path else None,
+            "files": [str(p) for p in coordinator.recorder.list_recordings()[:5]],
+        }
+
     if CONF_CLOUD_USERNAME in redacted:
         redacted[CONF_CLOUD_USERNAME] = "[REDACTED]"
     if CONF_CLOUD_REFRESH_TOKEN in redacted:
