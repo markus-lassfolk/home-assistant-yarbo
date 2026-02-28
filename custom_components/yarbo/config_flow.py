@@ -285,8 +285,11 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             except Exception:
                 pass
             finally:
-                c.loop_stop()
-                c.disconnect()
+                try:
+                    c.loop_stop()
+                    c.disconnect()
+                except Exception:
+                    pass
             return (result["sn"], result["name"])
 
         try:

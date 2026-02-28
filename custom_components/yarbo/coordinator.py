@@ -364,7 +364,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                                     self._entry, data=new_data
                                 )
                             finally:
-                                # Disconnect old client; suppress errors to avoid leaking
+                                # Always disconnect old client to avoid leak on mid-swap exception
                                 with contextlib.suppress(Exception):
                                     await old_client.disconnect()
                         # Re-acquire controller on failover (matches async_setup_entry)
