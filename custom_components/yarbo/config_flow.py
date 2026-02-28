@@ -233,10 +233,17 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
                 c.connect(host, port, keepalive=10)
                 c.loop_start()
                 got_telemetry.wait(timeout=timeout)
-                c.loop_stop()
-                c.disconnect()
             except Exception:
                 pass
+            finally:
+                try:
+                    c.loop_stop()
+                except Exception:
+                    pass
+                try:
+                    c.disconnect()
+                except Exception:
+                    pass
             return (result["sn"], result["name"])
 
         try:

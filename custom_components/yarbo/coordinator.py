@@ -345,6 +345,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                             await new_client.connect()
                             old_client = self.client
                             self.client = new_client
+                            # Disconnect old client immediately after swap to prevent leaks
+                            with contextlib.suppress(Exception):
+                                await old_client.disconnect()
                             entry_data = self.hass.data.get(DOMAIN, {})
                             if self._entry.entry_id in entry_data:
                                 entry_data[self._entry.entry_id][DATA_CLIENT] = new_client
@@ -360,9 +363,6 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                                     new_data[CONF_CONNECTION_PATH] = ENDPOINT_TYPE_DC
                             # If rover_ip unknown, leave connection path unchanged
                             self.hass.config_entries.async_update_entry(self._entry, data=new_data)
-                            # Disconnect old client; suppress errors to avoid leaking
-                            with contextlib.suppress(Exception):
-                                await old_client.disconnect()
                         # Re-acquire controller on failover (matches async_setup_entry)
                         try:
                             await new_client.get_controller(timeout=5.0)
