@@ -554,8 +554,13 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             )
             self._pending_data[CONF_BROKER_ENDPOINTS] = endpoints_ordered
 
-            # Proceed to optional cloud authentication step
-            return await self.async_step_cloud()
+            # Cloud features disabled for beta — skip cloud step
+            # TODO: Re-enable cloud step when cloud API is tested
+            entry_data, self._pending_data = self._pending_data, {}
+            return self.async_create_entry(
+                title=entry_data[CONF_ROBOT_NAME],
+                data=entry_data,
+            )
 
         schema = vol.Schema(
             {
@@ -698,12 +703,13 @@ class YarboOptionsFlow(OptionsFlow):
                         OPT_AUTO_CONTROLLER, DEFAULT_AUTO_CONTROLLER
                     ),
                 ): bool,
-                vol.Optional(
-                    OPT_CLOUD_ENABLED,
-                    default=self._config_entry.options.get(
-                        OPT_CLOUD_ENABLED, DEFAULT_CLOUD_ENABLED
-                    ),
-                ): bool,
+                # Cloud features hidden for beta — uncomment when cloud API is tested
+                # vol.Optional(
+                #     OPT_CLOUD_ENABLED,
+                #     default=self._config_entry.options.get(
+                #         OPT_CLOUD_ENABLED, DEFAULT_CLOUD_ENABLED
+                #     ),
+                # ): bool,
                 # Fixed: activity_personality is a boolean toggle, not an enum string
                 vol.Optional(
                     OPT_ACTIVITY_PERSONALITY,
