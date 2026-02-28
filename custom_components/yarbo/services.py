@@ -46,6 +46,7 @@ SERVICE_START_PLAN_SCHEMA = vol.Schema(
     {
         vol.Required("device_id"): str,
         vol.Required("plan_id"): str,
+        vol.Optional("percent"): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
     }
 )
 
@@ -94,7 +95,7 @@ SERVICE_GO_TO_WAYPOINT_SCHEMA = vol.Schema(
 SERVICE_DELETE_PLAN_SCHEMA = vol.Schema(
     {
         vol.Required("device_id"): str,
-        vol.Required("plan_id"): vol.Coerce(int),
+        vol.Required("plan_id"): str,
     }
 )
 
@@ -153,10 +154,12 @@ def async_register_services(hass: HomeAssistant) -> None:
         plan_id: str = call.data["plan_id"]
         _LOGGER.debug("yarbo.start_plan: device=%s plan_id=%s", device_id, plan_id)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
+        # Optional percent override; fall back to coordinator's stored value
+        percent: int = call.data.get("percent", coordinator.plan_start_percent)
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            await client.publish_command("start_plan", {"planId": plan_id})
+            await client.publish_command("start_plan", {"planId": plan_id, "percent": percent})
 
     async def handle_pause(call: ServiceCall) -> None:
         """Handle yarbo.pause — pause current job."""
@@ -237,7 +240,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            await client.publish_command("cmd_vel", {"linear": linear, "angular": angular})
+            await client.publish_command("cmd_vel", {"vel": linear, "rev": angular})
 
     async def handle_go_to_waypoint(call: ServiceCall) -> None:
         """Handle yarbo.go_to_waypoint — navigate to waypoint index."""
@@ -253,13 +256,13 @@ def async_register_services(hass: HomeAssistant) -> None:
     async def handle_delete_plan(call: ServiceCall) -> None:
         """Handle yarbo.delete_plan — delete a plan by id."""
         device_id: str = call.data["device_id"]
-        plan_id: int = call.data["plan_id"]
-        _LOGGER.debug("yarbo.delete_plan: device=%s plan_id=%d", device_id, plan_id)
+        plan_id: str = call.data["plan_id"]
+        _LOGGER.debug("yarbo.delete_plan: device=%s plan_id=%s", device_id, plan_id)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            await client.publish_command("del_plan", {"id": plan_id})
+            await client.publish_command("del_plan", {"planId": plan_id})
 
     async def handle_delete_all_plans(call: ServiceCall) -> None:
         """Handle yarbo.delete_all_plans — delete all plans."""

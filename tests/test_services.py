@@ -82,7 +82,9 @@ class TestStartPlanService:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_command.assert_awaited_once_with("start_plan", {"planId": "plan-abc-123"})
+        client.publish_command.assert_awaited_once_with(
+            "start_plan", {"planId": "plan-abc-123", "percent": coordinator.plan_start_percent}
+        )
 
     async def test_start_plan_different_plan_ids(
         self,
@@ -105,7 +107,10 @@ class TestStartPlanService:
                     {"device_id": "fake-device-id", "plan_id": plan_id},
                     blocking=True,
                 )
-                client.publish_command.assert_awaited_once_with("start_plan", {"planId": plan_id})
+                client.publish_command.assert_awaited_once_with(
+                    "start_plan",
+                    {"planId": plan_id, "percent": coordinator.plan_start_percent},
+                )
 
     async def test_start_plan_raises_for_unknown_device(self, hass: HomeAssistant) -> None:
         """start_plan raises ServiceValidationError for unknown device_id."""
@@ -182,7 +187,7 @@ class TestManualDriveService:
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """manual_drive sends cmd_vel with linear/angular."""
+        """manual_drive sends cmd_vel with vel/rev keys (bug #1 fix)."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -200,7 +205,7 @@ class TestManualDriveService:
         client.get_controller.assert_awaited_once_with(timeout=5.0)
         client.publish_command.assert_awaited_once_with(
             "cmd_vel",
-            {"linear": 0.5, "angular": -0.25},
+            {"vel": 0.5, "rev": -0.25},
         )
 
 
@@ -250,12 +255,12 @@ class TestDeletePlanService:
             await hass.services.async_call(
                 DOMAIN,
                 "delete_plan",
-                {"device_id": "fake-device-id", "plan_id": 7},
+                {"device_id": "fake-device-id", "plan_id": "plan-7"},
                 blocking=True,
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_command.assert_awaited_once_with("del_plan", {"id": 7})
+        client.publish_command.assert_awaited_once_with("del_plan", {"planId": "plan-7"})
 
 
 class TestDeleteAllPlansService:

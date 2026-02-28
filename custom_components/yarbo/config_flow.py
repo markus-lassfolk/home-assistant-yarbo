@@ -256,10 +256,11 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             mac = discovery_info.macaddress
             hostname = discovery_info.hostname
 
+        # MAC is a hardware identifier — log only last octet to avoid leaking full address
         _LOGGER.debug(
-            "DHCP discovery: IP=%s MAC=%s hostname=%s",
+            "DHCP discovery: IP=%s MAC=**:**:**:**:**:%s hostname=%s",
             ip,
-            mac,
+            mac[-2:] if mac else "??",
             hostname,
         )
 

@@ -35,7 +35,12 @@ async def async_setup_entry(
             YarboBladeSpeedNumber(coordinator),
             YarboBlowerSpeedNumber(coordinator),
             YarboVolumeNumber(coordinator),
-            YarboPlanStartPercentNumber(coordinator),
+            YarboPlanStartPercentNumber(coordinator, entry),
+            # Bug #4: roller converted from switch to speed number
+            YarboRollerSpeedNumber(coordinator),
+            # #93 — Battery charge limits
+            YarboBatteryChargeMinNumber(coordinator),
+            YarboBatteryChargeMaxNumber(coordinator),
         ]
     )
 
@@ -282,7 +287,7 @@ class YarboVolumeNumber(YarboEntity, NumberEntity):
 
 
 class YarboPlanStartPercentNumber(YarboEntity, NumberEntity):
-    """Plan start percentage helper (local-only)."""
+    """Plan start percentage helper — persisted in config entry options (#16)."""
 
     _attr_translation_key = "plan_start_percent"
     _attr_native_min_value = 0.0
@@ -292,8 +297,9 @@ class YarboPlanStartPercentNumber(YarboEntity, NumberEntity):
     _attr_icon = "mdi:percent"
     _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+    def __init__(self, coordinator: YarboDataCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, "plan_start_percent")
+        self._entry = entry
 
     @property
     def native_value(self) -> float:
@@ -301,6 +307,119 @@ class YarboPlanStartPercentNumber(YarboEntity, NumberEntity):
         return float(self.coordinator.plan_start_percent)
 
     async def async_set_native_value(self, value: float) -> None:
-        """Update the stored plan start percentage."""
-        self.coordinator.set_plan_start_percent(int(value))
+        """Update the stored plan start percentage and persist to config entry options."""
+        int_val = int(value)
+        self.coordinator.set_plan_start_percent(int_val)
+        # Persist across HA restarts
+        self.hass.config_entries.async_update_entry(
+            self._entry,
+            options={**self._entry.options, "plan_start_percent": int_val},
+        )
+        self.async_write_ha_state()
+
+
+class YarboRollerSpeedNumber(YarboEntity, NumberEntity):
+    """Roller/blade RPM control for lawn mower heads (bug #4 — replaces roller switch)."""
+
+    _attr_translation_key = "roller_speed"
+    _attr_native_min_value = 0.0
+    _attr_native_max_value = 3500.0
+    _attr_native_step = 100.0
+    _attr_mode = NumberMode.SLIDER
+    _attr_icon = "mdi:saw-blade"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "roller_speed")
+        self._current_speed: float = 0.0
+
+    @property
+    def available(self) -> bool:
+        """Only available when a lawn mower head is installed."""
+        if not super().available:
+            return False
+        if not self.telemetry:
+            return False
+        return self.telemetry.head_type in {HEAD_TYPE_LAWN_MOWER, HEAD_TYPE_LAWN_MOWER_PRO}
+
+    @property
+    def native_value(self) -> float:
+        """Return the last set roller speed."""
+        return self._current_speed
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set roller speed in RPM."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command(
+                "cmd_roller",
+                {"speed": int(value)},
+            )
+        self._current_speed = value
+        self.async_write_ha_state()
+
+
+class YarboBatteryChargeMinNumber(YarboEntity, NumberEntity):
+    """Minimum battery charge limit (#93)."""
+
+    _attr_translation_key = "battery_charge_min"
+    _attr_native_min_value = 0.0
+    _attr_native_max_value = 100.0
+    _attr_native_step = 5.0
+    _attr_mode = NumberMode.SLIDER
+    _attr_icon = "mdi:battery-charging"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "battery_charge_min")
+        self._current_value: float = 0.0
+
+    @property
+    def native_value(self) -> float:
+        """Return the last set minimum charge limit."""
+        return self._current_value
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set minimum battery charge limit."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command(
+                "set_charge_limit",
+                {"min": int(value)},
+            )
+        self._current_value = value
+        self.async_write_ha_state()
+
+
+class YarboBatteryChargeMaxNumber(YarboEntity, NumberEntity):
+    """Maximum battery charge limit (#93)."""
+
+    _attr_translation_key = "battery_charge_max"
+    _attr_native_min_value = 0.0
+    _attr_native_max_value = 100.0
+    _attr_native_step = 5.0
+    _attr_mode = NumberMode.SLIDER
+    _attr_icon = "mdi:battery-charging"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "battery_charge_max")
+        self._current_value: float = 100.0
+
+    @property
+    def native_value(self) -> float:
+        """Return the last set maximum charge limit."""
+        return self._current_value
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set maximum battery charge limit."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command(
+                "set_charge_limit",
+                {"max": int(value)},
+            )
+        self._current_value = value
         self.async_write_ha_state()

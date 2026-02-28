@@ -411,7 +411,7 @@
         "name": "Lights"
       },
       "head_light": {
-        "name": "Head Light"
+        "name": "Head Mounted Light"
       },
       "led_head": {
         "name": "Head Light"
@@ -480,6 +480,24 @@
     },
     "wire_charging_lock": {
       "name": "Wire Charging Lock"
+    },
+    "smart_blowing": {
+      "name": "Smart Blowing"
+    },
+    "edge_blowing": {
+      "name": "Edge Blowing"
+    },
+    "motor_protect": {
+      "name": "Motor Protection"
+    },
+    "mower_head_sensor": {
+      "name": "Mower Head Sensor"
+    },
+    "roof_lights": {
+      "name": "Roof Lights"
+    },
+    "sound_enable": {
+      "name": "Sound"
     }
   },
     "number": {
@@ -503,6 +521,15 @@
       },
       "plan_start_percent": {
         "name": "Plan Start Percentage"
+      },
+      "roller_speed": {
+        "name": "Roller Speed"
+      },
+      "battery_charge_min": {
+        "name": "Battery Charge Minimum"
+      },
+      "battery_charge_max": {
+        "name": "Battery Charge Maximum"
       }
     },
     "select": {

@@ -17,12 +17,15 @@ from custom_components.yarbo.const import (
     HEAD_TYPE_SNOW_BLOWER,
 )
 from custom_components.yarbo.number import (
+    YarboBatteryChargeMaxNumber,
+    YarboBatteryChargeMinNumber,
     YarboBladeHeightNumber,
     YarboBladeSpeedNumber,
     YarboBlowerSpeedNumber,
     YarboChuteSteeringWorkNumber,
     YarboChuteVelocityNumber,
     YarboPlanStartPercentNumber,
+    YarboRollerSpeedNumber,
     YarboVolumeNumber,
 )
 
@@ -302,13 +305,174 @@ class TestYarboVolumeNumber:
 class TestYarboPlanStartPercentNumber:
     """Tests for plan start percentage helper."""
 
+    def _make_entry(self) -> MagicMock:
+        entry = MagicMock()
+        entry.options = {}
+        return entry
+
+    def test_reads_initial_value_from_coordinator(self) -> None:
+        """Initial value comes from coordinator.plan_start_percent."""
+        coord = _make_coordinator()
+        coord.plan_start_percent = 30
+        entry = self._make_entry()
+        entity = YarboPlanStartPercentNumber(coord, entry)
+        assert entity.native_value == 30.0
+
     @pytest.mark.asyncio
     async def test_set_percent_updates_coordinator(self) -> None:
         """Setting plan start percent updates coordinator state."""
         coord = _make_coordinator()
-        entity = YarboPlanStartPercentNumber(coord)
+        entry = self._make_entry()
+        entity = YarboPlanStartPercentNumber(coord, entry)
+        entity.hass = MagicMock()
+        entity.hass.config_entries = MagicMock()
+        entity.hass.config_entries.async_update_entry = MagicMock()
 
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_set_native_value(25.0)
 
         coord.set_plan_start_percent.assert_called_once_with(25)
+
+    @pytest.mark.asyncio
+    async def test_set_percent_persists_to_entry_options(self) -> None:
+        """Setting percent also persists to config entry options via hass (#16)."""
+        coord = _make_coordinator()
+        entry = self._make_entry()
+        entity = YarboPlanStartPercentNumber(coord, entry)
+        # Give entity a mock hass
+        entity.hass = MagicMock()
+        entity.hass.config_entries = MagicMock()
+        entity.hass.config_entries.async_update_entry = MagicMock()
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_set_native_value(50.0)
+
+        entity.hass.config_entries.async_update_entry.assert_called_once_with(
+            entry,
+            options={"plan_start_percent": 50},
+        )
+
+
+class TestYarboRollerSpeedNumber:
+    """Tests for roller speed number entity (bug #4 — replaces roller switch)."""
+
+    def test_icon(self) -> None:
+        """Roller speed uses mdi:saw-blade icon."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
+        entity = YarboRollerSpeedNumber(coord)
+        assert entity.icon == "mdi:saw-blade"
+
+    def test_translation_key(self) -> None:
+        """Translation key must be roller_speed."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
+        entity = YarboRollerSpeedNumber(coord)
+        assert entity.translation_key == "roller_speed"
+
+    def test_range_0_to_3500(self) -> None:
+        """Range must be 0 to 3500 RPM."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
+        entity = YarboRollerSpeedNumber(coord)
+        assert entity.native_min_value == 0.0
+        assert entity.native_max_value == 3500.0
+
+    def test_available_lawn_mower(self) -> None:
+        """Available for lawn mower heads."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER_PRO)
+        coord.last_update_success = True
+        entity = YarboRollerSpeedNumber(coord)
+        assert entity.available is True
+
+    def test_unavailable_snow_blower(self) -> None:
+        """Unavailable for non-mower heads."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_SNOW_BLOWER)
+        coord.last_update_success = True
+        entity = YarboRollerSpeedNumber(coord)
+        assert entity.available is False
+
+    @pytest.mark.asyncio
+    async def test_set_speed_publishes_command(self) -> None:
+        """Setting speed publishes cmd_roller with speed key (not state)."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
+        entity = YarboRollerSpeedNumber(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_set_native_value(2800.0)
+
+        coord.client.publish_command.assert_called_once_with("cmd_roller", {"speed": 2800})
+        assert entity.native_value == 2800.0
+
+    @pytest.mark.asyncio
+    async def test_set_zero_stops_roller(self) -> None:
+        """Setting speed to 0 stops the roller."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
+        entity = YarboRollerSpeedNumber(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_set_native_value(0.0)
+
+        coord.client.publish_command.assert_called_once_with("cmd_roller", {"speed": 0})
+        assert entity.native_value == 0.0
+
+
+class TestYarboBatteryChargeMinNumber:
+    """Tests for battery charge minimum limit (#93)."""
+
+    def test_icon(self) -> None:
+        """Battery charge min uses mdi:battery-charging icon."""
+        coord = _make_coordinator()
+        entity = YarboBatteryChargeMinNumber(coord)
+        assert entity.icon == "mdi:battery-charging"
+
+    def test_disabled_by_default(self) -> None:
+        """Battery charge min must be disabled by default."""
+        coord = _make_coordinator()
+        entity = YarboBatteryChargeMinNumber(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    def test_range_0_to_100_step_5(self) -> None:
+        """Range must be 0-100 with step 5."""
+        coord = _make_coordinator()
+        entity = YarboBatteryChargeMinNumber(coord)
+        assert entity.native_min_value == 0.0
+        assert entity.native_max_value == 100.0
+        assert entity.native_step == 5.0
+
+    @pytest.mark.asyncio
+    async def test_set_min_publishes_command(self) -> None:
+        """Setting min publishes set_charge_limit with min key."""
+        coord = _make_coordinator()
+        entity = YarboBatteryChargeMinNumber(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_set_native_value(20.0)
+
+        coord.client.publish_command.assert_called_once_with("set_charge_limit", {"min": 20})
+        assert entity.native_value == 20.0
+
+
+class TestYarboBatteryChargeMaxNumber:
+    """Tests for battery charge maximum limit (#93)."""
+
+    def test_icon(self) -> None:
+        """Battery charge max uses mdi:battery-charging icon."""
+        coord = _make_coordinator()
+        entity = YarboBatteryChargeMaxNumber(coord)
+        assert entity.icon == "mdi:battery-charging"
+
+    def test_initial_value_100(self) -> None:
+        """Initial value is 100%."""
+        coord = _make_coordinator()
+        entity = YarboBatteryChargeMaxNumber(coord)
+        assert entity.native_value == 100.0
+
+    @pytest.mark.asyncio
+    async def test_set_max_publishes_command(self) -> None:
+        """Setting max publishes set_charge_limit with max key."""
+        coord = _make_coordinator()
+        entity = YarboBatteryChargeMaxNumber(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_set_native_value(80.0)
+
+        coord.client.publish_command.assert_called_once_with("set_charge_limit", {"max": 80})
+        assert entity.native_value == 80.0

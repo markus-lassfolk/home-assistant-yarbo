@@ -15,6 +15,7 @@ from .const import (
     DOMAIN,
     HEAD_TYPE_LAWN_MOWER,
     HEAD_TYPE_LAWN_MOWER_PRO,
+    HEAD_TYPE_LEAF_BLOWER,
     HEAD_TYPE_TRIMMER,
 )
 from .coordinator import YarboDataCoordinator
@@ -32,7 +33,6 @@ async def async_setup_entry(
         [
             YarboBuzzerSwitch(coordinator),
             YarboPersonDetectSwitch(coordinator),
-            YarboRollerSwitch(coordinator),
             YarboHeatingFilmSwitch(coordinator),
             YarboFollowModeSwitch(coordinator),
             YarboAutoUpdateSwitch(coordinator),
@@ -45,6 +45,16 @@ async def async_setup_entry(
             YarboDrawModeSwitch(coordinator),
             YarboModuleLockSwitch(coordinator),
             YarboWireChargingLockSwitch(coordinator),
+            # #94 — Smart/edge blowing (leaf blower only)
+            YarboSmartBlowingSwitch(coordinator),
+            YarboEdgeBlowingSwitch(coordinator),
+            # #95 — Motor protect + mower head sensor
+            YarboMotorProtectSwitch(coordinator),
+            YarboMowerHeadSensorSwitch(coordinator),
+            # #96 — Roof lights
+            YarboRoofLightsSwitch(coordinator),
+            # #97 — Sound enable
+            YarboSoundEnableSwitch(coordinator),
         ]
     )
 
@@ -164,25 +174,6 @@ class YarboPersonDetectSwitch(YarboEntity, SwitchEntity):
         self.async_write_ha_state()
 
 
-class YarboRollerSwitch(YarboCommandSwitch):
-    """Roller/blade toggle for lawn mower heads."""
-
-    _attr_translation_key = "roller"
-    _attr_icon = "mdi:saw-blade"
-
-    def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "roller", "cmd_roller", payload_key="state")
-
-    @property
-    def available(self) -> bool:
-        """Only available when a lawn mower head is installed."""
-        if not super().available:
-            return False
-        if not self.telemetry:
-            return False
-        return self.telemetry.head_type in {HEAD_TYPE_LAWN_MOWER, HEAD_TYPE_LAWN_MOWER_PRO}
-
-
 class YarboHeatingFilmSwitch(YarboCommandSwitch):
     """Heating film toggle."""
 
@@ -257,44 +248,117 @@ class YarboTrimmerSwitch(YarboCommandSwitch):
         return self.telemetry.head_type == HEAD_TYPE_TRIMMER
 
 
-class YarboCameraSwitch(YarboCommandSwitch):
-    """Camera toggle."""
+class YarboCameraSwitch(YarboEntity, SwitchEntity):
+    """Camera toggle — sends {"enabled": true/false} per docs."""
 
     _attr_translation_key = "camera"
     _attr_icon = "mdi:camera"
+    _attr_assumed_state = True
     _attr_entity_category = EntityCategory.CONFIG
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "camera", "camera_toggle", payload_key="state")
+        super().__init__(coordinator, "camera")
+        self._is_on: bool = False
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if camera is enabled."""
+        return self._is_on
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Enable the camera."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command("camera_toggle", {"enabled": True})
+        self._is_on = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Disable the camera."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command("camera_toggle", {"enabled": False})
+        self._is_on = False
+        self.async_write_ha_state()
 
 
-class YarboLaserSwitch(YarboCommandSwitch):
-    """Laser toggle."""
+class YarboLaserSwitch(YarboEntity, SwitchEntity):
+    """Laser toggle — sends {"enabled": true/false} per docs."""
 
     _attr_translation_key = "laser"
     _attr_icon = "mdi:laser-pointer"
+    _attr_assumed_state = True
     _attr_entity_category = EntityCategory.CONFIG
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "laser", "laser_toggle", payload_key="state")
+        super().__init__(coordinator, "laser")
+        self._is_on: bool = False
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if laser is enabled."""
+        return self._is_on
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Enable the laser."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command("laser_toggle", {"enabled": True})
+        self._is_on = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Disable the laser."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command("laser_toggle", {"enabled": False})
+        self._is_on = False
+        self.async_write_ha_state()
 
 
-class YarboUsbSwitch(YarboCommandSwitch):
-    """USB power toggle."""
+class YarboUsbSwitch(YarboEntity, SwitchEntity):
+    """USB power toggle — sends {"enabled": true/false} per docs."""
 
     _attr_translation_key = "usb"
     _attr_icon = "mdi:usb"
+    _attr_assumed_state = True
     _attr_entity_category = EntityCategory.CONFIG
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
-        super().__init__(coordinator, "usb", "usb_toggle", payload_key="state")
+        super().__init__(coordinator, "usb")
+        self._is_on: bool = False
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if USB power is enabled."""
+        return self._is_on
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Enable USB power."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command("usb_toggle", {"enabled": True})
+        self._is_on = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Disable USB power."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command("usb_toggle", {"enabled": False})
+        self._is_on = False
+        self.async_write_ha_state()
 
 
 class YarboIgnoreObstaclesSwitch(YarboCommandSwitch):
-    """Obstacle detection bypass."""
+    """Obstacle detection bypass.
+
+    Note: APK uses function name setIgnoreObstacle / topic ignore_obstacles.
+    TODO: Verify against live robot — docs may say obstacle_toggle instead.
+    """
 
     _attr_translation_key = "ignore_obstacles"
     _attr_icon = "mdi:shield-off"
@@ -344,3 +408,153 @@ class YarboWireChargingLockSwitch(YarboCommandSwitch):
             "wire_charging_lock",
             payload_key="state",
         )
+
+
+class YarboSmartBlowingSwitch(YarboCommandSwitch):
+    """Smart blowing mode toggle — leaf blower head only (#94)."""
+
+    _attr_translation_key = "smart_blowing"
+    _attr_icon = "mdi:brain"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "smart_blowing", "smart_blowing", payload_key="state")
+
+    @property
+    def available(self) -> bool:
+        """Only available when leaf blower head is installed."""
+        if not super().available:
+            return False
+        if not self.telemetry:
+            return False
+        return self.telemetry.head_type == HEAD_TYPE_LEAF_BLOWER
+
+
+class YarboEdgeBlowingSwitch(YarboCommandSwitch):
+    """Edge blowing mode toggle — leaf blower head only (#94)."""
+
+    _attr_translation_key = "edge_blowing"
+    _attr_icon = "mdi:border-outside"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "edge_blowing", "edge_blowing", payload_key="state")
+
+    @property
+    def available(self) -> bool:
+        """Only available when leaf blower head is installed."""
+        if not super().available:
+            return False
+        if not self.telemetry:
+            return False
+        return self.telemetry.head_type == HEAD_TYPE_LEAF_BLOWER
+
+
+class YarboMotorProtectSwitch(YarboCommandSwitch):
+    """Motor protection toggle (#95)."""
+
+    _attr_translation_key = "motor_protect"
+    _attr_icon = "mdi:shield-check"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "motor_protect", "cmd_motor_protect", payload_key="state")
+
+
+class YarboMowerHeadSensorSwitch(YarboCommandSwitch):
+    """Mower head sensor toggle — lawn mower head only (#95)."""
+
+    _attr_translation_key = "mower_head_sensor"
+    _attr_icon = "mdi:motion-sensor"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            "mower_head_sensor",
+            "mower_head_sensor_switch",
+            payload_key="state",
+        )
+
+    @property
+    def available(self) -> bool:
+        """Only available when lawn mower head is installed."""
+        if not super().available:
+            return False
+        if not self.telemetry:
+            return False
+        return self.telemetry.head_type in {HEAD_TYPE_LAWN_MOWER, HEAD_TYPE_LAWN_MOWER_PRO}
+
+
+class YarboRoofLightsSwitch(YarboEntity, SwitchEntity):
+    """Roof lights enable toggle (#96)."""
+
+    _attr_translation_key = "roof_lights"
+    _attr_icon = "mdi:car-light-dimmed"
+    _attr_assumed_state = True
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "roof_lights")
+        self._is_on: bool = False
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if roof lights are enabled."""
+        return self._is_on
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Enable roof lights."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command("roof_lights_enable", {"enable": 1})
+        self._is_on = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Disable roof lights."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command("roof_lights_enable", {"enable": 0})
+        self._is_on = False
+        self.async_write_ha_state()
+
+
+class YarboSoundEnableSwitch(YarboEntity, SwitchEntity):
+    """Sound enable toggle (#97)."""
+
+    _attr_translation_key = "sound_enable"
+    _attr_icon = "mdi:volume-off"
+    _attr_assumed_state = True
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "sound_enable")
+        self._is_on: bool = False
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if sound is enabled."""
+        return self._is_on
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Enable sound."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command("set_sound_param", {"enable": 1})
+        self._is_on = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Disable sound."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            await self.coordinator.client.publish_command("set_sound_param", {"enable": 0})
+        self._is_on = False
+        self.async_write_ha_state()

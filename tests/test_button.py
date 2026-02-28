@@ -190,7 +190,7 @@ class TestYarboManualStopButton:
             await entity.async_press()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("cmd_vel", {"linear": 0, "angular": 0})
+        coord.client.publish_command.assert_called_once_with("cmd_vel", {"vel": 0, "rev": 0})
 
 
 class TestYarboSaveChargingPointButton:

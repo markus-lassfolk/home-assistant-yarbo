@@ -13,6 +13,7 @@ from custom_components.yarbo.const import (
     CONF_ROBOT_SERIAL,
     HEAD_TYPE_LAWN_MOWER,
     HEAD_TYPE_LAWN_MOWER_PRO,
+    HEAD_TYPE_LEAF_BLOWER,
     HEAD_TYPE_TRIMMER,
 )
 from custom_components.yarbo.switch import (
@@ -21,13 +22,18 @@ from custom_components.yarbo.switch import (
     YarboCameraOtaSwitch,
     YarboCameraSwitch,
     YarboDrawModeSwitch,
+    YarboEdgeBlowingSwitch,
     YarboFollowModeSwitch,
     YarboHeatingFilmSwitch,
     YarboIgnoreObstaclesSwitch,
     YarboLaserSwitch,
     YarboModuleLockSwitch,
+    YarboMotorProtectSwitch,
+    YarboMowerHeadSensorSwitch,
     YarboPersonDetectSwitch,
-    YarboRollerSwitch,
+    YarboRoofLightsSwitch,
+    YarboSmartBlowingSwitch,
+    YarboSoundEnableSwitch,
     YarboTrimmerSwitch,
     YarboUsbSwitch,
     YarboWireChargingLockSwitch,
@@ -175,62 +181,6 @@ class TestYarboPersonDetectSwitch:
             await entity.async_turn_off()
 
         coord.client.publish_command.assert_called_with("set_person_detect", {"enable": 0})
-        assert entity.is_on is False
-
-
-class TestYarboRollerSwitch:
-    """Tests for roller switch."""
-
-    def test_icon(self) -> None:
-        """Roller uses mdi:saw-blade icon."""
-        coord = _make_coordinator()
-        entity = YarboRollerSwitch(coord)
-        assert entity.icon == "mdi:saw-blade"
-
-    def test_translation_key(self) -> None:
-        """Translation key must be roller."""
-        coord = _make_coordinator()
-        entity = YarboRollerSwitch(coord)
-        assert entity.translation_key == "roller"
-
-    def test_available_lawn_mower(self) -> None:
-        """Available for lawn mower heads."""
-        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER_PRO)
-        coord.last_update_success = True
-        entity = YarboRollerSwitch(coord)
-        assert entity.available is True
-
-    def test_unavailable_other_head(self) -> None:
-        """Unavailable for non-lawn-mower heads."""
-        coord = _make_coordinator(head_type=HEAD_TYPE_TRIMMER)
-        coord.last_update_success = True
-        entity = YarboRollerSwitch(coord)
-        assert entity.available is False
-
-    @pytest.mark.asyncio
-    async def test_turn_on_publishes_command(self) -> None:
-        """turn_on publishes cmd_roller state=1."""
-        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
-        entity = YarboRollerSwitch(coord)
-
-        with patch.object(entity, "async_write_ha_state"):
-            await entity.async_turn_on()
-
-        coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("cmd_roller", {"state": 1})
-        assert entity.is_on is True
-
-    @pytest.mark.asyncio
-    async def test_turn_off_publishes_command(self) -> None:
-        """turn_off publishes cmd_roller state=0."""
-        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
-        entity = YarboRollerSwitch(coord)
-
-        with patch.object(entity, "async_write_ha_state"):
-            await entity.async_turn_on()
-            await entity.async_turn_off()
-
-        coord.client.publish_command.assert_called_with("cmd_roller", {"state": 0})
         assert entity.is_on is False
 
 
@@ -388,7 +338,7 @@ class TestYarboTrimmerSwitch:
 
 
 class TestYarboCameraSwitch:
-    """Tests for camera switch."""
+    """Tests for camera switch — bug #3 fix: sends enabled boolean."""
 
     def test_disabled_by_default(self) -> None:
         """Camera switch must be disabled by default."""
@@ -403,8 +353,8 @@ class TestYarboCameraSwitch:
         assert entity.icon == "mdi:camera"
 
     @pytest.mark.asyncio
-    async def test_turn_on_publishes_command(self) -> None:
-        """turn_on publishes camera_toggle state=1."""
+    async def test_turn_on_sends_enabled_true(self) -> None:
+        """turn_on publishes camera_toggle with enabled=True (not state=1)."""
         coord = _make_coordinator()
         entity = YarboCameraSwitch(coord)
 
@@ -412,12 +362,25 @@ class TestYarboCameraSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("camera_toggle", {"state": 1})
+        coord.client.publish_command.assert_called_once_with("camera_toggle", {"enabled": True})
         assert entity.is_on is True
+
+    @pytest.mark.asyncio
+    async def test_turn_off_sends_enabled_false(self) -> None:
+        """turn_off publishes camera_toggle with enabled=False (not state=0)."""
+        coord = _make_coordinator()
+        entity = YarboCameraSwitch(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+            await entity.async_turn_off()
+
+        coord.client.publish_command.assert_called_with("camera_toggle", {"enabled": False})
+        assert entity.is_on is False
 
 
 class TestYarboLaserSwitch:
-    """Tests for laser switch."""
+    """Tests for laser switch — bug #3 fix: sends enabled boolean."""
 
     def test_disabled_by_default(self) -> None:
         """Laser switch must be disabled by default."""
@@ -432,8 +395,8 @@ class TestYarboLaserSwitch:
         assert entity.icon == "mdi:laser-pointer"
 
     @pytest.mark.asyncio
-    async def test_turn_on_publishes_command(self) -> None:
-        """turn_on publishes laser_toggle state=1."""
+    async def test_turn_on_sends_enabled_true(self) -> None:
+        """turn_on publishes laser_toggle with enabled=True (not state=1)."""
         coord = _make_coordinator()
         entity = YarboLaserSwitch(coord)
 
@@ -441,12 +404,25 @@ class TestYarboLaserSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("laser_toggle", {"state": 1})
+        coord.client.publish_command.assert_called_once_with("laser_toggle", {"enabled": True})
         assert entity.is_on is True
+
+    @pytest.mark.asyncio
+    async def test_turn_off_sends_enabled_false(self) -> None:
+        """turn_off publishes laser_toggle with enabled=False."""
+        coord = _make_coordinator()
+        entity = YarboLaserSwitch(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+            await entity.async_turn_off()
+
+        coord.client.publish_command.assert_called_with("laser_toggle", {"enabled": False})
+        assert entity.is_on is False
 
 
 class TestYarboUsbSwitch:
-    """Tests for USB switch."""
+    """Tests for USB switch — bug #3 fix: sends enabled boolean."""
 
     def test_disabled_by_default(self) -> None:
         """USB switch must be disabled by default."""
@@ -461,8 +437,8 @@ class TestYarboUsbSwitch:
         assert entity.icon == "mdi:usb"
 
     @pytest.mark.asyncio
-    async def test_turn_on_publishes_command(self) -> None:
-        """turn_on publishes usb_toggle state=1."""
+    async def test_turn_on_sends_enabled_true(self) -> None:
+        """turn_on publishes usb_toggle with enabled=True (not state=1)."""
         coord = _make_coordinator()
         entity = YarboUsbSwitch(coord)
 
@@ -470,8 +446,21 @@ class TestYarboUsbSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("usb_toggle", {"state": 1})
+        coord.client.publish_command.assert_called_once_with("usb_toggle", {"enabled": True})
         assert entity.is_on is True
+
+    @pytest.mark.asyncio
+    async def test_turn_off_sends_enabled_false(self) -> None:
+        """turn_off publishes usb_toggle with enabled=False."""
+        coord = _make_coordinator()
+        entity = YarboUsbSwitch(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+            await entity.async_turn_off()
+
+        coord.client.publish_command.assert_called_with("usb_toggle", {"enabled": False})
+        assert entity.is_on is False
 
 
 class TestYarboIgnoreObstaclesSwitch:
@@ -588,3 +577,235 @@ class TestYarboWireChargingLockSwitch:
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
         coord.client.publish_command.assert_called_once_with("wire_charging_lock", {"state": 1})
         assert entity.is_on is True
+
+
+class TestYarboSmartBlowingSwitch:
+    """Tests for smart blowing switch (#94)."""
+
+    def test_icon(self) -> None:
+        """Smart blowing uses mdi:brain icon."""
+        coord = _make_coordinator()
+        entity = YarboSmartBlowingSwitch(coord)
+        assert entity.icon == "mdi:brain"
+
+    def test_disabled_by_default(self) -> None:
+        """Smart blowing must be disabled by default."""
+        coord = _make_coordinator()
+        entity = YarboSmartBlowingSwitch(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    def test_entity_category(self) -> None:
+        """Smart blowing is a config entity."""
+        coord = _make_coordinator()
+        entity = YarboSmartBlowingSwitch(coord)
+        assert entity.entity_category == EntityCategory.CONFIG
+
+    def test_available_leaf_blower(self) -> None:
+        """Available only when leaf blower head is installed."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LEAF_BLOWER)
+        coord.last_update_success = True
+        entity = YarboSmartBlowingSwitch(coord)
+        assert entity.available is True
+
+    def test_unavailable_other_head(self) -> None:
+        """Unavailable for non-leaf-blower heads."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
+        coord.last_update_success = True
+        entity = YarboSmartBlowingSwitch(coord)
+        assert entity.available is False
+
+    @pytest.mark.asyncio
+    async def test_turn_on_publishes_command(self) -> None:
+        """turn_on publishes smart_blowing state=1."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LEAF_BLOWER)
+        entity = YarboSmartBlowingSwitch(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+
+        coord.client.publish_command.assert_called_once_with("smart_blowing", {"state": 1})
+        assert entity.is_on is True
+
+
+class TestYarboEdgeBlowingSwitch:
+    """Tests for edge blowing switch (#94)."""
+
+    def test_icon(self) -> None:
+        """Edge blowing uses mdi:border-outside icon."""
+        coord = _make_coordinator()
+        entity = YarboEdgeBlowingSwitch(coord)
+        assert entity.icon == "mdi:border-outside"
+
+    def test_available_leaf_blower(self) -> None:
+        """Available only when leaf blower head is installed."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LEAF_BLOWER)
+        coord.last_update_success = True
+        entity = YarboEdgeBlowingSwitch(coord)
+        assert entity.available is True
+
+    @pytest.mark.asyncio
+    async def test_turn_on_publishes_command(self) -> None:
+        """turn_on publishes edge_blowing state=1."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LEAF_BLOWER)
+        entity = YarboEdgeBlowingSwitch(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+
+        coord.client.publish_command.assert_called_once_with("edge_blowing", {"state": 1})
+        assert entity.is_on is True
+
+
+class TestYarboMotorProtectSwitch:
+    """Tests for motor protection switch (#95)."""
+
+    def test_icon(self) -> None:
+        """Motor protect uses mdi:shield-check icon."""
+        coord = _make_coordinator()
+        entity = YarboMotorProtectSwitch(coord)
+        assert entity.icon == "mdi:shield-check"
+
+    def test_disabled_by_default(self) -> None:
+        """Motor protect must be disabled by default."""
+        coord = _make_coordinator()
+        entity = YarboMotorProtectSwitch(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    @pytest.mark.asyncio
+    async def test_turn_on_publishes_command(self) -> None:
+        """turn_on publishes cmd_motor_protect state=1."""
+        coord = _make_coordinator()
+        entity = YarboMotorProtectSwitch(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+
+        coord.client.publish_command.assert_called_once_with("cmd_motor_protect", {"state": 1})
+        assert entity.is_on is True
+
+
+class TestYarboMowerHeadSensorSwitch:
+    """Tests for mower head sensor switch (#95)."""
+
+    def test_icon(self) -> None:
+        """Mower head sensor uses mdi:motion-sensor icon."""
+        coord = _make_coordinator()
+        entity = YarboMowerHeadSensorSwitch(coord)
+        assert entity.icon == "mdi:motion-sensor"
+
+    def test_available_lawn_mower(self) -> None:
+        """Available for lawn mower heads."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
+        coord.last_update_success = True
+        entity = YarboMowerHeadSensorSwitch(coord)
+        assert entity.available is True
+
+    def test_available_lawn_mower_pro(self) -> None:
+        """Available for lawn mower pro head."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER_PRO)
+        coord.last_update_success = True
+        entity = YarboMowerHeadSensorSwitch(coord)
+        assert entity.available is True
+
+    def test_unavailable_trimmer(self) -> None:
+        """Unavailable for trimmer head."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_TRIMMER)
+        coord.last_update_success = True
+        entity = YarboMowerHeadSensorSwitch(coord)
+        assert entity.available is False
+
+    @pytest.mark.asyncio
+    async def test_turn_on_publishes_command(self) -> None:
+        """turn_on publishes mower_head_sensor_switch state=1."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
+        entity = YarboMowerHeadSensorSwitch(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+
+        coord.client.publish_command.assert_called_once_with(
+            "mower_head_sensor_switch", {"state": 1}
+        )
+        assert entity.is_on is True
+
+
+class TestYarboRoofLightsSwitch:
+    """Tests for roof lights switch (#96)."""
+
+    def test_icon(self) -> None:
+        """Roof lights uses mdi:car-light-dimmed icon."""
+        coord = _make_coordinator()
+        entity = YarboRoofLightsSwitch(coord)
+        assert entity.icon == "mdi:car-light-dimmed"
+
+    def test_disabled_by_default(self) -> None:
+        """Roof lights must be disabled by default."""
+        coord = _make_coordinator()
+        entity = YarboRoofLightsSwitch(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    @pytest.mark.asyncio
+    async def test_turn_on_sends_enable_1(self) -> None:
+        """turn_on publishes roof_lights_enable with enable=1."""
+        coord = _make_coordinator()
+        entity = YarboRoofLightsSwitch(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+
+        coord.client.publish_command.assert_called_once_with("roof_lights_enable", {"enable": 1})
+        assert entity.is_on is True
+
+    @pytest.mark.asyncio
+    async def test_turn_off_sends_enable_0(self) -> None:
+        """turn_off publishes roof_lights_enable with enable=0."""
+        coord = _make_coordinator()
+        entity = YarboRoofLightsSwitch(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+            await entity.async_turn_off()
+
+        coord.client.publish_command.assert_called_with("roof_lights_enable", {"enable": 0})
+        assert entity.is_on is False
+
+
+class TestYarboSoundEnableSwitch:
+    """Tests for sound enable switch (#97)."""
+
+    def test_icon(self) -> None:
+        """Sound enable uses mdi:volume-off icon."""
+        coord = _make_coordinator()
+        entity = YarboSoundEnableSwitch(coord)
+        assert entity.icon == "mdi:volume-off"
+
+    def test_disabled_by_default(self) -> None:
+        """Sound enable must be disabled by default."""
+        coord = _make_coordinator()
+        entity = YarboSoundEnableSwitch(coord)
+        assert entity.entity_registry_enabled_default is False
+
+    @pytest.mark.asyncio
+    async def test_turn_on_sends_enable_1(self) -> None:
+        """turn_on publishes set_sound_param with enable=1."""
+        coord = _make_coordinator()
+        entity = YarboSoundEnableSwitch(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+
+        coord.client.publish_command.assert_called_once_with("set_sound_param", {"enable": 1})
+        assert entity.is_on is True
+
+    @pytest.mark.asyncio
+    async def test_turn_off_sends_enable_0(self) -> None:
+        """turn_off publishes set_sound_param with enable=0."""
+        coord = _make_coordinator()
+        entity = YarboSoundEnableSwitch(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+            await entity.async_turn_off()
+
+        coord.client.publish_command.assert_called_with("set_sound_param", {"enable": 0})
+        assert entity.is_on is False

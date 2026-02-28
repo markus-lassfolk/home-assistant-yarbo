@@ -53,6 +53,18 @@ class PlanSummary:
     area_ids: list[str | int]
 
 
+def _to_float(value: Any) -> float | None:
+    """Convert a value to float, returning None on failure (not None-safe for 0.0)."""
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str) and value.strip():
+        try:
+            return float(value)
+        except ValueError:
+            return None
+    return None
+
+
 def _extract_float(data: Any) -> float | None:
     """Best-effort numeric extraction from feedback payloads."""
     if isinstance(data, (int, float)):
@@ -92,7 +104,7 @@ def _extract_text(data: Any, keys: tuple[str, ...]) -> str | None:
 
 
 class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
-    """Push-based coordinator — no polling interval.
+    """Push-based coordinator with periodic diagnostic polling.
 
     Receives telemetry from the python-yarbo library via an async generator
     (client.watch_telemetry()) and pushes updates to all entities.
@@ -101,6 +113,10 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     debounces updates to avoid stressing the HA recorder and event bus.
 
     On connection error, the loop retries after TELEMETRY_RETRY_DELAY_SECONDS.
+
+    The update_interval (60s) triggers periodic diagnostic polling for wifi,
+    battery cell temps, odometer, and other non-streaming data via
+    _async_update_data(). Core telemetry continues via the push stream.
 
     Repair issues managed here:
     - mqtt_disconnect: raised by _heartbeat_watchdog when no telemetry for > 60s
@@ -115,8 +131,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     ) -> None:
         """Initialize the coordinator.
 
-        No update_interval is set — this is a push-based coordinator.
-        Updates are triggered by incoming MQTT messages.
+        Push-based telemetry with periodic diagnostic polling (update_interval=60s).
+        Core telemetry updates are triggered by incoming MQTT messages.
         """
         super().__init__(
             hass,
@@ -153,7 +169,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._plan_by_id: dict[str | int, PlanSummary] = {}
         self._plan_remaining_time: int | None = None
         self._selected_plan_id: str | int | None = None
-        self._plan_start_percent: int = 0
+        self._plan_start_percent: int = int(entry.options.get("plan_start_percent", 0))
         self._wifi_name: str | None = None
         self._battery_cell_temp_min: float | None = None
         self._battery_cell_temp_max: float | None = None
@@ -457,35 +473,18 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         data = response.get("data", response)
         min_val = max_val = avg_val = None
 
-        def _to_float(value: Any) -> float | None:
-            if isinstance(value, (int, float)):
-                return float(value)
-            if isinstance(value, str) and value.strip():
-                try:
-                    return float(value)
-                except ValueError:
-                    return None
+        def _first_not_none(data: dict[str, Any], *keys: str) -> float | None:
+            """Return _to_float of the first key whose value is not None."""
+            for key in keys:
+                raw = data.get(key)
+                if raw is not None:
+                    return _to_float(raw)
             return None
 
         if isinstance(data, dict):
-            min_val = _to_float(
-                data.get("min")
-                or data.get("min_temp")
-                or data.get("min_temp_c")
-                or data.get("temp_min")
-            )
-            max_val = _to_float(
-                data.get("max")
-                or data.get("max_temp")
-                or data.get("max_temp_c")
-                or data.get("temp_max")
-            )
-            avg_val = _to_float(
-                data.get("avg")
-                or data.get("avg_temp")
-                or data.get("avg_temp_c")
-                or data.get("temp_avg")
-            )
+            min_val = _first_not_none(data, "min", "min_temp", "min_temp_c", "temp_min")
+            max_val = _first_not_none(data, "max", "max_temp", "max_temp_c", "temp_max")
+            avg_val = _first_not_none(data, "avg", "avg_temp", "avg_temp_c", "temp_avg")
             temps = data.get("temps") or data.get("cell_temps") or data.get("temperature_list")
             if temps is None:
                 temps = data.get("battery_cell_temp")
@@ -511,17 +510,6 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Request odometer distance (meters)."""
         response = await self._request_data_feedback("odometer_msg", {}, timeout)
         data = response.get("data", response)
-
-        def _to_float(value: Any) -> float | None:
-            if isinstance(value, (int, float)):
-                return float(value)
-            if isinstance(value, str) and value.strip():
-                try:
-                    return float(value)
-                except ValueError:
-                    return None
-            return None
-
         odometer_m: float | None = None
         if isinstance(data, dict):
             for key in (
@@ -603,7 +591,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def get_schedules(self, timeout: float = 5.0) -> list[Any]:
         """Request schedules list."""
-        response = await self._request_data_feedback("read_schedule", {}, timeout)
+        response = await self._request_data_feedback("read_schedules", {}, timeout)
         data = response.get("data", response)
         schedules: list[Any] = []
         if isinstance(data, list):
@@ -902,31 +890,35 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             raise
 
     async def _async_update_data(self) -> YarboTelemetry:
-        """Fallback: fetch a single snapshot if push stream isn't running.
+        """Periodic diagnostic poll — called every 60s by the coordinator framework.
 
-        This method is called by the coordinator framework if no data is available.
-        In normal operation, data comes from _telemetry_loop() via async_set_updated_data().
+        In normal operation, core telemetry arrives via _telemetry_loop() using
+        async_set_updated_data(). This method handles non-streaming diagnostic
+        requests. All diagnostic calls run in parallel; individual failures are
+        logged but do not block the status fetch.
         """
         try:
-            await self.get_wifi_name()
-            await self.get_battery_cell_temps()
-            await self.get_odometer()
-            for method in (
-                self.get_no_charge_period,
-                self.get_schedules,
-                self.get_body_current,
-                self.get_head_current,
-                self.get_speed,
-                self.get_product_code,
-                self.get_hub_info,
-                self.get_recharge_point,
-                self.get_wifi_list,
-                self.get_map_backups,
-                self.get_clean_areas,
-                self.get_motor_temp,
-            ):
-                with contextlib.suppress(Exception):
-                    await method()
+            diagnostic_coros = [
+                self.get_wifi_name(),
+                self.get_battery_cell_temps(),
+                self.get_odometer(),
+                self.get_no_charge_period(),
+                self.get_schedules(),
+                self.get_body_current(),
+                self.get_head_current(),
+                self.get_speed(),
+                self.get_product_code(),
+                self.get_hub_info(),
+                self.get_recharge_point(),
+                self.get_wifi_list(),
+                self.get_map_backups(),
+                self.get_clean_areas(),
+                self.get_motor_temp(),
+            ]
+            results = await asyncio.gather(*diagnostic_coros, return_exceptions=True)
+            for result in results:
+                if isinstance(result, Exception):
+                    _LOGGER.debug("Diagnostic request failed (non-fatal): %s", result)
             return await self.client.get_status(timeout=5.0)
         except YarboConnectionError as err:
             raise UpdateFailed(f"Cannot connect to Yarbo: {err}") from err

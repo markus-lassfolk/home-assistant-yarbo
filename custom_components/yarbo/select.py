@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from types import MappingProxyType
 from typing import ClassVar
 
@@ -75,12 +76,12 @@ class YarboTurnTypeSelect(YarboEntity, SelectEntity):
     """Select the turn type for mowing."""
 
     _attr_translation_key = "turn_type"
-    _attr_options: ClassVar[tuple[str, ...]] = ("u_turn", "three_point", "zero_radius")
+    _attr_options: ClassVar[list[str]] = ["u_turn", "three_point", "zero_radius"]
     _attr_icon = "mdi:rotate-right"
     _attr_entity_category = EntityCategory.CONFIG
     _attr_assumed_state = True
 
-    _turn_type_map: ClassVar[dict[str, int]] = MappingProxyType(
+    _turn_type_map: ClassVar[Mapping[str, int]] = MappingProxyType(
         {"u_turn": 0, "three_point": 1, "zero_radius": 2}
     )
 
@@ -111,7 +112,7 @@ class YarboSnowPushDirectionSelect(YarboEntity, SelectEntity):
     """Select snow push direction (snow blower head only)."""
 
     _attr_translation_key = "snow_push_direction"
-    _attr_options: ClassVar[tuple[str, ...]] = ("left", "right", "center")
+    _attr_options: ClassVar[list[str]] = ["left", "right", "center"]
     _attr_icon = "mdi:snowflake"
     _attr_entity_category = EntityCategory.CONFIG
     _attr_assumed_state = True

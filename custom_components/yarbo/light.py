@@ -176,7 +176,7 @@ class YarboHeadLight(YarboEntity, LightEntity):
             return False
         if not self.telemetry:
             return False
-        return self.telemetry.head_type != HEAD_TYPE_NONE
+        return self.telemetry.head_type not in (HEAD_TYPE_NONE, None, "")
 
     @property
     def is_on(self) -> bool:

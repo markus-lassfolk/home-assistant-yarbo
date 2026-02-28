@@ -152,6 +152,7 @@ class YarboPlaySoundButton(YarboButton):
         super().__init__(coordinator, "play_sound")
 
     async def async_press(self) -> None:
+        # TODO: Verify payload against APK — may need {"songId": 0} or similar
         await self._send_command("song_cmd", {"song_name": "default"})
 
 
@@ -193,7 +194,7 @@ class YarboManualStopButton(YarboButton):
         super().__init__(coordinator, "manual_stop")
 
     async def async_press(self) -> None:
-        await self._send_command("cmd_vel", {"linear": 0, "angular": 0})
+        await self._send_command("cmd_vel", {"vel": 0, "rev": 0})
 
 
 class YarboSaveChargingPointButton(YarboButton):

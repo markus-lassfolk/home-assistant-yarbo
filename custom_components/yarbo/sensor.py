@@ -10,7 +10,13 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfElectricCurrent, UnitOfLength, UnitOfSpeed, UnitOfTime
+from homeassistant.const import (
+    UnitOfElectricCurrent,
+    UnitOfLength,
+    UnitOfSpeed,
+    UnitOfTemperature,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -1045,6 +1051,7 @@ class YarboWifiNetworkSensor(YarboSensor):
     """Diagnostic sensor for connected WiFi network."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
     _attr_translation_key = "wifi_network"
     _attr_icon = "mdi:wifi"
 
@@ -1063,7 +1070,7 @@ class YarboBatteryCellTempMinSensor(YarboSensor):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
     _attr_device_class = SensorDeviceClass.TEMPERATURE
-    _attr_native_unit_of_measurement = "°C"
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_translation_key = "battery_cell_temp_min"
 
@@ -1082,7 +1089,7 @@ class YarboBatteryCellTempMaxSensor(YarboSensor):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
     _attr_device_class = SensorDeviceClass.TEMPERATURE
-    _attr_native_unit_of_measurement = "°C"
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_translation_key = "battery_cell_temp_max"
 
@@ -1101,7 +1108,7 @@ class YarboBatteryCellTempAvgSensor(YarboSensor):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
     _attr_device_class = SensorDeviceClass.TEMPERATURE
-    _attr_native_unit_of_measurement = "°C"
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_translation_key = "battery_cell_temp_avg"
 
@@ -1463,7 +1470,7 @@ class YarboMotorTempSensor(YarboSensor):
     _attr_entity_registry_enabled_default = False
     _attr_translation_key = "motor_temp"
     _attr_device_class = SensorDeviceClass.TEMPERATURE
-    _attr_native_unit_of_measurement = "°C"
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
