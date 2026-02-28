@@ -373,7 +373,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         except Exception as ctrl_err:
                             _LOGGER.warning("Failover controller acquisition failed: %s", ctrl_err)
                         _LOGGER.info("Failover to %s succeeded", next_host)
-                        await asyncio.sleep(2)
+                        await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
                         continue
                     except Exception as connect_err:
                         _LOGGER.warning(
