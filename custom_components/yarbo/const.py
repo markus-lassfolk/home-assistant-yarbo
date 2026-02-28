@@ -52,9 +52,9 @@ DEFAULT_AUTO_CONTROLLER = True
 DEFAULT_CLOUD_ENABLED = False
 DEFAULT_ACTIVITY_PERSONALITY = False  # Boolean: False=standard, True=fun/verbose descriptions
 
-# Head types (from Dart HeadType enum, APK v3.17.4)
-HEAD_TYPE_SNOW_BLOWER = 0
-HEAD_TYPE_LAWN_MOWER = 1
+# Head types (confirmed via live MQTT telemetry + visual verification)
+HEAD_TYPE_LAWN_MOWER = 0
+HEAD_TYPE_SNOW_BLOWER = 1
 HEAD_TYPE_LAWN_MOWER_PRO = 2
 HEAD_TYPE_LEAF_BLOWER = 3
 HEAD_TYPE_SMART_COVER = 4  # SAM / patrol / sentry
