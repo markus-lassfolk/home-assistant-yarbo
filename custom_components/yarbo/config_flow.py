@@ -736,17 +736,9 @@ class YarboOptionsFlow(OptionsFlow):
         schema = vol.Schema(
             {
                 vol.Optional(
-                    OPT_DEBUG_LOGGING,
-    DEFAULT_DEBUG_LOGGING,
-    OPT_MQTT_RECORDING,
-    DEFAULT_MQTT_RECORDING,
-    OPT_TELEMETRY_THROTTLE,
+                    OPT_TELEMETRY_THROTTLE,
                     default=self._config_entry.options.get(
-                        OPT_DEBUG_LOGGING,
-    DEFAULT_DEBUG_LOGGING,
-    OPT_MQTT_RECORDING,
-    DEFAULT_MQTT_RECORDING,
-    OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE
+                        OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE
                     ),
                 ): vol.All(vol.Coerce(float), vol.Range(min=1.0, max=10.0)),
                 vol.Optional(

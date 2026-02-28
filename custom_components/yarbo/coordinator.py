@@ -1096,4 +1096,6 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             with contextlib.suppress(asyncio.CancelledError):
                 await self._diagnostic_task
             self._diagnostic_task = None
+        if self._recorder.enabled:
+            self._recorder.stop()
         await super().async_shutdown()
