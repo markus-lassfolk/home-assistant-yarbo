@@ -126,9 +126,7 @@ class YarboCommandSwitch(YarboEntity, SwitchEntity):
         normalized_command = normalize_command_name(self._command)
         telemetry = self.telemetry
         current_head = telemetry.head_type if telemetry else None
-        is_valid, error_message = validate_head_type_for_command(
-            normalized_command, current_head
-        )
+        is_valid, error_message = validate_head_type_for_command(normalized_command, current_head)
         if not is_valid:
             raise HomeAssistantError(error_message)
         async with self.coordinator.command_lock:
@@ -168,6 +166,8 @@ class YarboPersonDetectSwitch(YarboCommandSwitch):
             on_value=False,
             off_value=True,
         )
+
+
 class YarboHeatingFilmSwitch(YarboCommandSwitch):
     """Heating film toggle."""
 
