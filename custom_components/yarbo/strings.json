@@ -66,7 +66,7 @@
     "abort": {
       "already_configured": "This robot is already configured.",
       "cannot_connect": "Cannot connect to MQTT broker at {host}:1883. Is the base station powered on and reachable?",
-      "no_telemetry": "Connected but no robot telemetry received within 10 seconds. Is the robot powered on?",
+      "no_telemetry": "Connected but no robot telemetry received within 30 seconds. Is the robot powered on and near the base station?",
       "decode_error": "Received data but cannot decode it. Firmware may be incompatible.",
       "not_implemented": "Configuration flow not yet implemented.",
       "wrong_device": "The discovered device does not match this Yarbo robot.",
@@ -76,7 +76,7 @@
     },
     "error": {
       "cannot_connect": "Cannot connect",
-      "no_telemetry": "No telemetry received",
+      "no_telemetry": "No telemetry received within 30 seconds. Ensure the robot is powered on and near the base station, then try again.",
       "decode_error": "Decode error",
       "cloud_auth_failed": "Cloud authentication failed — check your email and password",
       "cloud_not_available": "Cloud client not available — update python-yarbo"

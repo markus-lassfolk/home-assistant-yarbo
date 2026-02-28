@@ -76,7 +76,7 @@
     },
     "error": {
       "cannot_connect": "Cannot connect",
-      "no_telemetry": "No telemetry received",
+      "no_telemetry": "No telemetry received within 30 seconds. Ensure the robot is powered on and near the base station, then try again.",
       "decode_error": "Decode error",
       "cloud_auth_failed": "Cloud authentication failed — check your email and password",
       "cloud_not_available": "Cloud client not available — update python-yarbo"
