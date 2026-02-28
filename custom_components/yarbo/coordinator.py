@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import logging
 import time
+from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -39,6 +40,15 @@ from .repairs import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+@dataclass(slots=True)
+class PlanSummary:
+    """Minimal work plan summary."""
+
+    plan_id: str | int
+    name: str
+    area_ids: list[str | int]
 
 
 class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
@@ -98,6 +108,10 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         }
         # Latest firmware version from cloud API — populated when cloud is enabled
         self.latest_firmware_version: str | None = None
+        self._plan_summaries: list[PlanSummary] = []
+        self._plan_by_id: dict[str | int, PlanSummary] = {}
+        self._plan_remaining_time: int | None = None
+        self._selected_plan_id: str | int | None = None
 
     def update_options(self, options: dict[str, Any]) -> None:
         """Apply updated config entry options without requiring a full reload.
@@ -135,6 +149,127 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     def entry(self) -> ConfigEntry:
         """Return the config entry (public accessor)."""
         return self._entry
+
+    @property
+    def plan_options(self) -> list[str]:
+        """Return available plan names."""
+        return [plan.name for plan in self._plan_summaries]
+
+    @property
+    def active_plan_id(self) -> str | int | None:
+        """Return the active plan id, preferring telemetry when available."""
+        telemetry = self.data
+        if telemetry is not None and getattr(telemetry, "plan_id", None) is not None:
+            return telemetry.plan_id
+        return self._selected_plan_id
+
+    def plan_name_for_id(self, plan_id: str | int | None) -> str | None:
+        """Return plan name for an id, if known."""
+        if plan_id is None:
+            return None
+        plan = self._plan_by_id.get(plan_id)
+        return plan.name if plan else None
+
+    def plan_id_for_name(self, name: str) -> str | int | None:
+        """Return plan id for a plan name, if known."""
+        for plan in self._plan_summaries:
+            if plan.name == name:
+                return plan.plan_id
+        return None
+
+    @property
+    def plan_remaining_time(self) -> int | None:
+        """Return remaining time for the last read plan, in seconds."""
+        return self._plan_remaining_time
+
+    async def read_all_plans(self, timeout: float = 5.0) -> list[PlanSummary]:
+        """Read all plan summaries from the robot."""
+        response = await self._request_data_feedback("read_all_plan", {}, timeout)
+        data = response.get("data") if isinstance(response, dict) else None
+        plans = data if isinstance(data, list) else []
+        summaries: list[PlanSummary] = []
+        for plan in plans:
+            if not isinstance(plan, dict):
+                continue
+            plan_id = plan.get("id")
+            name = plan.get("name")
+            if plan_id is None or name is None:
+                continue
+            area_ids_raw = plan.get("areaIds") or []
+            area_ids = (
+                list(area_ids_raw)
+                if isinstance(area_ids_raw, list)
+                else [str(area_ids_raw)]
+            )
+            summaries.append(PlanSummary(plan_id=plan_id, name=str(name), area_ids=area_ids))
+        self._plan_summaries = summaries
+        self._plan_by_id = {plan.plan_id: plan for plan in summaries}
+        self.async_update_listeners()
+        return summaries
+
+    async def read_plan(self, plan_id: str | int, timeout: float = 5.0) -> dict[str, Any]:
+        """Read a specific plan detail and update remaining time."""
+        response = await self._request_data_feedback("read_plan", {"id": plan_id}, timeout)
+        detail: dict[str, Any] = {}
+        if isinstance(response, dict):
+            if isinstance(response.get("data"), dict):
+                detail = response["data"]
+            else:
+                detail = response
+        left_time = detail.get("leftTime")
+        if isinstance(left_time, (int, float)):
+            self._plan_remaining_time = int(left_time)
+        else:
+            self._plan_remaining_time = None
+        self.async_update_listeners()
+        return detail
+
+    async def start_plan(self, plan_id: str | int) -> None:
+        """Start a work plan by id."""
+        async with self.command_lock:
+            await self.client.get_controller(timeout=5.0)
+            await self.client.publish_command("start_plan", {"planId": plan_id})
+        self._selected_plan_id = plan_id
+        self.async_update_listeners()
+        try:
+            await self.read_plan(plan_id)
+        except Exception as err:  # pragma: no cover - best effort
+            _LOGGER.debug("Failed to read plan %s after start: %s", plan_id, err)
+
+    async def plan_action(self, action: str) -> None:
+        """Send an in-plan action (pause, resume, stop)."""
+        if action not in {"pause", "resume", "stop"}:
+            raise ValueError(f"Unsupported plan action: {action}")
+        async with self.command_lock:
+            await self.client.get_controller(timeout=5.0)
+            await self.client.publish_command("in_plan_action", {"action": action})
+
+    async def _request_data_feedback(
+        self,
+        command: str,
+        payload: dict[str, Any],
+        timeout: float,
+    ) -> dict[str, Any]:
+        """Publish a command and await matching data_feedback."""
+        async with self.command_lock:
+            await self.client.publish_command(command, payload)
+            response = await self._await_data_feedback(command, timeout)
+        if not isinstance(response, dict):
+            return {}
+        return response
+
+    async def _await_data_feedback(
+        self, topic: str, timeout: float
+    ) -> dict[str, Any] | None:
+        """Await a data_feedback response for a command, if supported."""
+        waiter = getattr(self.client, "wait_for_data_feedback", None)
+        if callable(waiter):
+            return await waiter(topic, timeout=timeout)
+        waiter = getattr(self.client, "wait_for_feedback", None)
+        if callable(waiter):
+            return await waiter(topic, timeout=timeout)
+        _LOGGER.debug("Client does not support data_feedback waits for %s", topic)
+        return None
 
     async def _async_setup(self) -> None:
         """Start the telemetry listener task."""

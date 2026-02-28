@@ -15,7 +15,7 @@ if "pycares" not in sys.modules:
 if "aiodns" not in sys.modules:
     aiodns = types.ModuleType("aiodns")
 
-    class DNSResolver:  # noqa: D401 - small stub
+    class DNSResolver:
         """Stub for aiodns.DNSResolver."""
 
         def __init__(self, *_args: object, **_kwargs: object) -> None:

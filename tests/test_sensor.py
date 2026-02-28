@@ -20,6 +20,7 @@ from custom_components.yarbo.sensor import (
     YarboHeadingSensor,
     YarboMqttAgeSensor,
     YarboOdomConfidenceSensor,
+    YarboPlanRemainingTimeSensor,
     YarboRainSensor,
     YarboRtcmAgeSensor,
     YarboRtkStatusSensor,
@@ -237,6 +238,24 @@ class TestChargingPowerSensor:
         """Returns None when voltage is not available."""
         coord = _make_coordinator(charge_voltage_mv=None, charge_current_ma=1500)
         entity = YarboChargingPowerSensor(coord)
+        assert entity.native_value is None
+
+
+class TestPlanRemainingTimeSensor:
+    """Tests for plan remaining time sensor."""
+
+    def test_native_value(self) -> None:
+        """Returns remaining time from coordinator."""
+        coord = _make_coordinator()
+        coord.plan_remaining_time = 120
+        entity = YarboPlanRemainingTimeSensor(coord)
+        assert entity.native_value == 120
+
+    def test_none_when_unset(self) -> None:
+        """Returns None when no plan time is available."""
+        coord = _make_coordinator()
+        coord.plan_remaining_time = None
+        entity = YarboPlanRemainingTimeSensor(coord)
         assert entity.native_value is None
 
     def test_none_when_current_absent(self) -> None:

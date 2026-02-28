@@ -162,6 +162,7 @@ def mock_yarbo_client() -> Generator[MagicMock, None, None]:
         client.get_status = AsyncMock(return_value=MOCK_TELEMETRY)
         client.publish_raw = AsyncMock()
         client.publish_command = AsyncMock()
+        client.wait_for_data_feedback = AsyncMock(return_value={"data": []})
         client.set_lights = AsyncMock()
         client.buzzer = AsyncMock()
         client.set_chute = AsyncMock()

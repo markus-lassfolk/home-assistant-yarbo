@@ -13,6 +13,7 @@ PLATFORMS: list[str] = [
     "button",
     "event",
     "light",
+    "select",
     "switch",
     "number",
     "device_tracker",

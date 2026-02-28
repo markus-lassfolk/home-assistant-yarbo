@@ -10,6 +10,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -137,6 +138,7 @@ async def async_setup_entry(
             YarboHeadGyroPitchSensor(coordinator),
             YarboHeadGyroRollSensor(coordinator),
             YarboMachineControllerSensor(coordinator),
+            YarboPlanRemainingTimeSensor(coordinator),
             YarboRoutePriorityHg0Sensor(coordinator),
             YarboRoutePriorityWlan0Sensor(coordinator),
             YarboRoutePriorityWwan0Sensor(coordinator),
@@ -1004,6 +1006,23 @@ class YarboMachineControllerSensor(YarboSensor):
         if value is None:
             value = get_nested_raw_value(telemetry, "StateMSG", "machine_controller")
         return value if value is not None else None
+
+
+class YarboPlanRemainingTimeSensor(YarboSensor):
+    """Remaining time for the last read plan."""
+
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = UnitOfTime.SECONDS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "plan_remaining_time"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "plan_remaining_time")
+
+    @property
+    def native_value(self) -> int | None:
+        """Return remaining plan time in seconds."""
+        return self.coordinator.plan_remaining_time
 
 
 class YarboRoutePriorityHg0Sensor(YarboSensor):

@@ -238,6 +238,9 @@
       "machine_controller": {
         "name": "Machine Controller"
       },
+      "plan_remaining_time": {
+        "name": "Plan Remaining Time"
+      },
       "route_priority_hg0": {
         "name": "Route Priority HG0"
       },
@@ -362,6 +365,11 @@
     "number": {
       "chute_velocity": {
         "name": "Chute Velocity"
+      }
+    },
+    "select": {
+      "work_plan": {
+        "name": "Work Plan"
       }
     },
     "device_tracker": {
