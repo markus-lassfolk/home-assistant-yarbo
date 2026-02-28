@@ -556,6 +556,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
         async def _execute_command() -> Any:
             await self.client.publish_command(normalized_command, payload)
+            feedback_task = asyncio.create_task(
+                self._await_data_feedback(normalized_command, timeout)
+            )
             if self._recorder.enabled:
                 try:
                     await self.hass.async_add_executor_job(
@@ -563,7 +566,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     )
                 except Exception as rec_err:
                     _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
-            return await self._await_data_feedback(normalized_command, timeout)
+            return await feedback_task
 
         if skip_lock:
             response = await _execute_command()
@@ -1105,8 +1108,6 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
         Runs every 300 seconds to fetch non-streaming data like wifi, battery temps,
         odometer, etc. Does not modify self.data, only updates internal state.
-
-        Uses skip_lock=True to avoid blocking user commands during diagnostic polling.
         """
         while True:
             try:
@@ -1131,7 +1132,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     ]
                     for method in diagnostic_methods:
                         try:
-                            await method(timeout=1.0, skip_lock=True)
+                            await method(timeout=1.0, skip_lock=False)
                         except Exception as err:
                             _LOGGER.debug("Diagnostic request failed (non-fatal): %s", err)
                     self.async_update_listeners()
