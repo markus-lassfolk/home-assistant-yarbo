@@ -162,9 +162,9 @@ async def async_discover_endpoints(
     try:
         # Library may expose sync or async discover
         if asyncio.iscoroutinefunction(yarbo_discover):
-            results = await yarbo_discover(port=port)
+            results = await asyncio.wait_for(yarbo_discover(port=port), timeout=15.0)
         else:
-            results = await asyncio.to_thread(yarbo_discover, port=port)
+            results = await asyncio.wait_for(asyncio.to_thread(yarbo_discover, port=port), timeout=15.0)
     except Exception as err:
         _LOGGER.debug("yarbo.discover() failed: %s", err)
         results = []
