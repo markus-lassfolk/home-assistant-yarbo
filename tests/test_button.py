@@ -275,3 +275,106 @@ class TestYarboSaveMapBackupButton:
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
         coord.client.publish_command.assert_called_once_with("save_map_backup", {})
+
+
+# ---- imports for new entities ----
+from custom_components.yarbo.button import (  # noqa: E402
+    YarboCameraCalibrationButton,
+    YarboCheckCameraStatusButton,
+    YarboFirmwareUpdateLaterButton,
+    YarboFirmwareUpdateNowButton,
+    YarboFirmwareUpdateTonightButton,
+)
+
+
+class TestYarboCameraCalibrationButton:
+    """Tests for camera calibration button."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        assert YarboCameraCalibrationButton(coord).entity_registry_enabled_default is False
+
+    def test_entity_category(self) -> None:
+        coord = _make_coordinator()
+        assert YarboCameraCalibrationButton(coord).entity_category == EntityCategory.CONFIG
+
+    @pytest.mark.asyncio
+    async def test_press_publishes_command(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboCameraCalibrationButton(coord)
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_press()
+        coord.client.get_controller.assert_called_once_with(timeout=5.0)
+        coord.client.publish_command.assert_called_once_with("camera_calibration", {})
+
+
+class TestYarboCheckCameraStatusButton:
+    """Tests for check camera status button."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        assert YarboCheckCameraStatusButton(coord).entity_registry_enabled_default is False
+
+    @pytest.mark.asyncio
+    async def test_press_publishes_command(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboCheckCameraStatusButton(coord)
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_press()
+        coord.client.get_controller.assert_called_once_with(timeout=5.0)
+        coord.client.publish_command.assert_called_once_with("check_camera_status", {})
+
+
+class TestYarboFirmwareUpdateNowButton:
+    """Tests for firmware update now button."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        assert YarboFirmwareUpdateNowButton(coord).entity_registry_enabled_default is False
+
+    def test_entity_category(self) -> None:
+        coord = _make_coordinator()
+        assert YarboFirmwareUpdateNowButton(coord).entity_category == EntityCategory.CONFIG
+
+    @pytest.mark.asyncio
+    async def test_press_publishes_command(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboFirmwareUpdateNowButton(coord)
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_press()
+        coord.client.get_controller.assert_called_once_with(timeout=5.0)
+        coord.client.publish_command.assert_called_once_with("firmware_update_now", {})
+
+
+class TestYarboFirmwareUpdateTonightButton:
+    """Tests for firmware update tonight button."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        assert YarboFirmwareUpdateTonightButton(coord).entity_registry_enabled_default is False
+
+    @pytest.mark.asyncio
+    async def test_press_publishes_command(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboFirmwareUpdateTonightButton(coord)
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_press()
+        coord.client.get_controller.assert_called_once_with(timeout=5.0)
+        coord.client.publish_command.assert_called_once_with("firmware_update_tonight", {})
+
+
+class TestYarboFirmwareUpdateLaterButton:
+    """Tests for firmware update later button."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        assert YarboFirmwareUpdateLaterButton(coord).entity_registry_enabled_default is False
+
+    @pytest.mark.asyncio
+    async def test_press_publishes_command(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboFirmwareUpdateLaterButton(coord)
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_press()
+        coord.client.get_controller.assert_called_once_with(timeout=5.0)
+        coord.client.publish_command.assert_called_once_with("firmware_update_later", {})

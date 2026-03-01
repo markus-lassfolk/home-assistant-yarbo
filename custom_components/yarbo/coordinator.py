@@ -254,6 +254,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._recharge_point_status: str | None = None
         self._recharge_point_details: dict[str, Any] | None = None
         self._wifi_list: list[Any] = []
+        self._saved_wifi_list: list[Any] = []
         self._map_backups: list[Any] = []
         self._clean_areas: list[Any] = []
         self._motor_temp_c: float | None = None
@@ -451,6 +452,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     def wifi_list(self) -> list[Any]:
         """Return last known WiFi list."""
         return self._wifi_list
+
+    @property
+    def saved_wifi_list(self) -> list[Any]:
+        """Return last known saved WiFi list."""
+        return self._saved_wifi_list
 
     @property
     def map_backups(self) -> list[Any]:
@@ -884,6 +890,28 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     break
         self._wifi_list = wifi_list
         return wifi_list
+
+    async def get_saved_wifi_list(self, timeout: float = 5.0, skip_lock: bool = False) -> list[Any]:
+        """Request saved (remembered) WiFi networks list.
+
+        May only return data when the robot is actively connected or in setup mode.
+        Shows "unavailable" when no data is received.
+        """
+        response = await self._request_data_feedback("get_saved_wifi_list", {}, timeout, skip_lock)
+        if not response:
+            return self._saved_wifi_list
+        data = response.get("data", response)
+        saved: list[Any] = []
+        if isinstance(data, list):
+            saved = data
+        elif isinstance(data, dict):
+            for key in ("saved_wifi_list", "list", "networks", "saved"):
+                value = data.get(key)
+                if isinstance(value, list):
+                    saved = value
+                    break
+        self._saved_wifi_list = saved
+        return saved
 
     async def get_map_backups(self, timeout: float = 5.0, skip_lock: bool = False) -> list[Any]:
         """Request map backup list."""

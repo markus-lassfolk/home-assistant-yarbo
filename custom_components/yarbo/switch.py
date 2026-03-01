@@ -66,6 +66,8 @@ async def async_setup_entry(
             YarboVideoRecordSwitch(coordinator),
             # #113 — Child lock
             YarboChildLockSwitch(coordinator),
+            # #98 — ROS Bag recording
+            YarboBagRecordSwitch(coordinator),
         ]
     )
 
@@ -609,3 +611,15 @@ class YarboChildLockSwitch(YarboCommandSwitch):
             on_value=False,
             off_value=True,
         )
+
+
+class YarboBagRecordSwitch(YarboCommandSwitch):
+    """ROS Bag recording toggle (#98)."""
+
+    _attr_translation_key = "bag_record"
+    _attr_icon = "mdi:record"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "bag_record", "bag_record", payload_key="state")

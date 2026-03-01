@@ -69,6 +69,7 @@ def _make_coordinator(**telemetry_kwargs: object) -> MagicMock:
     coord.recharge_point_status = None
     coord.recharge_point_details = None
     coord.wifi_list = []
+    coord.saved_wifi_list = []
     coord.map_backups = []
     coord.clean_areas = []
     coord.motor_temp_c = None
@@ -688,4 +689,35 @@ class TestYarboLastSeenSensor:
         coord = _make_coordinator()
         coord.last_seen = None
         entity = YarboLastSeenSensor(coord)
+        assert entity.entity_registry_enabled_default is False
+
+
+from custom_components.yarbo.sensor import YarboSavedWifiListSensor  # noqa: E402
+
+
+class TestYarboSavedWifiListSensor:
+    """Tests for saved WiFi list sensor (#98)."""
+
+    def test_no_data_returns_none(self) -> None:
+        coord = _make_coordinator()
+        coord.saved_wifi_list = []
+        entity = YarboSavedWifiListSensor(coord)
+        assert entity.native_value is None
+
+    def test_count_returned_as_string(self) -> None:
+        coord = _make_coordinator()
+        coord.saved_wifi_list = [{"ssid": "HomeNet"}, {"ssid": "GuestNet"}]
+        entity = YarboSavedWifiListSensor(coord)
+        assert entity.native_value == "2"
+
+    def test_extra_attributes_contain_list(self) -> None:
+        coord = _make_coordinator()
+        networks = [{"ssid": "HomeNet"}]
+        coord.saved_wifi_list = networks
+        entity = YarboSavedWifiListSensor(coord)
+        assert entity.extra_state_attributes == {"saved_wifi_list": networks}
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboSavedWifiListSensor(coord)
         assert entity.entity_registry_enabled_default is False

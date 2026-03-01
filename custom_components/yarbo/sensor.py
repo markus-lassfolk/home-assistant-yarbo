@@ -170,6 +170,8 @@ async def async_setup_entry(
             YarboCleanAreaCountSensor(coordinator),
             YarboMotorTempSensor(coordinator),
             YarboLastSeenSensor(coordinator),
+            # #98 — Saved WiFi networks list
+            YarboSavedWifiListSensor(coordinator),
         ]
     )
 
@@ -1069,7 +1071,11 @@ class YarboPlanRemainingTimeSensor(YarboSensor):
 
 
 class YarboWifiNetworkSensor(YarboSensor):
-    """Diagnostic sensor for connected WiFi network."""
+    """Diagnostic sensor for connected WiFi network.
+
+    Note (#109): this sensor may only return data during active robot operation
+    or when a cloud connection is available. Shows unavailable when idle.
+    """
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
@@ -1380,7 +1386,11 @@ class YarboProductCodeSensor(YarboSensor):
 
 
 class YarboHubInfoSensor(YarboSensor):
-    """Hub info sensor."""
+    """Hub info sensor.
+
+    Note (#109): this sensor may only return data during active robot operation
+    or when a cloud connection is available. Shows unavailable when idle.
+    """
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
@@ -1418,7 +1428,11 @@ class YarboRechargePointSensor(YarboSensor):
 
 
 class YarboWifiListSensor(YarboSensor):
-    """Available WiFi list sensor."""
+    """Available WiFi list sensor.
+
+    Note (#109): this sensor may only return data during active robot operation
+    or when a cloud connection is available. Shows unavailable when idle.
+    """
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
@@ -1501,6 +1515,35 @@ class YarboMotorTempSensor(YarboSensor):
     def native_value(self) -> float | None:
         """Return motor temperature."""
         return self.coordinator.motor_temp_c
+
+
+class YarboSavedWifiListSensor(YarboSensor):
+    """Sensor showing the list of saved (remembered) WiFi networks (#98).
+
+    Note (#109): may only return data during active robot operation
+    or when a cloud connection is available. Shows unavailable when idle.
+    """
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "saved_wifi_list"
+    _attr_icon = "mdi:wifi-star"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "saved_wifi_list")
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the number of saved WiFi networks, or None when unavailable."""
+        saved = self.coordinator.saved_wifi_list
+        if not saved:
+            return None
+        return str(len(saved))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the saved WiFi networks list."""
+        return {"saved_wifi_list": self.coordinator.saved_wifi_list}
 
 
 class YarboLastSeenSensor(YarboSensor):
