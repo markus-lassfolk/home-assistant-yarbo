@@ -14,6 +14,10 @@ from homeassistant.loader import async_get_integration
 from yarbo import YarboLocalClient
 from yarbo.exceptions import YarboConnectionError
 
+# Minimum python-yarbo version required by this integration.
+# Bump this when using new library features (e.g. get_controller(timeout=...)).
+MIN_LIB_VERSION = "2026.3.12"
+
 from .const import (
     CONF_ALTERNATE_BROKER_HOST,
     CONF_BROKER_ENDPOINTS,
@@ -130,6 +134,23 @@ def _warmup_connect(host: str, port: int) -> None:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Yarbo from a config entry."""
+    # --- Library version guard ---
+    import importlib.metadata as _meta
+    try:
+        _lib_ver = _meta.version("python-yarbo")
+        from packaging.version import Version
+        if Version(_lib_ver) < Version(MIN_LIB_VERSION):
+            _LOGGER.error(
+                "python-yarbo %s is too old; need >= %s. "
+                "Clear /config/deps and restart HA to upgrade.",
+                _lib_ver, MIN_LIB_VERSION,
+            )
+            raise ConfigEntryNotReady(
+                f"python-yarbo {_lib_ver} < {MIN_LIB_VERSION}; upgrade required"
+            )
+    except _meta.PackageNotFoundError:
+        pass  # installed but metadata missing — let HA handle it
+    # --- End version guard ---
     # Ensure ordered endpoints list for Primary/Secondary failover (from discovery order)
     if CONF_BROKER_ENDPOINTS not in entry.data:
         data = dict(entry.data)

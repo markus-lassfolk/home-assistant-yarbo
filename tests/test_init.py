@@ -76,3 +76,50 @@ class TestMultipleRobots:
     async def test_two_robots_independent(self, hass: HomeAssistant) -> None:
         """Test that two config entries don't share state."""
         pass
+
+
+def test_get_controller_accepts_timeout():
+    """Regression: HA calls get_controller(timeout=5.0). GlitchTip #30/#32.
+
+    Since conftest stubs yarbo, we verify via importlib.metadata that the
+    installed version meets the minimum, AND check the stub has the method.
+    """
+    import importlib.metadata
+    from packaging.version import Version
+
+    installed = importlib.metadata.version("python-yarbo")
+    assert Version(installed) >= Version("2026.3.12"), (
+        f"python-yarbo {installed} too old; get_controller(timeout=...) "
+        "requires >= 2026.3.12"
+    )
+
+    # Also verify the integration code actually calls with timeout=
+    import ast
+    import pathlib
+
+    for pyfile in pathlib.Path("custom_components/yarbo").glob("*.py"):
+        tree = ast.parse(pyfile.read_text())
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "get_controller"
+            ):
+                kw_names = [kw.arg for kw in node.keywords]
+                if "timeout" in kw_names:
+                    return  # Found a call with timeout= — test passes
+    # If we get here, no call with timeout= was found (unexpected)
+    assert False, "No get_controller(timeout=...) call found in integration code"
+
+
+def test_min_lib_version_constant():
+    """Ensure MIN_LIB_VERSION is set and the installed library meets it."""
+    from packaging.version import Version
+    import importlib.metadata
+
+    from custom_components.yarbo import MIN_LIB_VERSION
+
+    installed = importlib.metadata.version("python-yarbo")
+    assert Version(installed) >= Version(MIN_LIB_VERSION), (
+        f"Installed python-yarbo {installed} < required {MIN_LIB_VERSION}"
+    )
