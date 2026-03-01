@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 from custom_components.yarbo.const import (
@@ -27,6 +29,7 @@ from custom_components.yarbo.sensor import (
     YarboHeadCurrentSensor,
     YarboHeadingSensor,
     YarboHubInfoSensor,
+    YarboLastSeenSensor,
     YarboMapBackupCountSensor,
     YarboMotorTempSensor,
     YarboMqttAgeSensor,

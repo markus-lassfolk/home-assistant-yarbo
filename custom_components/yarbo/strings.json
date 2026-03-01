@@ -313,6 +313,9 @@
       },
       "motor_temp": {
         "name": "Motor Temperature"
+      },
+      "last_seen": {
+        "name": "Last Seen"
       }
     },
     "binary_sensor": {
@@ -348,6 +351,9 @@
       },
       "no_charge_period": {
         "name": "No-Charge Period"
+      },
+      "online": {
+        "name": "Online"
       }
     },
     "button": {

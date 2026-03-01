@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+from datetime import UTC, datetime, timedelta
 from typing import Any, Final
 
 from homeassistant.components.sensor import (
@@ -167,6 +169,7 @@ async def async_setup_entry(
             YarboMapBackupCountSensor(coordinator),
             YarboCleanAreaCountSensor(coordinator),
             YarboMotorTempSensor(coordinator),
+            YarboLastSeenSensor(coordinator),
         ]
     )
 
@@ -1498,3 +1501,24 @@ class YarboMotorTempSensor(YarboSensor):
     def native_value(self) -> float | None:
         """Return motor temperature."""
         return self.coordinator.motor_temp_c
+
+
+class YarboLastSeenSensor(YarboSensor):
+    """Timestamp sensor showing when the robot last sent telemetry."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "last_seen"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "last_seen")
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Return the last-seen time as a UTC datetime."""
+        last_seen = self.coordinator._last_seen
+        if not last_seen:
+            return None
+        elapsed = time.monotonic() - last_seen
+        return datetime.now(UTC) - timedelta(seconds=elapsed)
