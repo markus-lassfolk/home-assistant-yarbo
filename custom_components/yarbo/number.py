@@ -239,7 +239,10 @@ class YarboBlowerSpeedNumber(YarboEntity, NumberEntity):
         """Set blower speed."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.set_roller_speed(int(value))
+            await self.coordinator.client.publish_raw(
+                "blower_speed",
+                {"speed": int(value)},
+            )
         self._current_speed = value
         self.async_write_ha_state()
 
@@ -370,10 +373,10 @@ class YarboBatteryChargeMinNumber(YarboEntity, NumberEntity):
         """Set minimum battery charge limit."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            min_pct = int(value)
-            max_pct = self.coordinator.charge_limit_max
-            await self.coordinator.client.set_charge_limit(min_pct=min_pct, max_pct=max_pct)
-            self.coordinator.set_charge_limit_min(min_pct)
+            await self.coordinator.client.publish_raw(
+                "set_charge_limit",
+                {"min": int(value)},
+            )
         self._current_value = value
         self.async_write_ha_state()
 
@@ -403,9 +406,9 @@ class YarboBatteryChargeMaxNumber(YarboEntity, NumberEntity):
         """Set maximum battery charge limit."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            max_pct = int(value)
-            min_pct = self.coordinator.charge_limit_min
-            await self.coordinator.client.set_charge_limit(min_pct=min_pct, max_pct=max_pct)
-            self.coordinator.set_charge_limit_max(max_pct)
+            await self.coordinator.client.publish_raw(
+                "set_charge_limit",
+                {"max": int(value)},
+            )
         self._current_value = value
         self.async_write_ha_state()
