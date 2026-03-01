@@ -51,9 +51,12 @@ async def async_setup_entry(
             # #94 — Smart/edge blowing (leaf blower only)
             YarboSmartBlowingSwitch(coordinator),
             YarboEdgeBlowingSwitch(coordinator),
-            # #95 — Motor protect + mower head sensor
+            # #95 — Motor protect + mower head sensor + ngz_edge + geo_fence + elec_fence
             YarboMotorProtectSwitch(coordinator),
             YarboMowerHeadSensorSwitch(coordinator),
+            YarboMowerNgzEdgeSwitch(coordinator),
+            YarboGeoFenceSwitch(coordinator),
+            YarboElecFenceSwitch(coordinator),
             # #96 — Roof lights
             YarboRoofLightsSwitch(coordinator),
             # #97 — Sound enable
@@ -483,4 +486,64 @@ class YarboSoundEnableSwitch(YarboCommandSwitch):
             payload_key="enable",
             on_value=True,
             off_value=False,
+        )
+
+
+class YarboMowerNgzEdgeSwitch(YarboCommandSwitch):
+    """Mower no-go zone edge switch — lawn mower heads only (#95)."""
+
+    _attr_translation_key = "mower_ngz_edge"
+    _attr_icon = "mdi:map-marker-minus"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            "mower_ngz_edge",
+            "mower_ngz_edge_sw",
+            payload_key="state",
+        )
+
+    @property
+    def available(self) -> bool:
+        """Only available when lawn mower head is installed."""
+        if not super().available:
+            return False
+        if not self.telemetry:
+            return False
+        return self.telemetry.head_type in {HEAD_TYPE_LAWN_MOWER, HEAD_TYPE_LAWN_MOWER_PRO}
+
+
+class YarboGeoFenceSwitch(YarboCommandSwitch):
+    """Geofence enable toggle (#95)."""
+
+    _attr_translation_key = "geo_fence"
+    _attr_icon = "mdi:map-marker-radius"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            "geo_fence",
+            "enable_geo_fence",
+            payload_key="state",
+        )
+
+
+class YarboElecFenceSwitch(YarboCommandSwitch):
+    """Electric fence enable toggle (#95)."""
+
+    _attr_translation_key = "elec_fence"
+    _attr_icon = "mdi:electric-switch"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            "elec_fence",
+            "enable_elec_fence",
+            payload_key="state",
         )
