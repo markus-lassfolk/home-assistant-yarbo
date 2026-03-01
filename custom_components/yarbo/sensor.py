@@ -1398,7 +1398,7 @@ class YarboHubInfoSensor(YarboSensor):
 class YarboRechargePointSensor(YarboSensor):
     """Recharge point status sensor."""
 
-    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
     _attr_translation_key = "recharge_point"
 
@@ -1420,7 +1420,7 @@ class YarboRechargePointSensor(YarboSensor):
 class YarboWifiListSensor(YarboSensor):
     """Available WiFi list sensor."""
 
-    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
     _attr_translation_key = "wifi_list"
     _attr_icon = "mdi:wifi"
@@ -1445,7 +1445,7 @@ class YarboWifiListSensor(YarboSensor):
 class YarboMapBackupCountSensor(YarboSensor):
     """Number of map backups."""
 
-    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
     _attr_translation_key = "map_backup_count"
 

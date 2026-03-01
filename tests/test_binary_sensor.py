@@ -42,7 +42,7 @@ class TestYarboNoChargePeriodSensor:
         """No-charge period is a config entity."""
         coord = _make_coordinator()
         entity = YarboNoChargePeriodSensor(coord)
-        assert entity.entity_category == EntityCategory.CONFIG
+        assert entity.entity_category == EntityCategory.DIAGNOSTIC
 
     def test_disabled_by_default(self) -> None:
         """No-charge period is disabled by default."""

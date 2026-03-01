@@ -272,7 +272,7 @@ class YarboNoChargePeriodSensor(YarboBinarySensor):
     """No-charge period active sensor."""
 
     _attr_translation_key = "no_charge_period"
-    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
