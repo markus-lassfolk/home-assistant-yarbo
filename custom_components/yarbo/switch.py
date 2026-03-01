@@ -64,6 +64,8 @@ async def async_setup_entry(
             # #114 — Vision toggles
             YarboSmartVisionSwitch(coordinator),
             YarboVideoRecordSwitch(coordinator),
+            # #113 — Child lock
+            YarboChildLockSwitch(coordinator),
         ]
     )
 
