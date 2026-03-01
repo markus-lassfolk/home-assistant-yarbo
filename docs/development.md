@@ -1,138 +1,326 @@
-# Development Guide
+---
+layout: default
+title: Development
+nav_order: 12
+description: "Contributing guide for the Yarbo Home Assistant integration"
+---
+
+# Development
+{: .no_toc }
+
+> **Disclaimer:** This is an independent community project. NOT affiliated with Yarbo or its manufacturer.
+{: .warning }
+
+1. TOC
+{:toc}
+
+---
 
 ## Prerequisites
 
-| Requirement | Minimum Version |
-|-------------|----------------|
-| Python | 3.12 |
-| Home Assistant | 2024.12 |
-| pip | 23.0 |
-| git | 2.40 |
+| Requirement | Minimum Version | Notes |
+|-------------|----------------|-------|
+| Python | 3.12 | Matches HA 2024.1+ |
+| Home Assistant | 2024.1 | For testing |
+| `python-yarbo` | 0.1.0 | Protocol library |
+| Git | any | |
 
-## Setup
+---
+
+## Getting Started
+
+### 1. Fork and Clone
 
 ```bash
-git clone https://github.com/your-org/ha-yarbo-forge.git
-cd ha-yarbo-forge
-
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-
-pip install -r requirements_test.txt
-pre-commit install
+git clone https://github.com/<your-fork>/home-assistant-yarbo.git
+cd home-assistant-yarbo
 ```
 
-`requirements_test.txt` includes `pytest-homeassistant-custom-component`, `pytest-asyncio`, `ruff`, `mypy`, and `python-yarbo` (from the mock/stub package used in tests).
-
-## Running Tests
+### 2. Set Up Development Environment
 
 ```bash
-# Full test suite with coverage
-pytest tests/ --cov=custom_components/yarbo --cov-report=term-missing
+python3 -m venv .venv
+source .venv/bin/activate       # Linux/macOS
+# .venv\Scripts\activate         # Windows
 
-# Single test file
-pytest tests/test_coordinator.py -v
-
-# Tests matching a keyword
-pytest tests/ -k "test_battery" -v
+pip install -r requirements.dev.txt
 ```
 
-## Linting and Formatting
+### 3. Install in a Test HA Instance
+
+The easiest way to test is with a development HA instance (container or `venv`):
 
 ```bash
-# Check style
+# If using HA in a Python venv:
+ln -s $(pwd)/custom_components/yarbo ~/.homeassistant/custom_components/yarbo
+```
+
+Or use the [Home Assistant Dev Container](https://developers.home-assistant.io/docs/development_environment/) setup.
+
+---
+
+## Project Structure
+
+```
+home-assistant-yarbo/
+├── custom_components/
+│   └── yarbo/               # Integration source
+│       ├── __init__.py
+│       ├── manifest.json
+│       ├── config_flow.py
+│       ├── coordinator.py
+│       ├── sensor.py
+│       ├── binary_sensor.py
+│       ├── button.py
+│       ├── switch.py
+│       ├── number.py
+│       ├── select.py
+│       ├── light.py
+│       ├── lawn_mower.py
+│       ├── device_tracker.py
+│       ├── update.py
+│       ├── services.yaml
+│       ├── strings.json
+│       └── translations/
+│           └── en.json
+├── tests/                   # Test suite
+├── docs/                    # GitHub Pages documentation
+└── blueprints/              # HA automation blueprints
+```
+
+---
+
+## Code Style
+
+The project follows the [Home Assistant coding standards](https://developers.home-assistant.io/docs/development_guidelines):
+
+- **Formatter:** Black (line length 88)
+- **Linter:** Ruff
+- **Type checking:** mypy with HA stubs
+- **Import order:** isort (via Ruff)
+
+Run all checks:
+
+```bash
 ruff check custom_components/yarbo/
-
-# Auto-fix style issues
-ruff check --fix custom_components/yarbo/
-
-# Format code
-ruff format custom_components/yarbo/
-
-# Type checking
+black --check custom_components/yarbo/
 mypy custom_components/yarbo/
 ```
 
-Pre-commit hooks run `ruff check`, `ruff format`, and `mypy` automatically on `git commit`.
+Auto-fix:
 
-## Integration Structure
-
-```
-custom_components/yarbo/
-├── __init__.py          # async_setup_entry, async_unload_entry
-├── coordinator.py       # YarboDataCoordinator
-├── entity.py            # YarboEntity base (unique_id, device_info)
-├── config_flow.py       # ConfigFlow, OptionsFlow, ReconfigureFlow
-├── sensor.py
-├── binary_sensor.py
-├── button.py
-├── light.py
-├── switch.py
-├── number.py
-├── event.py
-└── services.py          # async_register_services
+```bash
+ruff check --fix custom_components/yarbo/
+black custom_components/yarbo/
 ```
 
-## Testing Strategy
+---
 
-### Mock python-yarbo
+## Testing
 
-Tests use a mock `YarboClient` that never opens a network connection:
+### Run Tests
+
+```bash
+pytest tests/
+```
+
+### Run with Coverage
+
+```bash
+pytest --cov=custom_components.yarbo tests/
+```
+
+### Write a Test
+
+Tests use `pytest-homeassistant-custom-component` for HA test infrastructure:
 
 ```python
-# tests/conftest.py
-from unittest.mock import AsyncMock, MagicMock
+# tests/test_sensor.py
+from unittest.mock import AsyncMock, patch
+from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-@pytest.fixture
-def mock_yarbo_client():
-    client = MagicMock()
-    client.connect = AsyncMock()
-    client.subscribe = AsyncMock()
-    client.publish = AsyncMock()
-    client.disconnect = AsyncMock()
-    return client
+async def test_battery_sensor(hass: HomeAssistant) -> None:
+    # Set up integration with mock data
+    entry = MockConfigEntry(domain="yarbo", data={...})
+    entry.add_to_hass(hass)
+
+    with patch("custom_components.yarbo.coordinator.YarboClient") as mock:
+        mock.return_value.async_connect = AsyncMock()
+        await hass.config_entries.async_setup(entry.entry_id)
+
+    state = hass.states.get("sensor.yarbo_test_battery")
+    assert state is not None
+    assert state.state == "83"
 ```
 
-### Unit Tests (entity logic)
-
-Test that entity state properties return expected values given specific `coordinator.data` values:
-
-```python
-async def test_battery_sensor_state(hass, coordinator):
-    coordinator.data.battery = 75
-    sensor = BatterySensor(coordinator, "YB001")
-    assert sensor.native_value == 75
-```
-
-### Integration Tests (config flow)
-
-Use `pytest-homeassistant-custom-component` to run full config flow against a mock client:
-
-```python
-async def test_config_flow_dhcp(hass, mock_yarbo_client):
-    result = await hass.config_entries.flow.async_init(
-        "yarbo", context={"source": SOURCE_DHCP}, data=dhcp_data
-    )
-    assert result["type"] == FlowResultType.FORM
-```
-
-## Coverage Targets by Milestone
-
-| Milestone | Target Coverage | Focus Areas |
-|-----------|----------------|-------------|
-| v0.1.0 | 40% | Config flow, coordinator, core entities |
-| v0.2.0 | 55% | Extended entities, services, options flow |
-| v0.3.0 | 65% | Blueprints, scheduling, cloud auth |
-| v0.4.0 | 70% | lawn_mower platform, GPS tracker, logbook |
-| v1.0.0 | 80% | Repair flows, OTA, full entity coverage |
-
-Coverage is measured with `pytest-cov`. CI fails if coverage drops below the milestone target.
+---
 
 ## Adding a New Entity
 
-1. Define the entity class in the appropriate platform file (e.g., `sensor.py`).
-2. Add it to the `async_setup_entry` list in that file.
-3. Add translation strings to `translations/en.json`.
-4. Add entity description to `docs/entities.md`.
-5. Write unit tests covering `available`, `native_value`/`is_on`, and `unique_id`.
+### Step 1: Define the Entity Descriptor
+
+In the relevant platform file (e.g., `sensor.py`), add an entry to the entity descriptions list:
+
+```python
+YarboSensorEntityDescription(
+    key="my_new_sensor",
+    name="My New Sensor",
+    native_unit_of_measurement=UnitOfMeasurement.SOME_UNIT,
+    device_class=SensorDeviceClass.SOME_CLASS,
+    entity_registry_enabled_default=False,  # disable by default if diagnostic
+    entity_category=EntityCategory.DIAGNOSTIC,
+    value_fn=lambda data: data.get("my_field"),
+)
+```
+
+### Step 2: Map to Telemetry
+
+The `value_fn` receives the full `DeviceMSG` dictionary. Navigate the nested structure as needed:
+
+```python
+value_fn=lambda data: data.get("BatteryMSG", {}).get("my_new_field"),
+```
+
+### Step 3: Add Strings
+
+Add a translation entry in `strings.json` and `translations/en.json`:
+
+```json
+{
+  "entity": {
+    "sensor": {
+      "my_new_sensor": {
+        "name": "My New Sensor"
+      }
+    }
+  }
+}
+```
+
+### Step 4: For Head-Specific Entities
+
+Set `required_head_type` on the description:
+
+```python
+YarboSensorEntityDescription(
+    key="blade_temp",
+    required_head_type=HEAD_LAWN_MOWER,
+    ...
+)
+```
+
+---
+
+## Adding a New Command/Service
+
+### Step 1: Add to `services.yaml`
+
+```yaml
+my_new_service:
+  name: My New Service
+  description: Does something useful
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: yarbo
+    my_param:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 100
+```
+
+### Step 2: Register the Service in `__init__.py`
+
+```python
+async def handle_my_new_service(call: ServiceCall) -> None:
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.send_command(
+        "my_mqtt_command",
+        {"param": call.data["my_param"]}
+    )
+
+hass.services.async_register(
+    DOMAIN,
+    "my_new_service",
+    handle_my_new_service,
+    schema=MY_NEW_SERVICE_SCHEMA,
+)
+```
+
+---
+
+## Protocol Research
+
+When adding support for new robot features, the [Protocol Reference](protocol-reference.md) documents the known MQTT command names and payload formats. The [Command Catalogue](protocol-reference.md#core-commands) lists all known commands.
+
+To observe what commands the robot responds to, enable debug logging (`logger: custom_components.yarbo: debug`) and watch for `data_feedback` messages after sending commands with `yarbo.send_command`.
+
+---
+
+## Submitting a Pull Request
+
+1. Create a branch from `main`:
+   ```bash
+   git checkout -b feat/my-new-feature
+   ```
+
+2. Make your changes. Keep commits focused and write clear commit messages.
+
+3. Add tests for new functionality.
+
+4. Run the full test suite and linters (all must pass):
+   ```bash
+   pytest tests/
+   ruff check custom_components/yarbo/
+   black --check custom_components/yarbo/
+   ```
+
+5. Update relevant documentation in `docs/` if needed.
+
+6. Open a PR against `main`. In the PR description:
+   - Describe what the change does
+   - Reference any related issues
+   - Note which entities/services are added or changed
+   - Describe how you tested it (ideally with a real robot)
+
+---
+
+## Documentation
+
+The docs site is built with [just-the-docs](https://just-the-docs.com/) and served via GitHub Pages from the `docs/` directory.
+
+To preview locally:
+
+```bash
+cd docs
+bundle install
+bundle exec jekyll serve
+# Open http://localhost:4000
+```
+
+---
+
+## Reporting Issues
+
+- **Bugs:** [GitHub Issues](https://github.com/markus-lassfolk/home-assistant-yarbo/issues)
+- **Feature requests:** Open a GitHub Issue with the `enhancement` label
+- **Security issues:** Use GitHub's private security reporting
+
+When reporting a bug, include:
+- HA version
+- Integration version
+- Robot firmware version
+- Debug logs (enable via Configuration options or `logger` config)
+
+---
+
+## Related Pages
+
+- [Architecture](architecture.md) — integration internals
+- [Protocol Reference](protocol-reference.md) — MQTT protocol
+- [Entities](entities.md) — entity reference

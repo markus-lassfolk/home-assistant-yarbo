@@ -102,6 +102,9 @@ ACTIVE_ONLY_DIAGNOSTIC_COMMANDS: set[str] = {
     "hub_info",
 }
 
+# Robot working state values (telemetry.state field)
+WORKING_STATE_IDLE = 0
+
 # Heartbeat timeout before raising a repair issue
 HEARTBEAT_TIMEOUT_SECONDS = 60
 

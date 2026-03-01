@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from homeassistant.components.binary_sensor import (
@@ -13,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DATA_COORDINATOR, DOMAIN
+from .const import DATA_COORDINATOR, DOMAIN, HEARTBEAT_TIMEOUT_SECONDS
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 from .telemetry import get_nested_raw_value, get_value_from_paths
@@ -38,6 +39,7 @@ async def async_setup_entry(
             YarboManualControllerSensor(coordinator),
             YarboRainDetectedSensor(coordinator),
             YarboNoChargePeriodSensor(coordinator),
+            YarboOnlineBinarySensor(coordinator),
         ]
     )
 
@@ -270,7 +272,7 @@ class YarboNoChargePeriodSensor(YarboBinarySensor):
     """No-charge period active sensor."""
 
     _attr_translation_key = "no_charge_period"
-    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
@@ -293,3 +295,21 @@ class YarboNoChargePeriodSensor(YarboBinarySensor):
         if periods:
             attrs["periods"] = periods
         return attrs
+
+
+class YarboOnlineBinarySensor(YarboBinarySensor):
+    """Binary sensor that is ON when the robot sent telemetry within HEARTBEAT_TIMEOUT_SECONDS."""
+
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_translation_key = "online"
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "online")
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if last telemetry was received within HEARTBEAT_TIMEOUT_SECONDS."""
+        last_seen = self.coordinator.last_seen
+        if last_seen is None:
+            return False
+        return time.monotonic() - last_seen < HEARTBEAT_TIMEOUT_SECONDS

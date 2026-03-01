@@ -1,87 +1,196 @@
-# Multi-Head Support
+---
+layout: default
+title: Multi-Head Guide
+nav_order: 13
+description: "Head types, entity availability, and head-specific features"
+---
 
-Yarbo robots accept interchangeable heads. The integration tracks the installed head type from live telemetry and adjusts entity availability dynamically.
+# Multi-Head Guide
+{: .no_toc }
 
-## Head Type Reference
+> **Disclaimer:** This is an independent community project. NOT affiliated with Yarbo or its manufacturer.
+{: .warning }
 
-Source: Dart `HeadType` enum from Yarbo APK v3.17.4.
+Yarbo robots accept interchangeable attachment heads. The integration tracks the installed head type from live telemetry and dynamically adjusts entity availability.
 
-| Value | Constant | Display Name | Platform |
-|-------|----------|--------------|----------|
-| `0` | `SnowBlower` | Snow Blower | — |
-| `1` | `LawnMower` | Lawn Mower | `lawn_mower` (v0.4+) |
-| `2` | `LawnMowerPro` | Lawn Mower Pro | `lawn_mower` (v0.4+) |
-| `3` | `LeafBlower` | Leaf Blower | — |
-| `4` | `SmartCover` | Smart Cover (SAM) | — |
-| `5` | `Trimmer` | Trimmer | — |
-| `6` | `None` | No Head / Unknown | — |
+1. TOC
+{:toc}
 
-The `head_type` sensor entity exposes the display name as its state.
+---
 
-## Availability Gating
+## Head Types
 
-Entities that only apply to certain heads return `STATE_UNAVAILABLE` when the wrong head is installed. This is implemented in the entity's `available` property:
+| Head Type | Code | Description |
+|-----------|------|-------------|
+| None / Base Only | 0 | No head installed |
+| Snow Blower | 1 | Snow clearing with auger and chute |
+| Leaf Blower | 2 | Leaf and debris clearing |
+| Lawn Mower | 3 | Grass cutting with rotating blade |
+| Smart Cover | 4 | Protective cover / transport mode |
+| Lawn Mower Pro | 5 | Enhanced lawn mower with additional features |
+| Trimmer | 99 | String trimmer for edge cutting |
 
-```python
-@property
-def available(self) -> bool:
-    if not self.coordinator.last_update_success:
-        return False
-    head = self.coordinator.data.head_type
-    return head in self._supported_heads
-```
+The current head type is shown in the **Head Type** sensor (`sensor.<name>_head_type`).
 
-No entity is removed or re-created on head change; availability toggling is sufficient for the HA UI and automations.
+---
 
-## Head-Specific Entities
+## Entity Availability by Head
 
-| Entity | Supported Head Values |
-|--------|-----------------------|
-| Chute Angle sensor | 0 |
-| Chute Velocity number | 0 |
-| Roller switch | 0 |
-| Blower switch | 0, 3 |
-| Blade Speed number | 1, 2 |
-| SAM Status sensor | 4 |
-| Lawn Mower platform | 1, 2 |
+Entities marked with a specific head are only **available** when that head is installed. All other entities are available regardless of head type.
 
-## Head Change Behavior
+### Always Available (All Heads)
 
-When `head_type` changes between two telemetry messages, the coordinator:
+- All core status sensors (Battery, Activity, Connection)
+- All GPS/RTK sensors
+- All charging sensors
+- All system buttons (Return to Dock, Pause, Resume, Stop, Beep, Shutdown, Restart)
+- All universal switches (Follow Mode, Heating Film, etc.)
+- All light entities
+- Device tracker
 
-1. Fires `yarbo_head_changed` event (see `events.md`).
-2. Calls `async_set_updated_data()` — all entities re-evaluate `available`.
-3. Writes a logbook entry: `"Head changed from {old} to {new}"`.
+### Snow Blower Head (code: 1)
 
-The sequence is synchronous within a single coordinator update cycle, so entity states and logbook entries are consistent.
+**Entities unlocked:**
 
-## `lawn_mower` Platform (v0.4+)
+| Entity | Type | Description |
+|--------|------|-------------|
+| Chute Velocity | Number | Chute rotation speed (−2000 to 2000) |
+| Chute Steering Work | Number | Chute steering angle during work (±90°) |
+| Snow Push Direction | Select | Left / Right / Center |
+| Chute Angle | Sensor | Current chute angle (degrees) |
+| Chute Steering Info | Sensor | Chute steering engine position (diagnostic) |
 
-When `head_type` is `1` (LawnMower) or `2` (LawnMowerPro), the robot is also registered as a `lawn_mower` platform entity. This provides:
+**Head-specific features:**
+- Chute rotates continuously (velocity control) or to a fixed angle
+- Snow push direction controls where snow is thrown
+- The chute can be steered to a different position during active work
 
-- Standard `lawn_mower.start_mowing` / `lawn_mower.pause` / `lawn_mower.dock` actions.
-- Integration with HA's built-in lawn mower card.
-- Activity states mapped to the `lawn_mower` state model: `mowing`, `paused`, `docked`, `error`.
+### Leaf Blower Head (code: 2)
 
-The `lawn_mower` entity becomes unavailable when a non-mowing head is installed.
+**Entities unlocked:**
 
-## Multi-Head Automation Example
+| Entity | Type | Description |
+|--------|------|-------------|
+| Blower Speed | Number | Speed level 1–10 |
+| Smart Blowing | Switch | Intelligent auto-blowing mode |
+| Edge Blowing | Switch | Edge-focused blowing mode |
+| Roller Speed | Number | Roller RPM |
+
+**Head-specific features:**
+- Adjustable blower speed (1–10)
+- Smart blowing mode automatically adjusts intensity
+- Edge mode focuses on boundary areas
+
+### Lawn Mower Head (code: 3)
+
+**Entities unlocked:**
+
+| Entity | Type | Description |
+|--------|------|-------------|
+| Mower | Lawn Mower | Native HA lawn mower card |
+| Blade Height | Number | Cutting height 25–75 mm |
+| Blade Speed | Number | Blade RPM 1000–3500 |
+| Roller Speed | Number | Roller RPM 0–3500 |
+| Turn Type | Select | U-turn / Three-point / Zero-radius |
+| Mower Head Sensor | Switch | Head collision sensor toggle |
+
+**Head-specific features:**
+- Full HA lawn mower card integration
+- Adjustable cutting height in 5 mm steps
+- Multiple turn types for different yard shapes
+- `Turn Type` select persists the chosen turning style
+
+### Smart Cover (code: 4)
+
+No additional head-specific entities. The Smart Cover is used for transportation or storage.
+
+### Lawn Mower Pro (code: 5)
+
+Same entities as Lawn Mower (code: 3) — the Pro model uses the same integration interface with enhanced firmware capabilities.
+
+### Trimmer Head (code: 99)
+
+**Entities unlocked:**
+
+| Entity | Type | Description |
+|--------|------|-------------|
+| Trimmer | Switch | Engage/disengage trimmer blade |
+
+**Head-specific features:**
+- String trimmer for edge cutting
+- Single on/off control
+- Speed is automatically managed by the robot
+
+---
+
+## Switching Heads
+
+When you physically swap the head attachment:
+
+1. The robot publishes the new `head_type` in the next `DeviceMSG` telemetry (within 1–2 seconds of power-up with the new head)
+2. The integration detects the change
+3. Head-specific entities for the old head become **unavailable**
+4. Head-specific entities for the new head become **available**
+
+No integration reload or HA restart is required — the head switch is handled automatically.
+
+---
+
+## Head Identification
+
+The **Head Serial** sensor (`sensor.<name>_head_serial`) shows the serial number of the currently installed head. Each head has a unique serial number, which allows you to:
+- Identify which physical head is installed
+- Track head usage in history
+- Build automations that change behaviour based on head type
 
 ```yaml
-# Notify when head is changed to snow blower
-trigger:
-  - platform: event
-    event_type: yarbo_head_changed
-condition:
-  - condition: template
-    value_template: "{{ trigger.event.data.new_head == 0 }}"
-action:
-  - action: notify.mobile_app
-    data:
-      title: "Yarbo Ready for Winter"
-      message: "Snow blower head detected. Remember to update your plans."
+# Example: Send notification when head changes
+automation:
+  alias: "Yarbo: Notify when head type changes"
+  trigger:
+    - platform: state
+      entity_id: sensor.yarbo_allgott_head_type
+  action:
+    - service: notify.mobile_app
+      data:
+        message: >
+          Yarbo head changed to {{ states('sensor.yarbo_allgott_head_type') }}
 ```
 
-## Head Type in Config Entry
+---
 
-Head type is **not** stored in the config entry. It is always derived from live telemetry. If telemetry is unavailable, `head_type` sensor state is `unknown` and all head-specific entities are `unavailable`.
+## Lawn Mower Card
+
+When a Lawn Mower or Lawn Mower Pro head is installed, the `Mower` entity (`lawn_mower.<name>_mower`) integrates with HA's native lawn mower card.
+
+Add the card to your dashboard:
+
+```yaml
+type: lawn-mower
+entity: lawn_mower.yarbo_allgott_mower
+```
+
+The card shows:
+- Current activity (mowing, paused, docked, error)
+- Controls: Start, Pause, Dock
+
+---
+
+## FAQ
+
+**Q: Can I use the robot without any head?**
+A: Yes — the robot body (base unit) operates normally. Navigation, GPS, charging, and most automations work regardless of head.
+
+**Q: Do I need to reload the integration after swapping heads?**
+A: No. Head changes are detected automatically from the robot's telemetry.
+
+**Q: Why are mower entities still showing for my snow blower?**
+A: After swapping heads, it may take up to 2 seconds for the new head type to arrive in telemetry. If entities remain available unexpectedly, try restarting the robot.
+
+---
+
+## Related Pages
+
+- [Entities](entities.md) — full entity reference
+- [Automations](automations.md) — head-specific automation examples
+- [Protocol Reference](protocol-reference.md) — head type codes in telemetry

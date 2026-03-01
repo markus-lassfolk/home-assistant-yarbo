@@ -12,7 +12,8 @@ from pathlib import Path
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from yarbo import YarboLocalClient
@@ -191,7 +192,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._watchdog_task: asyncio.Task[None] | None = None
         self._diagnostic_task: asyncio.Task[None] | None = None
         self._last_update: float = 0.0
-        self._last_seen: float = 0.0
+        self._last_seen: float | None = None
+        self._online_timer_cancel: Any | None = None
         self._issue_active = False
         self._controller_lost_active = False
         self._diagnostic_lock = asyncio.Semaphore(1)
@@ -313,6 +315,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     def entry(self) -> ConfigEntry:
         """Return the config entry (public accessor)."""
         return self._entry
+
+    @property
+    def last_seen(self) -> float | None:
+        """Return the last-seen monotonic timestamp (public accessor)."""
+        return self._last_seen
 
     @property
     def plan_options(self) -> list[str]:
@@ -990,6 +997,12 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Return the MQTT recorder instance."""
         return self._recorder
 
+    @callback
+    def _force_online_reeval(self, _now: Any = None) -> None:
+        """Force online status re-evaluation after heartbeat timeout."""
+        self._online_timer_cancel = None
+        self.async_set_updated_data(self.data)
+
     async def _telemetry_loop(self) -> None:
         """Listen to python-yarbo telemetry stream and push updates.
 
@@ -1001,6 +1014,14 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 async for telemetry in self.client.watch_telemetry():
                     now = time.monotonic()
                     self._last_seen = now
+                    # Cancel previous offline timer and schedule a new one
+                    if self._online_timer_cancel is not None:
+                        self._online_timer_cancel()
+                        self._online_timer_cancel = None
+
+                    self._online_timer_cancel = async_call_later(
+                        self.hass, HEARTBEAT_TIMEOUT_SECONDS + 5, self._force_online_reeval
+                    )
                     if now - self._last_update < self._throttle_interval:
                         continue
                     # Record raw telemetry for diagnostics
@@ -1120,7 +1141,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         try:
             while True:
                 await asyncio.sleep(5)
-                if not self._last_seen:
+                if self._last_seen is None:
                     continue
                 if time.monotonic() - self._last_seen < HEARTBEAT_TIMEOUT_SECONDS:
                     continue
@@ -1207,6 +1228,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             with contextlib.suppress(asyncio.CancelledError):
                 await self._diagnostic_task
             self._diagnostic_task = None
+        if self._online_timer_cancel is not None:
+            self._online_timer_cancel()
+            self._online_timer_cancel = None
         if self._recorder.enabled:
             await self._async_stop_recorder()
         if self._debug_logging:

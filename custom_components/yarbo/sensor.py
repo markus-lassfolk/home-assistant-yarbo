@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+from datetime import UTC, datetime, timedelta
 from typing import Any, Final
 
 from homeassistant.components.sensor import (
@@ -167,6 +169,7 @@ async def async_setup_entry(
             YarboMapBackupCountSensor(coordinator),
             YarboCleanAreaCountSensor(coordinator),
             YarboMotorTempSensor(coordinator),
+            YarboLastSeenSensor(coordinator),
         ]
     )
 
@@ -544,6 +547,15 @@ class YarboChuteSteeringInfoSensor(YarboSensor):
         super().__init__(coordinator, "chute_steering_info")
 
     @property
+    def available(self) -> bool:
+        """Only available when snow blower head (head_type==1) is installed."""
+        if not super().available:
+            return False
+        if not self.telemetry:
+            return False
+        return self.telemetry.head_type == HEAD_TYPE_SNOW_BLOWER
+
+    @property
     def native_value(self) -> int | str | None:
         """Return chute steering info."""
         telemetry = self.telemetry
@@ -566,6 +578,15 @@ class YarboRainSensor(YarboSensor):
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "rain_sensor")
+
+    @property
+    def available(self) -> bool:
+        """Only available when a head with rain sensor is installed (head_type in (3, 5))."""
+        if not super().available:
+            return False
+        if not self.telemetry:
+            return False
+        return self.telemetry.head_type in (HEAD_TYPE_LAWN_MOWER, HEAD_TYPE_LAWN_MOWER_PRO)
 
     @property
     def native_value(self) -> int | None:
@@ -1377,7 +1398,7 @@ class YarboHubInfoSensor(YarboSensor):
 class YarboRechargePointSensor(YarboSensor):
     """Recharge point status sensor."""
 
-    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
     _attr_translation_key = "recharge_point"
 
@@ -1399,7 +1420,7 @@ class YarboRechargePointSensor(YarboSensor):
 class YarboWifiListSensor(YarboSensor):
     """Available WiFi list sensor."""
 
-    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
     _attr_translation_key = "wifi_list"
     _attr_icon = "mdi:wifi"
@@ -1424,7 +1445,7 @@ class YarboWifiListSensor(YarboSensor):
 class YarboMapBackupCountSensor(YarboSensor):
     """Number of map backups."""
 
-    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
     _attr_translation_key = "map_backup_count"
 
@@ -1480,3 +1501,24 @@ class YarboMotorTempSensor(YarboSensor):
     def native_value(self) -> float | None:
         """Return motor temperature."""
         return self.coordinator.motor_temp_c
+
+
+class YarboLastSeenSensor(YarboSensor):
+    """Timestamp sensor showing when the robot last sent telemetry."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "last_seen"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "last_seen")
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Return the last-seen time as a UTC datetime."""
+        last_seen = self.coordinator.last_seen
+        if last_seen is None:
+            return None
+        elapsed = time.monotonic() - last_seen
+        return datetime.now(UTC) - timedelta(seconds=elapsed)
