@@ -95,7 +95,7 @@ class TestYarboTurnTypeSelect:
         assert list(entity.options) == ["u_turn", "three_point", "zero_radius"]
 
     @pytest.mark.asyncio
-    async def test_select_option_publishes_command(self) -> None:
+    async def test_select_option_calls_typed_method(self) -> None:
         """Selecting a turn type calls set_turn_type."""
         coord = _make_coordinator()
         entity = YarboTurnTypeSelect(coord)
@@ -146,7 +146,7 @@ class TestYarboSnowPushDirectionSelect:
         assert entity.available is False
 
     @pytest.mark.asyncio
-    async def test_select_option_publishes_command(self) -> None:
+    async def test_select_option_calls_typed_method(self) -> None:
         """Selecting a direction calls push_snow_dir."""
         coord = _make_coordinator(head_type=HEAD_TYPE_SNOW_BLOWER)
         entity = YarboSnowPushDirectionSelect(coord)

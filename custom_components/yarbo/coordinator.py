@@ -537,10 +537,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Start a work plan by id."""
         async with self.command_lock:
             await self.client.get_controller(timeout=5.0)
-            plan_id_int = int(plan_id)
-            await self.client.start_plan_direct(
-                plan_id=plan_id_int, percent=self._plan_start_percent
-            )
+            await self.client.start_plan_direct(plan_id=plan_id, percent=self._plan_start_percent)
         self._selected_plan_id = plan_id
         self.async_update_listeners()
         try:

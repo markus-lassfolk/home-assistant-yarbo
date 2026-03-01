@@ -5,6 +5,7 @@ from __future__ import annotations
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -368,13 +369,16 @@ class YarboBatteryChargeMinNumber(YarboEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set minimum battery charge limit."""
+        min_pct = int(value)
+        max_pct = self.coordinator.charge_limit_max
+        if min_pct > max_pct:
+            raise HomeAssistantError(
+                f"Minimum charge ({min_pct}%) cannot exceed maximum charge ({max_pct}%)"
+            )
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.set_charge_limit(
-                min_pct=int(value),
-                max_pct=self.coordinator.charge_limit_max,
-            )
-        self.coordinator.set_charge_limit_min(int(value))
+            await self.coordinator.client.set_charge_limit(min_pct=min_pct, max_pct=max_pct)
+            self.coordinator.set_charge_limit_min(min_pct)
         self._current_value = value
         self.async_write_ha_state()
 
@@ -402,12 +406,15 @@ class YarboBatteryChargeMaxNumber(YarboEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set maximum battery charge limit."""
+        max_pct = int(value)
+        min_pct = self.coordinator.charge_limit_min
+        if max_pct < min_pct:
+            raise HomeAssistantError(
+                f"Maximum charge ({max_pct}%) cannot be below minimum charge ({min_pct}%)"
+            )
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.set_charge_limit(
-                min_pct=self.coordinator.charge_limit_min,
-                max_pct=int(value),
-            )
-        self.coordinator.set_charge_limit_max(int(value))
+            await self.coordinator.client.set_charge_limit(min_pct=min_pct, max_pct=max_pct)
+            self.coordinator.set_charge_limit_max(max_pct)
         self._current_value = value
         self.async_write_ha_state()
