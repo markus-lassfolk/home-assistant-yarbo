@@ -1,143 +1,400 @@
-# Service Reference
+---
+layout: default
+title: Services
+nav_order: 5
+description: "Home Assistant services provided by the Yarbo integration"
+---
 
-All services are registered under the `yarbo` domain. They require a `device_id` or `entity_id` targeting a Yarbo device.
+# Services
+{: .no_toc }
 
-## `yarbo.send_command`
+> **Disclaimer:** This is an independent community project. NOT affiliated with Yarbo or its manufacturer.
+{: .warning }
 
-Send an arbitrary low-level MQTT command to the robot. Intended for advanced users and debugging.
+All services are registered under the `yarbo` domain. They require a `device_id` targeting a Yarbo device.
 
-Available: **v0.1.0+**
+1. TOC
+{:toc}
+
+---
+
+## yarbo.send_command
+
+Send a raw MQTT command to the robot. For advanced users who want to send commands not yet exposed as entities.
+
+> Commands are zlib-compressed automatically by the `python-yarbo` library.
+{: .note }
+
+**Fields:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `device_id` | `str` | Yes | Target Yarbo device |
-| `command` | `str` | Yes | Command name (e.g., `dstop`, `cmd_buzzer`) |
-| `payload` | `dict` | No | JSON payload merged with command envelope |
+| `device_id` | Device selector | Yes | The Yarbo robot to send the command to |
+| `command` | string | Yes | The MQTT command name (e.g. `read_all_plan`, `cmd_recharge`) |
+| `payload` | object | No | JSON payload for the command. Defaults to `{}` |
+
+**Example — read all work plans:**
 
 ```yaml
-action: yarbo.send_command
+service: yarbo.send_command
 data:
-  device_id: "abc123def456"
-  command: "cmd_buzzer"
+  device_id: "YOUR_DEVICE_ID"
+  command: read_all_plan
+  payload: {}
+```
+
+**Example — set blade speed:**
+
+```yaml
+service: yarbo.send_command
+data:
+  device_id: "YOUR_DEVICE_ID"
+  command: set_blade_speed
   payload:
-    enable: true
+    speed: 2000
 ```
 
-## `yarbo.start_plan`
+**Example — set chute angle (snow blower):**
 
-Start execution of a saved mowing or snow plan.
+```yaml
+service: yarbo.send_command
+data:
+  device_id: "YOUR_DEVICE_ID"
+  command: cmd_chute
+  payload:
+    angle: 105
+```
 
-Available: **v0.3.0+**
+---
+
+## yarbo.start_plan
+
+Start a saved work plan by its ID.
+
+**Fields:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `device_id` | `str` | Yes | Target Yarbo device |
-| `plan_id` | `str` | Yes | Plan UUID from the Yarbo app |
-| `head_type` | `int` | No | Assert head type before starting (aborts if mismatch) |
+| `device_id` | Device selector | Yes | The Yarbo robot |
+| `plan_id` | string | Yes | The UUID or numeric ID of the work plan |
+| `percent` | number (0–100) | No | Percentage into the plan at which to start. Defaults to the value of the Plan Start Percent number entity |
+
+**Example — start a plan from the beginning:**
 
 ```yaml
-action: yarbo.start_plan
+service: yarbo.start_plan
 data:
-  device_id: "abc123def456"
-  plan_id: "plan-uuid-1234-abcd"
-  head_type: 0
+  device_id: "YOUR_DEVICE_ID"
+  plan_id: "1"
 ```
 
-## `yarbo.pause`
+**Example — resume a plan from 50%:**
 
-Pause the currently running job. Equivalent to pressing the Pause button entity.
+```yaml
+service: yarbo.start_plan
+data:
+  device_id: "YOUR_DEVICE_ID"
+  plan_id: "1"
+  percent: 50
+```
 
-Available: **v0.1.0+**
+**Example — start plan in an automation triggered by a calendar event:**
+
+```yaml
+automation:
+  alias: "Start mowing on schedule"
+  trigger:
+    - platform: calendar
+      event: start
+      entity_id: calendar.mowing_schedule
+  action:
+    - service: yarbo.start_plan
+      data:
+        device_id: "YOUR_DEVICE_ID"
+        plan_id: "1"
+```
+
+---
+
+## yarbo.pause
+
+Pause the robot's current work plan.
+
+**Fields:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `device_id` | `str` | Yes | Target Yarbo device |
+| `device_id` | Device selector | Yes | The Yarbo robot |
+
+**Example:**
 
 ```yaml
-action: yarbo.pause
+service: yarbo.pause
 data:
-  device_id: "abc123def456"
+  device_id: "YOUR_DEVICE_ID"
 ```
 
-## `yarbo.resume`
+---
 
-Resume a paused job.
+## yarbo.resume
 
-Available: **v0.1.0+**
+Resume a previously paused work plan.
+
+**Fields:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `device_id` | `str` | Yes | Target Yarbo device |
+| `device_id` | Device selector | Yes | The Yarbo robot |
+
+**Example:**
 
 ```yaml
-action: yarbo.resume
+service: yarbo.resume
 data:
-  device_id: "abc123def456"
+  device_id: "YOUR_DEVICE_ID"
 ```
 
-## `yarbo.return_to_dock`
+---
 
-Command the robot to return to the docking station.
+## yarbo.return_to_dock
 
-Available: **v0.1.0+**
+Send the robot back to its charging dock.
+
+**Fields:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `device_id` | `str` | Yes | Target Yarbo device |
+| `device_id` | Device selector | Yes | The Yarbo robot |
+
+**Example:**
 
 ```yaml
-action: yarbo.return_to_dock
+service: yarbo.return_to_dock
 data:
-  device_id: "abc123def456"
+  device_id: "YOUR_DEVICE_ID"
 ```
 
-## `yarbo.set_lights`
-
-Set brightness for one or more of the 7 LED channels.
-
-Available: **v0.2.0+**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `device_id` | `str` | Yes | Target Yarbo device |
-| `channel` | `int` | No | LED channel 1–7. Omit to set all channels. |
-| `brightness` | `int` | Yes | Brightness value 0–255 |
+**Example — return to dock when battery drops below 20%:**
 
 ```yaml
-# Set all lights to 50% brightness
-action: yarbo.set_lights
-data:
-  device_id: "abc123def456"
-  brightness: 128
+automation:
+  alias: "Return Yarbo to dock on low battery"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.yarbo_allgott_battery
+      below: 20
+  action:
+    - service: yarbo.return_to_dock
+      data:
+        device_id: "YOUR_DEVICE_ID"
+```
 
-# Set only channel 3 to full brightness
-action: yarbo.set_lights
+---
+
+## yarbo.set_lights
+
+Set brightness for all 7 LED channels simultaneously or individually. Useful for automations that change the light pattern.
+
+**Fields:**
+
+| Field | Type | Range | Description |
+|-------|------|-------|-------------|
+| `device_id` | Device selector | — | The Yarbo robot |
+| `brightness` | number | 0–255 | Set all channels to this value |
+| `led_head` | number | 0–255 | Head light brightness |
+| `led_left_w` | number | 0–255 | Left fill light brightness |
+| `led_right_w` | number | 0–255 | Right fill light brightness |
+| `body_left_r` | number | 0–255 | Left body accent brightness |
+| `body_right_r` | number | 0–255 | Right body accent brightness |
+| `tail_left_r` | number | 0–255 | Left tail light brightness |
+| `tail_right_r` | number | 0–255 | Right tail light brightness |
+
+**Example — turn all lights on at full brightness:**
+
+```yaml
+service: yarbo.set_lights
 data:
-  device_id: "abc123def456"
-  channel: 3
+  device_id: "YOUR_DEVICE_ID"
   brightness: 255
 ```
 
-## `yarbo.set_chute_velocity`
+**Example — turn all lights off:**
 
-Set the snow chute rotation velocity. Only effective when head_type is 0 (SnowBlower).
+```yaml
+service: yarbo.set_lights
+data:
+  device_id: "YOUR_DEVICE_ID"
+  brightness: 0
+```
 
-Available: **v0.2.0+**
+**Example — custom channel values:**
+
+```yaml
+service: yarbo.set_lights
+data:
+  device_id: "YOUR_DEVICE_ID"
+  led_head: 255
+  led_left_w: 128
+  led_right_w: 128
+  body_left_r: 0
+  body_right_r: 0
+  tail_left_r: 64
+  tail_right_r: 64
+```
+
+---
+
+## yarbo.set_chute_velocity
+
+Control the snow chute direction and rotation speed (Snow Blower head only).
+
+**Fields:**
+
+| Field | Type | Range | Description |
+|-------|------|-------|-------------|
+| `device_id` | Device selector | — | The Yarbo robot |
+| `velocity` | number | −2000 to 2000 | Chute rotation velocity. Negative = left, 0 = stop, positive = right |
+
+**Example — rotate chute to the right:**
+
+```yaml
+service: yarbo.set_chute_velocity
+data:
+  device_id: "YOUR_DEVICE_ID"
+  velocity: 1000
+```
+
+**Example — stop chute rotation:**
+
+```yaml
+service: yarbo.set_chute_velocity
+data:
+  device_id: "YOUR_DEVICE_ID"
+  velocity: 0
+```
+
+---
+
+## yarbo.manual_drive
+
+Send manual velocity commands to drive the robot. Use with caution in open areas.
+
+> The robot must be in manual mode. Use the [Return to Dock](entities.md#buttons) button to stop.
+{: .note }
+
+**Fields:**
+
+| Field | Type | Range | Description |
+|-------|------|-------|-------------|
+| `device_id` | Device selector | — | The Yarbo robot |
+| `linear` | number | −1.0 to 1.0 | Linear velocity (positive = forward) |
+| `angular` | number | −1.0 to 1.0 | Angular velocity (positive = turn left) |
+
+**Example — drive forward slowly:**
+
+```yaml
+service: yarbo.manual_drive
+data:
+  device_id: "YOUR_DEVICE_ID"
+  linear: 0.3
+  angular: 0.0
+```
+
+**Example — stop:**
+
+```yaml
+service: yarbo.manual_drive
+data:
+  device_id: "YOUR_DEVICE_ID"
+  linear: 0.0
+  angular: 0.0
+```
+
+---
+
+## yarbo.go_to_waypoint
+
+Navigate the robot to a stored waypoint by index.
+
+**Fields:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `device_id` | `str` | Yes | Target Yarbo device |
-| `velocity` | `int` | Yes | Velocity in range -2000 to 2000. Negative = clockwise, positive = counter-clockwise. |
+| `device_id` | Device selector | Yes | The Yarbo robot |
+| `index` | number | Yes | Waypoint index (0–9999) |
+
+**Example:**
 
 ```yaml
-action: yarbo.set_chute_velocity
+service: yarbo.go_to_waypoint
 data:
-  device_id: "abc123def456"
-  velocity: 1500
+  device_id: "YOUR_DEVICE_ID"
+  index: 0
 ```
 
-## Service Response Values
+---
 
-Services that trigger a command return immediately after the MQTT publish. They do not wait for robot acknowledgment. Monitor the `activity` sensor or `data_feedback` topic to confirm execution.
+## yarbo.delete_plan
 
-Commands are serialized through an `asyncio.Lock` per device to prevent interleaved MQTT publishes.
+Delete a single saved work plan by ID.
+
+> **Warning:** This permanently removes the plan from the robot. There is no undo.
+{: .warning }
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `device_id` | Device selector | Yes | The Yarbo robot |
+| `plan_id` | string | Yes | Plan ID to delete (must match exactly) |
+
+**Example:**
+
+```yaml
+service: yarbo.delete_plan
+data:
+  device_id: "YOUR_DEVICE_ID"
+  plan_id: "1"
+```
+
+---
+
+## yarbo.delete_all_plans
+
+Delete all saved work plans on the robot.
+
+> **Warning:** This permanently removes ALL plans. There is no undo.
+{: .warning }
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `device_id` | Device selector | Yes | The Yarbo robot |
+
+**Example:**
+
+```yaml
+service: yarbo.delete_all_plans
+data:
+  device_id: "YOUR_DEVICE_ID"
+```
+
+---
+
+## Finding Your Device ID
+
+To use services, you need the `device_id` for your robot:
+
+1. Go to **Settings → Devices & Services → Yarbo → [your robot]**
+2. Copy the device ID from the URL (`/config/devices/device/<device_id>`)
+
+Or use the **Developer Tools → Services** UI to select the device visually.
+
+---
+
+## Related Pages
+
+- [Entities](entities.md) — for state-based control via entity services
+- [Automations](automations.md) — ready-to-use automation examples
+- [Protocol Reference](protocol-reference.md) — raw MQTT command reference for `send_command`
