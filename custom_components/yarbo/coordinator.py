@@ -13,6 +13,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from yarbo import YarboLocalClient
@@ -996,6 +997,12 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Return the MQTT recorder instance."""
         return self._recorder
 
+    @callback
+    def _force_online_reeval(self, _now: Any = None) -> None:
+        """Force online status re-evaluation after heartbeat timeout."""
+        self._online_timer_cancel = None
+        self.async_set_updated_data(self.data)
+
     async def _telemetry_loop(self) -> None:
         """Listen to python-yarbo telemetry stream and push updates.
 
@@ -1012,14 +1019,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         self._online_timer_cancel()
                         self._online_timer_cancel = None
 
-                    @callback
-                    def _force_online_reeval(_now: Any = None) -> None:
-                        self._online_timer_cancel = None
-                        self.async_set_updated_data(self.data)
-
-                    from homeassistant.helpers.event import async_call_later
                     self._online_timer_cancel = async_call_later(
-                        self.hass, HEARTBEAT_TIMEOUT_SECONDS + 5, _force_online_reeval
+                        self.hass, HEARTBEAT_TIMEOUT_SECONDS + 5, self._force_online_reeval
                     )
                     if now - self._last_update < self._throttle_interval:
                         continue
