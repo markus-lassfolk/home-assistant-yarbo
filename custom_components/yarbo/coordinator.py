@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from yarbo import YarboLocalClient
@@ -1012,6 +1012,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         self._online_timer_cancel()
                         self._online_timer_cancel = None
 
+                    @callback
                     def _force_online_reeval(_now: Any = None) -> None:
                         self._online_timer_cancel = None
                         self.async_set_updated_data(self.data)
@@ -1226,6 +1227,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             with contextlib.suppress(asyncio.CancelledError):
                 await self._diagnostic_task
             self._diagnostic_task = None
+        if self._online_timer_cancel is not None:
+            self._online_timer_cancel()
+            self._online_timer_cancel = None
         if self._recorder.enabled:
             await self._async_stop_recorder()
         if self._debug_logging:
