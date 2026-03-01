@@ -27,7 +27,7 @@ def _make_coordinator(head_type: int | None = None) -> MagicMock:
     coord.command_lock = asyncio.Lock()
     coord.client = MagicMock()
     coord.client.get_controller = AsyncMock()
-    coord.client.publish_command = AsyncMock()
+    coord.client.publish_raw = AsyncMock()
     coord._entry = MagicMock()
     coord._entry.data = {
         CONF_ROBOT_SERIAL: "TEST0006",
@@ -103,7 +103,7 @@ class TestYarboTurnTypeSelect:
             await entity.async_select_option("three_point")
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("set_turn_type", {"turn_type": 1})
+        coord.client.publish_raw.assert_called_once_with("set_turn_type", {"turn_type": 1})
         assert entity.current_option == "three_point"
 
     @pytest.mark.asyncio
@@ -154,5 +154,5 @@ class TestYarboSnowPushDirectionSelect:
             await entity.async_select_option("right")
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("push_snow_dir", {"direction": 1})
+        coord.client.publish_raw.assert_called_once_with("push_snow_dir", {"direction": 1})
         assert entity.current_option == "right"

@@ -197,8 +197,7 @@ class YarboHeadLight(YarboEntity, LightEntity):
         """Turn on the head light."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await self.coordinator.client.publish_command("head_light", {"state": 1})
+            await self.coordinator.client.publish_raw("head_light", {"state": 1})
         self._is_on = True
         self.async_write_ha_state()
 
@@ -206,7 +205,6 @@ class YarboHeadLight(YarboEntity, LightEntity):
         """Turn off the head light."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await self.coordinator.client.publish_command("head_light", {"state": 0})
+            await self.coordinator.client.publish_raw("head_light", {"state": 0})
         self._is_on = False
         self.async_write_ha_state()

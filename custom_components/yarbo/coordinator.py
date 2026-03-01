@@ -517,7 +517,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Start a work plan by id."""
         async with self.command_lock:
             await self.client.get_controller(timeout=5.0)
-            await self.client.publish_command(
+            await self.client.publish_raw(
                 "start_plan",
                 {"planId": plan_id, "percent": self._plan_start_percent},
             )
@@ -534,8 +534,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             raise ValueError(f"Unsupported plan action: {action}")
         async with self.command_lock:
             await self.client.get_controller(timeout=5.0)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await self.client.publish_command("in_plan_action", {"action": action})
+            await self.client.publish_raw("in_plan_action", {"action": action})
 
     async def _request_data_feedback(
         self,
@@ -571,7 +570,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             feedback_task = asyncio.create_task(feedback_coro)
             try:
                 await asyncio.sleep(0)
-                await self.client.publish_command(normalized_command, payload)
+                await self.client.publish_raw(normalized_command, payload)
                 if self._recorder.enabled:
                     try:
                         await self.hass.async_add_executor_job(

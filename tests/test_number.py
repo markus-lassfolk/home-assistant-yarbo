@@ -37,7 +37,8 @@ def _make_coordinator(head_type: int = HEAD_TYPE_SNOW_BLOWER) -> MagicMock:
     coord.client = MagicMock()
     coord.client.get_controller = AsyncMock()
     coord.client.set_chute = AsyncMock()
-    coord.client.publish_command = AsyncMock()
+    coord.client.publish_raw = AsyncMock()
+    coord.client.set_roller = AsyncMock()
     coord._entry = MagicMock()
     coord._entry.data = {
         CONF_ROBOT_SERIAL: "TEST0003",
@@ -200,7 +201,7 @@ class TestYarboChuteSteeringWorkNumber:
             await entity.async_set_native_value(25.0)
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with(
+        coord.client.publish_raw.assert_called_once_with(
             "cmd_chute_streeing_work",
             {"angle": 25},
         )
@@ -240,7 +241,7 @@ class TestYarboBladeHeightNumber:
             await entity.async_set_native_value(55.0)
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("set_blade_height", {"height": 55})
+        coord.client.publish_raw.assert_called_once_with("set_blade_height", {"height": 55})
         assert entity.native_value == 55.0
 
 
@@ -257,7 +258,7 @@ class TestYarboBladeSpeedNumber:
             await entity.async_set_native_value(3200.0)
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("set_blade_speed", {"speed": 3200})
+        coord.client.publish_raw.assert_called_once_with("set_blade_speed", {"speed": 3200})
         assert entity.native_value == 3200.0
 
 
@@ -281,7 +282,7 @@ class TestYarboBlowerSpeedNumber:
             await entity.async_set_native_value(7.0)
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("blower_speed", {"speed": 7})
+        coord.client.publish_raw.assert_called_once_with("blower_speed", {"speed": 7})
         assert entity.native_value == 7.0
 
 
@@ -298,7 +299,7 @@ class TestYarboVolumeNumber:
             await entity.async_set_native_value(42.0)
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("set_sound_param", {"vol": 42})
+        coord.client.publish_raw.assert_called_once_with("set_sound_param", {"vol": 42})
         assert entity.native_value == 42.0
 
 
@@ -398,7 +399,7 @@ class TestYarboRollerSpeedNumber:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_set_native_value(2800.0)
 
-        coord.client.publish_command.assert_called_once_with("cmd_roller", {"speed": 2800})
+        coord.client.set_roller.assert_called_once_with(speed=2800)
         assert entity.native_value == 2800.0
 
     @pytest.mark.asyncio
@@ -410,7 +411,7 @@ class TestYarboRollerSpeedNumber:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_set_native_value(0.0)
 
-        coord.client.publish_command.assert_called_once_with("cmd_roller", {"speed": 0})
+        coord.client.set_roller.assert_called_once_with(speed=0)
         assert entity.native_value == 0.0
 
 
@@ -446,7 +447,7 @@ class TestYarboBatteryChargeMinNumber:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_set_native_value(20.0)
 
-        coord.client.publish_command.assert_called_once_with("set_charge_limit", {"min": 20})
+        coord.client.publish_raw.assert_called_once_with("set_charge_limit", {"min": 20})
         assert entity.native_value == 20.0
 
 
@@ -474,5 +475,5 @@ class TestYarboBatteryChargeMaxNumber:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_set_native_value(80.0)
 
-        coord.client.publish_command.assert_called_once_with("set_charge_limit", {"max": 80})
+        coord.client.publish_raw.assert_called_once_with("set_charge_limit", {"max": 80})
         assert entity.native_value == 80.0

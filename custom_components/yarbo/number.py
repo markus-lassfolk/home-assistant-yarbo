@@ -78,7 +78,7 @@ class YarboChuteSteeringWorkNumber(YarboEntity, NumberEntity):
         """Set chute steering angle."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_command(
+            await self.coordinator.client.publish_raw(
                 "cmd_chute_streeing_work",
                 {"angle": int(value)},
             )
@@ -164,8 +164,7 @@ class YarboBladeHeightNumber(YarboEntity, NumberEntity):
         """Set blade height."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_command(
-                # 🔇 Fire-and-forget: no data_feedback response
+            await self.coordinator.client.publish_raw(
                 "set_blade_height",
                 {"height": int(value)},
             )
@@ -206,8 +205,7 @@ class YarboBladeSpeedNumber(YarboEntity, NumberEntity):
         """Set blade speed."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_command(
-                # 🔇 Fire-and-forget: no data_feedback response
+            await self.coordinator.client.publish_raw(
                 "set_blade_speed",
                 {"speed": int(value)},
             )
@@ -250,7 +248,7 @@ class YarboBlowerSpeedNumber(YarboEntity, NumberEntity):
         """Set blower speed."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_command(
+            await self.coordinator.client.publish_raw(
                 "blower_speed",
                 {"speed": int(value)},
             )
@@ -282,8 +280,7 @@ class YarboVolumeNumber(YarboEntity, NumberEntity):
         """Set volume."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_command(
-                # 🔇 Fire-and-forget: no data_feedback response
+            await self.coordinator.client.publish_raw(
                 "set_sound_param",
                 {"vol": int(value)},
             )
@@ -358,10 +355,7 @@ class YarboRollerSpeedNumber(YarboEntity, NumberEntity):
         """Set roller speed in RPM."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_command(
-                "cmd_roller",
-                {"speed": int(value)},
-            )
+            await self.coordinator.client.set_roller(speed=int(value))
         self._current_speed = value
         self.async_write_ha_state()
 
@@ -391,8 +385,7 @@ class YarboBatteryChargeMinNumber(YarboEntity, NumberEntity):
         """Set minimum battery charge limit."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_command(
-                # 🔇 Fire-and-forget: untested
+            await self.coordinator.client.publish_raw(
                 "set_charge_limit",
                 {"min": int(value)},
             )
@@ -425,8 +418,7 @@ class YarboBatteryChargeMaxNumber(YarboEntity, NumberEntity):
         """Set maximum battery charge limit."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_command(
-                # 🔇 Fire-and-forget: untested
+            await self.coordinator.client.publish_raw(
                 "set_charge_limit",
                 {"max": int(value)},
             )

@@ -38,7 +38,7 @@ def _make_coordinator() -> MagicMock:
     coord.client = MagicMock()
     coord.client.get_controller = AsyncMock()
     coord.client.set_lights = AsyncMock()
-    coord.client.publish_command = AsyncMock()
+    coord.client.publish_raw = AsyncMock()
     coord._entry = MagicMock()
     coord._entry.data = {
         CONF_ROBOT_SERIAL: "TEST0001",
@@ -243,7 +243,7 @@ class TestYarboHeadLight:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("head_light", {"state": 1})
+        coord.client.publish_raw.assert_called_once_with("head_light", {"state": 1})
         assert entity.is_on is True
 
     @pytest.mark.asyncio
@@ -256,5 +256,5 @@ class TestYarboHeadLight:
             await entity.async_turn_on()
             await entity.async_turn_off()
 
-        coord.client.publish_command.assert_called_with("head_light", {"state": 0})
+        coord.client.publish_raw.assert_called_with("head_light", {"state": 0})
         assert entity.is_on is False

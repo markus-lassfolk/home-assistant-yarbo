@@ -27,7 +27,7 @@ def _make_coordinator() -> MagicMock:
     coord.command_lock = asyncio.Lock()
     coord.client = MagicMock()
     coord.client.get_controller = AsyncMock()
-    coord.client.publish_command = AsyncMock()
+    coord.client.publish_raw = AsyncMock()
     coord._entry = MagicMock()
     coord._entry.data = {
         CONF_ROBOT_SERIAL: "TEST0007",
@@ -63,7 +63,7 @@ class TestYarboEmergencyUnlockButton:
             await entity.async_press()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("emergency_unlock", {})
+        coord.client.publish_raw.assert_called_once_with("emergency_unlock", {})
 
 
 class TestYarboPlaySoundButton:
@@ -91,7 +91,7 @@ class TestYarboPlaySoundButton:
             await entity.async_press()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with(
+        coord.client.publish_raw.assert_called_once_with(
             "song_cmd",
             {"songId": 0},
         )
@@ -128,7 +128,7 @@ class TestYarboShutdownButton:
             await entity.async_press()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("shutdown", {})
+        coord.client.publish_raw.assert_called_once_with("shutdown", {})
 
 
 class TestYarboRestartButton:
@@ -162,7 +162,7 @@ class TestYarboRestartButton:
             await entity.async_press()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("restart_container", {})
+        coord.client.publish_raw.assert_called_once_with("restart_container", {})
 
 
 class TestYarboManualStopButton:
@@ -190,7 +190,7 @@ class TestYarboManualStopButton:
             await entity.async_press()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("cmd_vel", {"vel": 0, "rev": 0})
+        coord.client.publish_raw.assert_called_once_with("cmd_vel", {"vel": 0, "rev": 0})
 
 
 class TestYarboSaveChargingPointButton:
@@ -218,7 +218,7 @@ class TestYarboSaveChargingPointButton:
             await entity.async_press()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("save_charging_point", {})
+        coord.client.publish_raw.assert_called_once_with("save_charging_point", {})
 
 
 class TestYarboStartHotspotButton:
@@ -246,7 +246,7 @@ class TestYarboStartHotspotButton:
             await entity.async_press()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("start_hotspot", {})
+        coord.client.publish_raw.assert_called_once_with("start_hotspot", {})
 
 
 class TestYarboSaveMapBackupButton:
@@ -274,7 +274,8 @@ class TestYarboSaveMapBackupButton:
             await entity.async_press()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("save_map_backup", {})
+        coord.client.publish_raw.assert_called_once_with("save_map_backup", {})
+        coord.client.publish_raw.assert_called_once_with("save_map_backup", {})
 
 
 # ---- imports for new entities ----
@@ -305,7 +306,8 @@ class TestYarboCameraCalibrationButton:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_press()
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("camera_calibration", {})
+        coord.client.publish_raw.assert_called_once_with("camera_calibration", {})
+        coord.client.publish_raw.assert_called_once_with("camera_calibration", {})
 
 
 class TestYarboCheckCameraStatusButton:
@@ -322,7 +324,8 @@ class TestYarboCheckCameraStatusButton:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_press()
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("check_camera_status", {})
+        coord.client.publish_raw.assert_called_once_with("check_camera_status", {})
+        coord.client.publish_raw.assert_called_once_with("check_camera_status", {})
 
 
 class TestYarboFirmwareUpdateNowButton:
@@ -343,7 +346,8 @@ class TestYarboFirmwareUpdateNowButton:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_press()
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("firmware_update_now", {})
+        coord.client.publish_raw.assert_called_once_with("firmware_update_now", {})
+        coord.client.publish_raw.assert_called_once_with("firmware_update_now", {})
 
 
 class TestYarboFirmwareUpdateTonightButton:
@@ -360,7 +364,8 @@ class TestYarboFirmwareUpdateTonightButton:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_press()
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("firmware_update_tonight", {})
+        coord.client.publish_raw.assert_called_once_with("firmware_update_tonight", {})
+        coord.client.publish_raw.assert_called_once_with("firmware_update_tonight", {})
 
 
 class TestYarboFirmwareUpdateLaterButton:
@@ -377,4 +382,5 @@ class TestYarboFirmwareUpdateLaterButton:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_press()
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("firmware_update_later", {})
+        coord.client.publish_raw.assert_called_once_with("firmware_update_later", {})
+        coord.client.publish_raw.assert_called_once_with("firmware_update_later", {})

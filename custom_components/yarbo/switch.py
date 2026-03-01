@@ -141,7 +141,7 @@ class YarboCommandSwitch(YarboEntity, SwitchEntity):
             raise HomeAssistantError(error_message)
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_command(
+            await self.coordinator.client.publish_raw(
                 normalized_command,
                 {self._payload_key: value},
             )
