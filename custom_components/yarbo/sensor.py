@@ -544,6 +544,15 @@ class YarboChuteSteeringInfoSensor(YarboSensor):
         super().__init__(coordinator, "chute_steering_info")
 
     @property
+    def available(self) -> bool:
+        """Only available when snow blower head (head_type==1) is installed."""
+        if not super().available:
+            return False
+        if not self.telemetry:
+            return False
+        return self.telemetry.head_type == HEAD_TYPE_SNOW_BLOWER
+
+    @property
     def native_value(self) -> int | str | None:
         """Return chute steering info."""
         telemetry = self.telemetry
@@ -566,6 +575,15 @@ class YarboRainSensor(YarboSensor):
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "rain_sensor")
+
+    @property
+    def available(self) -> bool:
+        """Only available when a head with rain sensor is installed (head_type in (3, 5))."""
+        if not super().available:
+            return False
+        if not self.telemetry:
+            return False
+        return self.telemetry.head_type in (HEAD_TYPE_LAWN_MOWER, HEAD_TYPE_LAWN_MOWER_PRO)
 
     @property
     def native_value(self) -> int | None:

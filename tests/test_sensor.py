@@ -8,6 +8,7 @@ from custom_components.yarbo.const import (
     CONF_ROBOT_NAME,
     CONF_ROBOT_SERIAL,
     HEAD_TYPE_LAWN_MOWER,
+    HEAD_TYPE_LAWN_MOWER_PRO,
     HEAD_TYPE_SNOW_BLOWER,
 )
 from custom_components.yarbo.sensor import (
@@ -20,6 +21,7 @@ from custom_components.yarbo.sensor import (
     YarboChargeVoltageSensor,
     YarboChargingPowerSensor,
     YarboChuteAngleSensor,
+    YarboChuteSteeringInfoSensor,
     YarboCleanAreaCountSensor,
     YarboErrorCodeSensor,
     YarboHeadCurrentSensor,
@@ -606,3 +608,53 @@ class TestMotorTempSensor:
         coord.motor_temp_c = 55.0
         entity = YarboMotorTempSensor(coord)
         assert entity.native_value == 55.0
+
+
+class TestChuteSteeringInfoAvailability:
+    """Tests for chute steering info availability override (#107)."""
+
+    def test_available_snow_blower(self) -> None:
+        """Available when snow blower head (head_type==1) is installed."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_SNOW_BLOWER)
+        coord.last_update_success = True
+        entity = YarboChuteSteeringInfoSensor(coord)
+        assert entity.available is True
+
+    def test_unavailable_lawn_mower(self) -> None:
+        """Not available for lawn mower head."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
+        coord.last_update_success = True
+        entity = YarboChuteSteeringInfoSensor(coord)
+        assert entity.available is False
+
+    def test_unavailable_lawn_mower_pro(self) -> None:
+        """Not available for lawn mower pro head."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER_PRO)
+        coord.last_update_success = True
+        entity = YarboChuteSteeringInfoSensor(coord)
+        assert entity.available is False
+
+
+class TestRainSensorAvailability:
+    """Tests for rain sensor availability override (#107)."""
+
+    def test_available_lawn_mower(self) -> None:
+        """Available when lawn mower head (head_type==3) is installed."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
+        coord.last_update_success = True
+        entity = YarboRainSensor(coord)
+        assert entity.available is True
+
+    def test_available_lawn_mower_pro(self) -> None:
+        """Available when lawn mower pro head (head_type==5) is installed."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER_PRO)
+        coord.last_update_success = True
+        entity = YarboRainSensor(coord)
+        assert entity.available is True
+
+    def test_unavailable_snow_blower(self) -> None:
+        """Not available for snow blower head (no rain sensor)."""
+        coord = _make_coordinator(head_type=HEAD_TYPE_SNOW_BLOWER)
+        coord.last_update_success = True
+        entity = YarboRainSensor(coord)
+        assert entity.available is False
