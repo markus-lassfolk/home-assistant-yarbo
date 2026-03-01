@@ -17,9 +17,44 @@ All notable changes to this project are documented here. The project follows [Se
 
 ## [Unreleased]
 
-Changes in `develop` branch, not yet released.
+---
 
-- Comprehensive GitHub Pages documentation site
+## [2026.3.10] — 2026-03-01
+
+First public release of the Yarbo Home Assistant custom integration. Local MQTT control only.
+
+### Added
+
+- **Automatic DHCP discovery** via Yarbo MAC prefix (`C8:FE:0F:*`)
+- **Manual configuration** with broker IP, serial number, and optional cloud credentials
+- **Primary/Secondary failover** — automatic endpoint switching with configurable retry
+- **Full entity support:**
+  - Sensors: battery, RTK status, charge status, WiFi signal, odometry, GPS, firmware version, working state, and 20+ more
+  - Switches: lights, person detection, obstacle avoidance, child lock, NGZ edge, geo-fence, electric fence, bag record
+  - Buttons: buzzer, return to dock, emergency stop, recharge
+  - Binary sensors: online status, charging, error state
+- **Services:**
+  - `yarbo.start_plan`, `yarbo.stop_plan`, `yarbo.pause_plan`, `yarbo.resume_plan`
+  - `yarbo.set_velocity`, `yarbo.set_blade_height`, `yarbo.set_blade_speed`
+  - `yarbo.set_roller_speed`, `yarbo.push_snow_direction`, `yarbo.set_chute`
+  - `yarbo.send_command` (with input validation against injection)
+  - `yarbo.delete_plan`, `yarbo.delete_all_plans`, `yarbo.erase_map`, `yarbo.map_recovery` (with confirmation required)
+  - `yarbo.get_map`, `yarbo.get_wifi_list`, `yarbo.get_hub_info`
+- **Diagnostics** — full device diagnostics download with credential redaction
+- **MQTT telemetry recorder** — optional local recording for debugging
+- **Sentry error reporting** — opt-in with comprehensive payload scrubbing
+- **Yarbo app icon** in the HA device registry
+
+### Security
+
+- Event loop violation in connection setup resolved (no more throwaway event loops)
+- Sentry scrubber covers all payload sections (extra, breadcrumbs, request, contexts)
+- `send_command` validates command names (alphanumeric/underscore/hyphen only, max 64 chars)
+- Destructive operations require explicit confirmation parameter
+
+### Dependencies
+
+- Requires `python-yarbo>=2026.3.10,<2027.0`
 
 ---
 

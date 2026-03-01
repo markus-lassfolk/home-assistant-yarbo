@@ -148,10 +148,19 @@ def async_register_services(hass: HomeAssistant) -> None:
     """Register all Yarbo services."""
 
     async def handle_send_command(call: ServiceCall) -> None:
-        """Handle yarbo.send_command — publish arbitrary MQTT command."""
+        """Handle yarbo.send_command — publish an MQTT command."""
         device_id: str = call.data["device_id"]
         command: str = call.data["command"]
         payload: dict[str, Any] = call.data.get("payload") or {}
+
+        # Reject commands with MQTT topic injection characters or suspiciously long names
+        if (
+            not command
+            or len(command) > 64
+            or not all(c.isalnum() or c in ("_", "-") for c in command)
+        ):
+            raise ServiceValidationError(f"Invalid command name: {command!r}")
+
         normalized_command = normalize_command_name(command)
         _LOGGER.debug(
             "yarbo.send_command: device=%s command=%s payload=%s",
