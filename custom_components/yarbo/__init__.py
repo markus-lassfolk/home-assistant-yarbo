@@ -90,20 +90,6 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     return True
 
 
-def _connect_sync(client: YarboLocalClient) -> None:
-    """Run the async connect in a new event loop on a worker thread.
-
-    This avoids blocking I/O warnings from importlib.metadata (idna package)
-    during SSL/TLS setup on Python 3.13.  See #104.
-    """
-    import asyncio
-    loop = asyncio.new_event_loop()
-    try:
-        loop.run_until_complete(client.connect())
-    finally:
-        loop.close()
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Yarbo from a config entry."""
     # Ensure ordered endpoints list for Primary/Secondary failover (from discovery order)
@@ -142,9 +128,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     try:
-        # Run connect in a thread to avoid blocking I/O from importlib.metadata
-        # reading idna dist-info during SSL setup (Python 3.13). See #104.
-        await hass.async_add_executor_job(_connect_sync, client)
+        await client.connect()
     except YarboConnectionError as err:
         await client.disconnect()
         raise ConfigEntryNotReady(f"Cannot connect to Yarbo: {err}") from err
