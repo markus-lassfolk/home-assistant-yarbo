@@ -16,11 +16,65 @@ from yarbo import YarboLocalClient
 from yarbo.exceptions import YarboConnectionError
 
 try:
+    from yarbo import discover_yarbo
+except ImportError:  # pragma: no cover — older python-yarbo
+    discover_yarbo = None
+
+
+def _run_mqtt_test_sync(host: str, port: int) -> tuple[Any, str | None]:
+    """Run MQTT connect + first telemetry + disconnect in a thread.
+
+    The robot's MQTT topics are snowbot/{SN}/device/... so we must know the
+    serial number (SN) before subscribing. We use the library's discover_yarbo
+    (wildcard snowbot/+/device/...) to get the SN, then connect with that SN.
+
+    python-yarbo or its deps perform blocking I/O (e.g. importlib.metadata
+    listdir/read_text) during connect, which would block the event loop.
+    Running the whole test in a thread avoids that.
+    """
+
+    async def _discover_sn() -> str:
+        if discover_yarbo is None:
+            return ""
+        # Probe this host (and known IPs); subnet=/32 adds this host to candidates.
+        robots = await discover_yarbo(
+            timeout=25.0,
+            port=port,
+            subnet=f"{host}/32",
+        )
+        for r in robots:
+            if r.broker_host == host and (r.sn or "").strip():
+                return (r.sn or "").strip()
+        return ""
+
+    async def _test() -> tuple[Any, str | None]:
+        sn = await _discover_sn()
+        client = YarboLocalClient(broker=host, sn=sn, port=port)
+        try:
+            await client.connect()
+            async_gen = client.watch_telemetry()
+            try:
+                telemetry = await asyncio.wait_for(async_gen.__anext__(), timeout=30.0)
+                serial = (
+                    (getattr(telemetry, "serial_number", None) if telemetry else None)
+                    or getattr(client, "serial_number", None)
+                    or sn
+                )
+                return telemetry, (serial or "").strip() or None
+            finally:
+                await async_gen.aclose()
+        finally:
+            await client.disconnect()
+
+    return asyncio.run(_test())
+
+
+try:
     from yarbo.cloud import YarboCloudClient
 except ImportError:  # pragma: no cover
     YarboCloudClient = None
 
-from .const import (
+from .const import (  # noqa: E402
     CONF_ALTERNATE_BROKER_HOST,
     CONF_BROKER_ENDPOINTS,
     CONF_BROKER_HOST,
@@ -35,18 +89,20 @@ from .const import (
     DEFAULT_ACTIVITY_PERSONALITY,
     DEFAULT_AUTO_CONTROLLER,
     DEFAULT_BROKER_PORT,
-    DEFAULT_CLOUD_ENABLED,
+    DEFAULT_DEBUG_LOGGING,
+    DEFAULT_MQTT_RECORDING,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
     ENDPOINT_TYPE_ROVER,
     ENDPOINT_TYPE_UNKNOWN,
     OPT_ACTIVITY_PERSONALITY,
     OPT_AUTO_CONTROLLER,
-    OPT_CLOUD_ENABLED,
+    OPT_DEBUG_LOGGING,
+    OPT_MQTT_RECORDING,
     OPT_TELEMETRY_THROTTLE,
 )
-from .discovery import YarboEndpoint, async_discover_endpoints
-from .repairs import async_delete_cloud_token_expired_issue
+from .discovery import YarboEndpoint, async_discover_endpoints  # noqa: E402
+from .repairs import async_delete_cloud_token_expired_issue  # noqa: E402
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,6 +149,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         self._alternate_host: str | None = None
         self._rover_ip: str | None = None
         self._robot_serial: str | None = None
+        self._robot_name: str | None = None
         self._broker_host: str | None = None
         self._broker_port: int = DEFAULT_BROKER_PORT
         self._reconfigure_entry: ConfigEntry | None = None
@@ -164,54 +221,165 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def _probe_robot_identity(
+        self, host: str, port: int, timeout: float = 8.0
+    ) -> tuple[str | None, str | None]:
+        """Quick MQTT probe to discover the robot serial number and name.
+
+        Uses a synchronous paho-mqtt client in a thread executor to avoid
+        blocking-call warnings from HA's event loop detector (paho's import
+        and connect trigger synchronous file I/O).
+
+        TODO: Replace direct paho-mqtt usage with the python-yarbo library once
+        the library exposes a lightweight probe/identify API that doesn't require
+        a full YarboLocalClient lifecycle. Until then, paho>=1.6 is required for
+        CallbackAPIVersion.VERSION2 support (paho 2.x is also supported).
+
+        Returns (serial_number, bot_name) — either may be None.
+        """
+
+        def _sync_probe() -> tuple[str | None, str | None]:
+            """Run entirely in a thread — no async, no event loop interaction."""
+            import json as _json
+            import threading
+
+            import paho.mqtt.client as mqtt
+
+            result: dict[str, str | None] = {"sn": None, "name": None}
+            got_telemetry = threading.Event()
+
+            def on_connect(
+                client: Any, userdata: Any, flags: Any, rc: Any, props: Any = None
+            ) -> None:
+                rc_val = getattr(rc, "value", rc)
+                if rc_val == 0:
+                    client.subscribe("snowbot/+/device/DeviceMSG")
+                    client.subscribe("snowbot/+/device/heart_beat")
+
+            def on_message(client: Any, userdata: Any, msg: Any) -> None:
+                parts = msg.topic.split("/")
+                if len(parts) >= 2 and parts[0] == "snowbot" and parts[1]:
+                    result["sn"] = parts[1]
+                try:
+                    import zlib
+
+                    try:
+                        raw = zlib.decompress(msg.payload)
+                    except zlib.error:
+                        raw = msg.payload
+                    payload = _json.loads(raw)
+                    if not result["name"]:
+                        result["name"] = (
+                            payload.get("name")
+                            or payload.get("robotName")
+                            or payload.get("snowbotName")
+                        )
+                except Exception:
+                    pass
+                if result["sn"]:
+                    got_telemetry.set()
+
+            c = mqtt.Client(
+                callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+                client_id=f"yarbo-ha-probe-{int(__import__('time').time())}",
+            )
+            c.on_connect = on_connect
+            c.on_message = on_message
+            try:
+                c.connect(host, port, keepalive=10)
+                c.loop_start()
+                got_telemetry.wait(timeout=timeout)
+            except Exception:
+                pass
+            finally:
+                try:
+                    c.loop_stop()
+                except Exception:
+                    pass
+                try:
+                    c.disconnect()
+                except Exception:
+                    pass
+            return (result["sn"], result["name"])
+
+        try:
+            return await asyncio.get_running_loop().run_in_executor(None, _sync_probe)
+        except Exception:
+            _LOGGER.debug("Robot identity probe failed for %s:%d", host, port)
+            return (None, None)
+
     async def async_step_dhcp(self, discovery_info: dhcp.DhcpServiceInfo) -> FlowResult:
         """Handle DHCP discovery (issue #2).
 
-        Triggered when a device with MAC OUI C8:FE:0F:* appears on the network.
-        Stores IP/MAC, shows confirm form; on confirm runs MQTT validation.
-        If same MAC gets new IP (lease change), reconfigures broker_host.
+        Triggered when a device with MAC OUI C8:FE:0F:* appears on the network,
+        or by our ARP startup scan via async_setup.
         """
+        # Support both DhcpServiceInfo and plain dict (from ARP discovery trigger)
+        if isinstance(discovery_info, dict):
+            ip = discovery_info["ip"]
+            mac = discovery_info.get("macaddress", "")
+            hostname = discovery_info.get("hostname", "")
+        else:
+            ip = discovery_info.ip
+            mac = discovery_info.macaddress
+            hostname = discovery_info.hostname
+
+        # MAC is a hardware identifier — log only last octet to avoid leaking full address
         _LOGGER.debug(
             "DHCP discovery: IP=%s MAC=%s hostname=%s",
-            discovery_info.ip,
-            discovery_info.macaddress,
-            discovery_info.hostname,
+            ip,
+            (mac[:8] + "***") if mac else "",
+            hostname,
         )
+
+        # Probe MQTT to discover the robot serial number for unique identification
+        sn, bot_name = await self._probe_robot_identity(ip, DEFAULT_BROKER_PORT, timeout=8.0)
+        if sn:
+            self._robot_serial = sn
+            self._robot_name = bot_name
+            self.context["title_placeholders"] = {"name": sn}
+            await self.async_set_unique_id(sn)
+            self._abort_if_unique_id_configured(updates={CONF_BROKER_HOST: ip})
+        else:
+            # Fallback: use MAC as unique_id if MQTT probe fails (robot sleeping)
+            self.context["title_placeholders"] = {"name": ip}
+            await self.async_set_unique_id(mac)
+            self._abort_if_unique_id_configured(updates={CONF_BROKER_HOST: ip})
 
         # Check by MAC address for IP changes (reconfigure)
         existing_entry = next(
             (
                 entry
                 for entry in self._async_current_entries()
-                if entry.data.get(CONF_BROKER_MAC) == discovery_info.macaddress
+                if entry.data.get(CONF_BROKER_MAC) == mac
             ),
             None,
         )
         if existing_entry is not None:
-            if existing_entry.data.get(CONF_BROKER_HOST) != discovery_info.ip:
+            if existing_entry.data.get(CONF_BROKER_HOST) != ip:
                 self._reconfigure_entry = existing_entry
-                self._broker_host = discovery_info.ip
+                self._broker_host = ip
                 port = existing_entry.data.get(CONF_BROKER_PORT)
                 self._broker_port = DEFAULT_BROKER_PORT if port in (None, "") else int(port)
                 return await self.async_step_reconfigure()
             return self.async_abort(reason="already_configured")
 
-        self._discovered_host = discovery_info.ip
-        self._discovered_mac = discovery_info.macaddress
+        self._discovered_host = ip
+        self._discovered_mac = mac
 
         # Discover all endpoints (this + e.g. YARBO); if multiple, show selection
         self._discovered_endpoints = await async_discover_endpoints(
-            seed_host=discovery_info.ip,
-            seed_mac=discovery_info.macaddress,
+            seed_host=ip,
+            seed_mac=mac,
             port=DEFAULT_BROKER_PORT,
         )
         if not self._discovered_endpoints:
             # Fallback: single endpoint from DHCP (type/recommended from library only)
             self._discovered_endpoints = [
                 YarboEndpoint(
-                    host=discovery_info.ip,
+                    host=ip,
                     port=DEFAULT_BROKER_PORT,
-                    mac=discovery_info.macaddress,
+                    mac=mac,
                     endpoint_type=ENDPOINT_TYPE_UNKNOWN,
                     recommended=False,
                 )
@@ -229,6 +397,8 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         self._rover_ip = ep.host if ep.endpoint_type == ENDPOINT_TYPE_ROVER else None
         self._alternate_host = None
         self._broker_endpoints_ordered = [ep.host]
+
+        # Go to confirm step — if SN is known it skips MQTT test, otherwise falls through
         return await self.async_step_confirm()
 
     async def async_step_select_endpoint(
@@ -285,16 +455,25 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Confirm DHCP-discovered device."""
-        # Defensive: HA may call async_step_user with form data in edge cases
+        """Confirm DHCP-discovered device.
+
+        If the serial number was already discovered via MQTT probe, the user
+        just clicks 'Add' to create the entry — no further MQTT test needed.
+        If SN is unknown (robot sleeping), falls through to mqtt_test.
+        """
         if user_input is not None:
             self._broker_host = self._broker_host or self._discovered_host
+            if self._robot_serial:
+                # SN already known — skip MQTT test, go to name step
+                return await self.async_step_name()
             return await self.async_step_mqtt_test()
 
+        display_name = self._robot_serial or "unknown"
         return self.async_show_form(
             step_id="confirm",
             description_placeholders={
-                "host": self._broker_host or self._discovered_host or "unknown"
+                "host": self._broker_host or self._discovered_host or "unknown",
+                "name": display_name,
             },
         )
 
@@ -304,17 +483,9 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         if self._broker_host is None:
             return self.async_abort(reason="cannot_connect")
 
-        client = YarboLocalClient(host=self._broker_host, port=self._broker_port)
-        telemetry = None
-        async_gen = None
         try:
-            await client.connect()
-            async_gen = client.watch_telemetry()
-            telemetry = await asyncio.wait_for(async_gen.__anext__(), timeout=10.0)
-            self._robot_serial = (
-                telemetry.serial_number
-                if telemetry and telemetry.serial_number
-                else client.serial_number
+            _telemetry, self._robot_serial = await self.hass.async_add_executor_job(
+                _run_mqtt_test_sync, self._broker_host, self._broker_port
             )
         except YarboConnectionError:
             errors["base"] = "cannot_connect"
@@ -323,10 +494,6 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         except Exception:
             _LOGGER.exception("Failed to decode Yarbo telemetry")
             errors["base"] = "decode_error"
-        finally:
-            if async_gen is not None:
-                await async_gen.aclose()
-            await client.disconnect()
 
         if errors:
             return self.async_show_form(
@@ -411,7 +578,7 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
         if not self._robot_serial:
             return self.async_abort(reason="no_telemetry")
 
-        default_name = f"Yarbo {self._robot_serial[-4:]}"
+        default_name = self._robot_name or f"Yarbo {self._robot_serial[-4:]}"
         # Defensive: HA may call async_step_user with form data in edge cases
         if user_input is not None:
             # Use robot serial as unique ID and abort if already configured
@@ -439,8 +606,13 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             )
             self._pending_data[CONF_BROKER_ENDPOINTS] = endpoints_ordered
 
-            # Proceed to optional cloud authentication step
-            return await self.async_step_cloud()
+            # Cloud features disabled for beta — skip cloud step
+            # TODO: Re-enable cloud step when cloud API is tested
+            entry_data, self._pending_data = self._pending_data, {}
+            return self.async_create_entry(
+                title=entry_data[CONF_ROBOT_NAME],
+                data=entry_data,
+            )
 
         schema = vol.Schema(
             {
@@ -584,11 +756,24 @@ class YarboOptionsFlow(OptionsFlow):
                     ),
                 ): bool,
                 vol.Optional(
-                    OPT_CLOUD_ENABLED,
+                    OPT_DEBUG_LOGGING,
                     default=self._config_entry.options.get(
-                        OPT_CLOUD_ENABLED, DEFAULT_CLOUD_ENABLED
+                        OPT_DEBUG_LOGGING, DEFAULT_DEBUG_LOGGING
                     ),
                 ): bool,
+                vol.Optional(
+                    OPT_MQTT_RECORDING,
+                    default=self._config_entry.options.get(
+                        OPT_MQTT_RECORDING, DEFAULT_MQTT_RECORDING
+                    ),
+                ): bool,
+                # Cloud features hidden for beta — uncomment when cloud API is tested
+                # vol.Optional(
+                #     OPT_CLOUD_ENABLED,
+                #     default=self._config_entry.options.get(
+                #         OPT_CLOUD_ENABLED, DEFAULT_CLOUD_ENABLED
+                #     ),
+                # ): bool,
                 # Fixed: activity_personality is a boolean toggle, not an enum string
                 vol.Optional(
                     OPT_ACTIVITY_PERSONALITY,

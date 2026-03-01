@@ -14,6 +14,7 @@ from yarbo import YarboLightState
 from .const import (
     DATA_COORDINATOR,
     DOMAIN,
+    HEAD_TYPE_NONE,
     LIGHT_CHANNEL_BODY_LEFT,
     LIGHT_CHANNEL_BODY_RIGHT,
     LIGHT_CHANNEL_HEAD,
@@ -45,7 +46,10 @@ async def async_setup_entry(
 ) -> None:
     """Set up Yarbo light entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
-    entities: list[YarboLight] = [YarboAllLightsGroup(coordinator)]
+    entities: list[LightEntity] = [
+        YarboAllLightsGroup(coordinator),
+        YarboHeadLight(coordinator),
+    ]
     for channel in LIGHT_CHANNELS:
         entities.append(YarboChannelLight(coordinator, channel))
     async_add_entities(entities)
@@ -108,7 +112,17 @@ class YarboAllLightsGroup(YarboLight):
         """Turn off all lights."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.set_lights(YarboLightState.all_off())
+            await self.coordinator.client.set_lights(
+                YarboLightState(
+                    led_head=0,
+                    led_left_w=0,
+                    led_right_w=0,
+                    body_left_r=0,
+                    body_right_r=0,
+                    tail_left_r=0,
+                    tail_right_r=0,
+                )
+            )
             for channel in self.coordinator.light_state:
                 self.coordinator.light_state[channel] = 0
         self._brightness = 0
@@ -148,5 +162,51 @@ class YarboChannelLight(YarboLight):
             await self.coordinator.client.set_lights(YarboLightState(**state_dict))
             self.coordinator.light_state[self._channel] = 0
         self._brightness = 0
+        self._is_on = False
+        self.async_write_ha_state()
+
+
+class YarboHeadLight(YarboEntity, LightEntity):
+    """Head light control (on/off)."""
+
+    _attr_translation_key = "head_light"
+    _attr_icon = "mdi:car-light-high"
+    _attr_color_mode = ColorMode.ONOFF
+    _attr_supported_color_modes: ClassVar[set[ColorMode]] = {ColorMode.ONOFF}
+    _attr_assumed_state = True
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "head_light")
+        self._is_on: bool = False
+
+    @property
+    def available(self) -> bool:
+        """Only available when a head is attached."""
+        if not super().available:
+            return False
+        if not self.telemetry:
+            return False
+        return self.telemetry.head_type not in (HEAD_TYPE_NONE, None, "")
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if head light is on."""
+        return self._is_on
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on the head light."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
+            await self.coordinator.client.publish_command("head_light", {"state": 1})
+        self._is_on = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off the head light."""
+        async with self.coordinator.command_lock:
+            await self.coordinator.client.get_controller(timeout=5.0)
+            # 🔇 Fire-and-forget: no data_feedback response
+            await self.coordinator.client.publish_command("head_light", {"state": 0})
         self._is_on = False
         self.async_write_ha_state()

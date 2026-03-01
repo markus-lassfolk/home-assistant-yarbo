@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import SOURCE_DHCP, ConfigEntry
 from homeassistant.const import __version__
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -30,6 +30,46 @@ from .error_reporting import init_error_reporting
 from .services import async_register_services, async_unregister_services
 
 _LOGGER = logging.getLogger(__name__)
+
+
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
+    """Set up the Yarbo integration — run background ARP discovery on startup."""
+
+    async def _discover_yarbos(_now: Any = None) -> None:
+        """Scan ARP table for Yarbo devices and create discovery flows."""
+        from .discovery import DEFAULT_BROKER_PORT, _discover_from_arp
+
+        endpoints = await _discover_from_arp(DEFAULT_BROKER_PORT)
+        if not endpoints:
+            return
+
+        for ep in endpoints:
+            # Check if already configured for this host
+            existing = any(
+                entry.data.get(CONF_BROKER_HOST) == ep.host
+                for entry in hass.config_entries.async_entries(DOMAIN)
+            )
+            if existing:
+                continue
+
+            _LOGGER.info("Yarbo discovered via ARP at %s (MAC %s)", ep.host, ep.mac)
+            hass.async_create_task(
+                hass.config_entries.flow.async_init(
+                    DOMAIN,
+                    context={"source": SOURCE_DHCP},
+                    data={"ip": ep.host, "macaddress": ep.mac or "", "hostname": "yarbo"},
+                )
+            )
+
+    # Run 30s after HA fully starts so the network stack is ready
+    from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
+    from homeassistant.helpers.event import async_call_later
+
+    async def _on_start(_event: Any) -> None:
+        async_call_later(hass, 30, _discover_yarbos)
+
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _on_start)
+    return True
 
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
@@ -71,7 +111,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         pass
 
-    # Opt-in error reporting: only active if YARBO_SENTRY_DSN env var is set
+    # Opt-in error reporting: set YARBO_SENTRY_DSN to enable
     _serial = entry.data.get(CONF_ROBOT_SERIAL, "unknown")
     init_error_reporting(
         tags={
@@ -83,13 +123,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     client = YarboLocalClient(
-        host=entry.data[CONF_BROKER_HOST],
+        broker=entry.data[CONF_BROKER_HOST],
         port=entry.data[CONF_BROKER_PORT],
     )
 
     try:
         await client.connect()
-        await client.get_controller(timeout=5.0)
     except YarboConnectionError as err:
         await client.disconnect()
         raise ConfigEntryNotReady(f"Cannot connect to Yarbo: {err}") from err

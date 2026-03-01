@@ -32,6 +32,9 @@ def _make_coordinator(options: dict | None = None) -> YarboDataCoordinator:
         coord._throttle_interval = entry.options.get(  # type: ignore[attr-defined]
             OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE
         )
+        coord._debug_logging = False  # type: ignore[attr-defined]
+        coord._recorder = MagicMock()  # type: ignore[attr-defined]
+        coord._recorder_enabled_option = False  # type: ignore[attr-defined]
     return coord  # type: ignore[return-value]
 
 

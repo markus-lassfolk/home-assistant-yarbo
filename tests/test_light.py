@@ -10,12 +10,15 @@ import pytest
 from custom_components.yarbo.const import (
     CONF_ROBOT_NAME,
     CONF_ROBOT_SERIAL,
+    HEAD_TYPE_NONE,
+    HEAD_TYPE_SNOW_BLOWER,
     LIGHT_CHANNEL_HEAD,
     LIGHT_CHANNELS,
 )
 from custom_components.yarbo.light import (
     YarboAllLightsGroup,
     YarboChannelLight,
+    YarboHeadLight,
 )
 
 
@@ -35,6 +38,7 @@ def _make_coordinator() -> MagicMock:
     coord.client = MagicMock()
     coord.client.get_controller = AsyncMock()
     coord.client.set_lights = AsyncMock()
+    coord.client.publish_command = AsyncMock()
     coord._entry = MagicMock()
     coord._entry.data = {
         CONF_ROBOT_SERIAL: "TEST0001",
@@ -198,3 +202,59 @@ class TestYarboChannelLight:
         assert entity.is_on is False
         assert entity.brightness == 0
         assert coord.light_state[LIGHT_CHANNEL_HEAD] == 0
+
+
+class TestYarboHeadLight:
+    """Tests for the head light entity."""
+
+    def test_translation_key(self) -> None:
+        """Translation key must be head_light."""
+        coord = _make_coordinator()
+        entity = YarboHeadLight(coord)
+        assert entity.translation_key == "head_light"
+
+    def test_available_with_head(self) -> None:
+        """Available when a head is attached."""
+        coord = _make_coordinator()
+        telemetry = MagicMock()
+        telemetry.head_type = HEAD_TYPE_SNOW_BLOWER
+        coord.data = telemetry
+        coord.last_update_success = True
+        entity = YarboHeadLight(coord)
+        assert entity.available is True
+
+    def test_unavailable_no_head(self) -> None:
+        """Unavailable when head_type is none."""
+        coord = _make_coordinator()
+        telemetry = MagicMock()
+        telemetry.head_type = HEAD_TYPE_NONE
+        coord.data = telemetry
+        coord.last_update_success = True
+        entity = YarboHeadLight(coord)
+        assert entity.available is False
+
+    @pytest.mark.asyncio
+    async def test_turn_on_publishes_command(self) -> None:
+        """turn_on publishes head_light state=1."""
+        coord = _make_coordinator()
+        entity = YarboHeadLight(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+
+        coord.client.get_controller.assert_called_once_with(timeout=5.0)
+        coord.client.publish_command.assert_called_once_with("head_light", {"state": 1})
+        assert entity.is_on is True
+
+    @pytest.mark.asyncio
+    async def test_turn_off_publishes_command(self) -> None:
+        """turn_off publishes head_light state=0."""
+        coord = _make_coordinator()
+        entity = YarboHeadLight(coord)
+
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+            await entity.async_turn_off()
+
+        coord.client.publish_command.assert_called_with("head_light", {"state": 0})
+        assert entity.is_on is False

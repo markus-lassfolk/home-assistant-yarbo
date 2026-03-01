@@ -41,6 +41,25 @@ Copy `custom_components/yarbo/` to your HA `config/custom_components/yarbo/` and
 
 ---
 
+## Troubleshooting
+
+### "Unable to install package python-yarbo" / "not found in the package registry"
+
+This integration depends on [python-yarbo](https://github.com/markus-lassfolk/python-yarbo). Home Assistant installs dependencies from PyPI only. If `python-yarbo` is not yet published on PyPI, install it manually **before** adding the integration:
+
+1. **SSH or Terminal & SSH add-on:** On the host where Home Assistant runs, use the same Python environment HA uses (e.g. the venv inside the HA install, or the container’s pip). Install the dependency from the GitHub repo (until it is published on PyPI):
+   ```bash
+   source /path/to/homeassistant/bin/activate   # if using a venv
+   pip install "git+https://github.com/markus-lassfolk/python-yarbo.git@main#egg=python-yarbo"
+   ```
+   Use `@develop` instead of `@main` if you need the development branch.
+
+2. Restart Home Assistant, then add the Yarbo integration again.
+
+**Long-term fix:** Publishing `python-yarbo` to [PyPI](https://pypi.org/) (e.g. as `python-yarbo`) will allow HA to install it automatically; no manual step needed.
+
+---
+
 ## Quick Start
 
 The integration supports two setup paths:

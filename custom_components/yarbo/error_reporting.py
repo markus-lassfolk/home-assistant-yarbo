@@ -16,12 +16,13 @@ def init_error_reporting(
 ) -> None:
     """Initialize Sentry/GlitchTip error reporting for the Yarbo HA integration.
 
-    Opt-in only: no data is sent unless YARBO_SENTRY_DSN is explicitly set.
+    Opt-in error reporting — only enabled when YARBO_SENTRY_DSN is explicitly set.
+    No PII is collected; credentials are scrubbed before sending.
+
     To enable, set the YARBO_SENTRY_DSN environment variable to your project DSN.
 
     Args:
-        dsn: Sentry DSN. If None, falls back to YARBO_SENTRY_DSN env var.
-             No default is provided — reporting is disabled unless DSN is explicitly set.
+        dsn: Sentry DSN override. If None, falls back to YARBO_SENTRY_DSN env var.
         environment: Environment tag (production/development/testing).
         enabled: Master switch. If False, no SDK initialization occurs.
         tags: Optional extra tags (e.g. robot_serial, ha_version, integration_version).
@@ -30,11 +31,10 @@ def init_error_reporting(
         return
 
     # Resolve DSN: explicit arg > YARBO_SENTRY_DSN env var
-    # No hardcoded default — opt-in only
-    effective_dsn = dsn or os.environ.get("YARBO_SENTRY_DSN")
+    env_dsn = os.environ.get("YARBO_SENTRY_DSN")
+    effective_dsn = dsn or env_dsn
 
     if not effective_dsn:
-        # No DSN configured — error reporting disabled (opt-in model)
         return
 
     try:

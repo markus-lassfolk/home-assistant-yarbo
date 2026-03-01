@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import sys
+import types
 from unittest.mock import AsyncMock, MagicMock, patch
 
 
@@ -23,6 +25,78 @@ class _DhcpServiceInfo:
 _dhcp_mock = MagicMock()
 _dhcp_mock.DhcpServiceInfo = _DhcpServiceInfo
 sys.modules.setdefault("homeassistant.components.dhcp", _dhcp_mock)
+
+# Stub aiodns/pycares to avoid background threads during tests.
+_aiodns_module = types.ModuleType("aiodns")
+
+
+class _DNSResolver:
+    """Stub for aiodns.DNSResolver."""
+
+    def __init__(self, *_args: object, **_kwargs: object) -> None:
+        pass
+
+
+_aiodns_module.DNSResolver = _DNSResolver
+sys.modules.setdefault("aiodns", _aiodns_module)
+sys.modules.setdefault("pycares", types.ModuleType("pycares"))
+
+# Stub python-yarbo to avoid optional dependency in tests.
+_yarbo_module = types.ModuleType("yarbo")
+
+
+class _YarboLocalClient:
+    """Stub for YarboLocalClient."""
+
+    def __init__(self, *_args: object, **_kwargs: object) -> None:
+        pass
+
+    connect = AsyncMock()
+    disconnect = AsyncMock()
+
+
+class _YarboTelemetry:
+    """Stub for YarboTelemetry."""
+
+    def __init__(self, **_kwargs: object) -> None:
+        pass
+
+
+class _YarboLightState:
+    """Stub for YarboLightState."""
+
+    def __init__(self, **_kwargs: object) -> None:
+        pass
+
+    @classmethod
+    def all_off(cls) -> _YarboLightState:
+        """Return a YarboLightState with all channels set to 0."""
+        return cls(
+            led_head=0,
+            led_left_w=0,
+            led_right_w=0,
+            body_left_r=0,
+            body_right_r=0,
+            tail_left_r=0,
+            tail_right_r=0,
+        )
+
+
+_yarbo_module.YarboLocalClient = _YarboLocalClient
+_yarbo_module.YarboTelemetry = _YarboTelemetry
+_yarbo_module.YarboLightState = _YarboLightState
+
+_yarbo_exceptions = types.ModuleType("yarbo.exceptions")
+
+
+class YarboConnectionError(Exception):
+    """Stub for YarboConnectionError."""
+
+
+_yarbo_exceptions.YarboConnectionError = YarboConnectionError
+_yarbo_module.exceptions = _yarbo_exceptions
+sys.modules.setdefault("yarbo", _yarbo_module)
+sys.modules.setdefault("yarbo.exceptions", _yarbo_exceptions)
 
 # Disable Sentry/GlitchTip error reporting during tests.
 # python-yarbo calls init_error_reporting() at module import time; the Sentry SDK
@@ -79,7 +153,7 @@ MOCK_TELEMETRY: dict[str, Any] = {
             "planning_paused": 0,
             "on_going_recharging": 0,
         },
-        "HeadMsg": {"head_type": 0},  # Snow blower
+        "HeadMsg": {"head_type": 1},  # Snow blower
         "RTKMSG": {"status": 4, "heading": 180.0},
         "RunningStatusMSG": {
             "chute_angle": 90,
@@ -87,6 +161,36 @@ MOCK_TELEMETRY: dict[str, Any] = {
         },
     },
 }
+
+
+async def _telemetry_stream() -> AsyncGenerator[Any, None]:
+    """Yield one telemetry item, then idle until cancelled."""
+    yield MOCK_TELEMETRY
+    while True:
+        await asyncio.sleep(3600)
+
+
+@pytest.fixture(autouse=True)
+def mock_yarbo_client_autouse() -> Generator[MagicMock, None, None]:
+    """Auto-mock YarboLocalClient so config entry setup never hits real MQTT."""
+    with patch("custom_components.yarbo.YarboLocalClient", autospec=True) as mock_cls:
+        client = mock_cls.return_value
+        client.connect = AsyncMock()
+        client.disconnect = AsyncMock()
+        client.get_controller = AsyncMock()
+        client.get_status = AsyncMock(return_value=MOCK_TELEMETRY)
+        client.publish_raw = AsyncMock()
+        client.publish_command = AsyncMock()
+        client.wait_for_data_feedback = AsyncMock(return_value={"data": []})
+        client.set_lights = AsyncMock()
+        client.buzzer = AsyncMock()
+        client.set_chute = AsyncMock()
+        client.start_plan = AsyncMock()
+        client.is_connected = True
+        client.controller_acquired = True
+        client.serial_number = MOCK_ROBOT_SERIAL
+        client.watch_telemetry = MagicMock(side_effect=lambda: _telemetry_stream())
+        yield client
 
 
 @pytest.fixture
@@ -105,6 +209,7 @@ def mock_yarbo_client() -> Generator[MagicMock, None, None]:
         client.get_status = AsyncMock(return_value=MOCK_TELEMETRY)
         client.publish_raw = AsyncMock()
         client.publish_command = AsyncMock()
+        client.wait_for_data_feedback = AsyncMock(return_value={"data": []})
         client.set_lights = AsyncMock()
         client.buzzer = AsyncMock()
         client.set_chute = AsyncMock()
@@ -113,14 +218,8 @@ def mock_yarbo_client() -> Generator[MagicMock, None, None]:
         client.controller_acquired = True
         client.serial_number = MOCK_ROBOT_SERIAL
         # watch_telemetry is an async generator — stub it to yield once then stop
-        client.watch_telemetry = MagicMock(return_value=_async_gen([MOCK_TELEMETRY]))
+        client.watch_telemetry = MagicMock(side_effect=lambda: _telemetry_stream())
         yield client
-
-
-async def _async_gen(items: list[Any]) -> AsyncGenerator[Any, None]:
-    """Yield items from a list as an async generator."""
-    for item in items:
-        yield item
 
 
 @pytest.fixture

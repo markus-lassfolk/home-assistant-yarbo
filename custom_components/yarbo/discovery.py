@@ -1,7 +1,12 @@
-"""Discover Yarbo MQTT endpoints via python-yarbo (Rover vs DC).
+"""Discover Yarbo MQTT endpoints (Rover vs DC).
 
-This module only delegates to the python-yarbo library. All discovery logic,
-Rover/DC classification, and broker verification live in the library.
+This module attempts to discover Yarbo MQTT brokers using the python-yarbo
+library's discover() API when available. When the library provides no discovery,
+it falls back to scanning the local ARP table via 'ip neigh' for devices with
+the Yarbo OUI (C8:FE:0F). Discovered hosts are normalized to YarboEndpoint
+objects with colon-delimited MACs and a canonical endpoint_type. If discovery
+yields no results, a seed_host (e.g. from DHCP) is used as a single fallback
+endpoint so the config flow can still proceed.
 See: https://github.com/markus-lassfolk/home-assistant-yarbo/issues/50
 """
 
@@ -78,6 +83,48 @@ def _from_library_result(r: object, port: int) -> YarboEndpoint | None:
     )
 
 
+YARBO_OUI = "c8:fe:0f"
+
+
+async def _discover_from_arp(port: int = DEFAULT_BROKER_PORT) -> list[YarboEndpoint]:
+    """Scan the local ARP table for Yarbo devices (MAC OUI C8:FE:0F).
+
+    Uses 'ip neigh' on Linux to read the ARP table without requiring
+    any network scanning. Fast and non-intrusive.
+    """
+    endpoints: list[YarboEndpoint] = []
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "ip",
+            "neigh",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=5.0)
+        for line in stdout.decode(errors="replace").splitlines():
+            parts = line.split()
+            # Format: 192.168.1.24 dev eth0 lladdr c8:fe:0f:xx:xx:xx REACHABLE
+            if len(parts) >= 5 and "lladdr" in parts:
+                ip = parts[0]
+                mac_idx = parts.index("lladdr") + 1
+                if mac_idx < len(parts):
+                    mac = parts[mac_idx].lower()
+                    if mac.startswith(YARBO_OUI):
+                        _LOGGER.debug("ARP discovery: found Yarbo at %s (MAC %s)", ip, mac)
+                        endpoints.append(
+                            YarboEndpoint(
+                                host=ip,
+                                port=port,
+                                mac=mac,  # already colon-delimited from 'ip neigh'
+                                endpoint_type=ENDPOINT_TYPE_UNKNOWN,
+                                recommended=False,
+                            )
+                        )
+    except (FileNotFoundError, TimeoutError, OSError) as err:
+        _LOGGER.debug("ARP scan failed: %s", err)
+    return endpoints
+
+
 async def async_discover_endpoints(
     seed_host: str | None = None,
     seed_mac: str | None = None,
@@ -96,6 +143,10 @@ async def async_discover_endpoints(
         yarbo_discover = None
 
     if yarbo_discover is None:
+        # Library has no discover() yet — fall back to ARP table scan
+        endpoints = await _discover_from_arp(port)
+        if endpoints:
+            return endpoints
         if seed_host:
             return [
                 YarboEndpoint(

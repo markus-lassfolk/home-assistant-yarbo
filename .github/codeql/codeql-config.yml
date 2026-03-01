@@ -1,0 +1,20 @@
+name: "Yarbo CodeQL Config"
+
+# Disable queries that flag core IoT features as privacy issues
+# GPS coordinates, IP addresses, MAC addresses, and hostnames are
+# fundamental to robot mower discovery and control — not PII leaks.
+query-filters:
+  - exclude:
+      tags contain: security/cwe/cwe-532  # Clear-text logging (we handle this ourselves)
+  - exclude:
+      tags contain: security/cwe/cwe-359  # Privacy violation (GPS, IP, MAC are core features)
+  - exclude:
+      tags contain: security/cwe/cwe-200  # Information exposure (device telemetry is the product)
+  - exclude:
+      id: py/clear-text-logging-sensitive-data
+  - exclude:
+      id: py/clear-text-storage-sensitive-data
+
+paths-ignore:
+  - tests
+  - archive

@@ -12,11 +12,10 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from yarbo import YarboTelemetry
-
 from .const import CONF_ROBOT_SERIAL, DATA_COORDINATOR, DOMAIN, get_activity_state
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
+from .models import YarboTelemetry
 
 EVENT_TYPES: Final[list[str]] = [
     "job_started",
