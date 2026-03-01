@@ -100,16 +100,23 @@ def _warmup_connect(host: str, port: int) -> None:
     try:
         import socket
         # Force idna and other lazy imports to resolve their metadata now
+        # Force all lazy imports and metadata reads that paho-mqtt triggers
+        # during connect. These must happen in the executor thread, not the
+        # event loop, to avoid HA's blocking call detection.
         import importlib.metadata
-        # Force the exact code path that triggers the blocking read_text
-        # (paho-mqtt → urllib3 → idna metadata resolution)
-        for pkg in ("idna", "paho-mqtt", "certifi"):
+        for pkg in ("idna", "paho-mqtt", "certifi", "charset-normalizer"):
             try:
                 dist = importlib.metadata.distribution(pkg)
-                # Read METADATA file to fill the pathlib cache
                 dist.read_text("METADATA")
+                dist.read_text("RECORD")
             except (importlib.metadata.PackageNotFoundError, FileNotFoundError):
                 pass
+        # Pre-import idna to trigger its internal module loading
+        try:
+            import idna  # noqa: F401
+            import idna.codec  # noqa: F401
+        except ImportError:
+            pass
         # Verify broker is reachable (TCP only, no MQTT protocol)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(3)
