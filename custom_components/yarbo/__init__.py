@@ -134,10 +134,16 @@ def _warmup_connect(host: str, port: int) -> None:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Yarbo from a config entry."""
-    # --- Library version guard ---
-    import importlib.metadata as _meta
-    try:
-        _lib_ver = _meta.version("python-yarbo")
+    # --- Library version guard (runs in executor to avoid blocking I/O) ---
+    def _check_lib_version() -> str | None:
+        import importlib.metadata as _meta
+        try:
+            return _meta.version("python-yarbo")
+        except _meta.PackageNotFoundError:
+            return None
+
+    _lib_ver = await hass.async_add_executor_job(_check_lib_version)
+    if _lib_ver is not None:
         from packaging.version import Version
         if Version(_lib_ver) < Version(MIN_LIB_VERSION):
             _LOGGER.error(
@@ -148,8 +154,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             raise ConfigEntryNotReady(
                 f"python-yarbo {_lib_ver} < {MIN_LIB_VERSION}; upgrade required"
             )
-    except _meta.PackageNotFoundError:
-        pass  # installed but metadata missing — let HA handle it
     # --- End version guard ---
     # Ensure ordered endpoints list for Primary/Secondary failover (from discovery order)
     if CONF_BROKER_ENDPOINTS not in entry.data:
