@@ -182,10 +182,18 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
             return await self.async_step_mqtt_test()
 
         # No user input yet: try python-yarbo discovery (no seed)
-        self._discovered_endpoints = await async_discover_endpoints(
-            seed_host=None,
-            port=DEFAULT_BROKER_PORT,
-        )
+        # Cap at 10s — if discovery is slow, offer manual entry instead
+        try:
+            self._discovered_endpoints = await asyncio.wait_for(
+                async_discover_endpoints(
+                    seed_host=None,
+                    port=DEFAULT_BROKER_PORT,
+                ),
+                timeout=10.0,
+            )
+        except TimeoutError:
+            _LOGGER.debug("Discovery timed out after 10s, falling back to manual entry")
+            self._discovered_endpoints = []
         if len(self._discovered_endpoints) == 0:
             # No devices found — offer manual IP/port entry
             return await self.async_step_manual()
