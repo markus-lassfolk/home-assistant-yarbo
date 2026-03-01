@@ -508,6 +508,15 @@
       },
       "sound_enable": {
         "name": "Sound"
+      },
+      "mower_ngz_edge": {
+        "name": "Mower No-Go Zone Edge"
+      },
+      "geo_fence": {
+        "name": "Geofence"
+      },
+      "elec_fence": {
+        "name": "Electric Fence"
       }
     },
     "number": {
