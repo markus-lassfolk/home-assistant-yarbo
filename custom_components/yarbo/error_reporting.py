@@ -63,21 +63,45 @@ def init_error_reporting(
 _KEY_ALLOWLIST: frozenset[str] = frozenset({"entity_key"})
 
 
+def _is_sensitive_key(key: str) -> bool:
+    """Return True if the key name looks like it holds a secret."""
+    key_lower = key.lower()
+    if any(s in key_lower for s in ("password", "token", "secret", "credential")):
+        return True
+    if (
+        key_lower == "key"
+        or "_key" in key_lower
+        or key_lower.startswith("key_")
+        or key_lower.endswith("key")
+    ) and key_lower not in _KEY_ALLOWLIST:
+        return True
+    return False
+
+
+def _scrub_dict(data: dict) -> None:  # type: ignore[type-arg]
+    """Redact sensitive values in a dict in-place."""
+    for key in list(data):
+        if _is_sensitive_key(key):
+            data[key] = "[REDACTED]"
+
+
 def _scrub_event(event: dict, hint: dict) -> dict:  # type: ignore[type-arg]
     """Remove sensitive data before sending."""
     if "extra" in event:
-        for key in list(event["extra"]):
-            key_lower = key.lower()
-            if any(s in key_lower for s in ("password", "token", "secret", "credential")):
-                event["extra"][key] = "[REDACTED]"
-            elif (
-                key_lower == "key"
-                or "_key" in key_lower
-                or key_lower.startswith("key_")
-                or key_lower.endswith("key")
-            ) and key_lower not in _KEY_ALLOWLIST:
-                # Catches bare "key", suffix "_key" (api_key), prefix "key_" (key_material,
-                # key_data, key_pair), concatenated suffix "key" (apikey, privatekey), and
-                # compound forms. Allowlist exempts known non-sensitive fields like entity_key.
-                event["extra"][key] = "[REDACTED]"
+        _scrub_dict(event["extra"])
+
+    for crumb in event.get("breadcrumbs", {}).get("values", []):
+        if "data" in crumb and isinstance(crumb["data"], dict):
+            _scrub_dict(crumb["data"])
+
+    if "request" in event and isinstance(event["request"], dict):
+        for field in ("headers", "query_string", "cookies", "data"):
+            if field in event["request"] and isinstance(event["request"][field], dict):
+                _scrub_dict(event["request"][field])
+
+    if "contexts" in event and isinstance(event["contexts"], dict):
+        for _ctx_name, ctx_data in event["contexts"].items():
+            if isinstance(ctx_data, dict):
+                _scrub_dict(ctx_data)
+
     return event
