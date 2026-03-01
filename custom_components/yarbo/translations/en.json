@@ -452,6 +452,9 @@
       "person_detect": {
         "name": "Person Detection"
       },
+      "roller": {
+        "name": "Roller"
+      },
       "heating_film": {
         "name": "Heating Film"
       },
