@@ -27,7 +27,8 @@ def _make_coordinator(head_type: int | None = None) -> MagicMock:
     coord.command_lock = asyncio.Lock()
     coord.client = MagicMock()
     coord.client.get_controller = AsyncMock()
-    coord.client.publish_raw = AsyncMock()
+    coord.client.set_turn_type = AsyncMock()
+    coord.client.push_snow_dir = AsyncMock()
     coord._entry = MagicMock()
     coord._entry.data = {
         CONF_ROBOT_SERIAL: "TEST0006",
@@ -95,7 +96,7 @@ class TestYarboTurnTypeSelect:
 
     @pytest.mark.asyncio
     async def test_select_option_publishes_command(self) -> None:
-        """Selecting a turn type sends set_turn_type."""
+        """Selecting a turn type calls set_turn_type."""
         coord = _make_coordinator()
         entity = YarboTurnTypeSelect(coord)
 
@@ -103,7 +104,7 @@ class TestYarboTurnTypeSelect:
             await entity.async_select_option("three_point")
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_raw.assert_called_once_with("set_turn_type", {"turn_type": 1})
+        coord.client.set_turn_type.assert_called_once_with(turn_type=1)
         assert entity.current_option == "three_point"
 
     @pytest.mark.asyncio
@@ -146,7 +147,7 @@ class TestYarboSnowPushDirectionSelect:
 
     @pytest.mark.asyncio
     async def test_select_option_publishes_command(self) -> None:
-        """Selecting a direction sends push_snow_dir."""
+        """Selecting a direction calls push_snow_dir."""
         coord = _make_coordinator(head_type=HEAD_TYPE_SNOW_BLOWER)
         entity = YarboSnowPushDirectionSelect(coord)
 
@@ -154,5 +155,5 @@ class TestYarboSnowPushDirectionSelect:
             await entity.async_select_option("right")
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_raw.assert_called_once_with("push_snow_dir", {"direction": 1})
+        coord.client.push_snow_dir.assert_called_once_with(direction=1)
         assert entity.current_option == "right"

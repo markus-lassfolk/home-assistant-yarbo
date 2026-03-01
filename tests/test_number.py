@@ -37,8 +37,13 @@ def _make_coordinator(head_type: int = HEAD_TYPE_SNOW_BLOWER) -> MagicMock:
     coord.client = MagicMock()
     coord.client.get_controller = AsyncMock()
     coord.client.set_chute = AsyncMock()
-    coord.client.publish_raw = AsyncMock()
+    coord.client.set_chute_steering_work = AsyncMock()
     coord.client.set_roller = AsyncMock()
+    coord.client.set_roller_speed = AsyncMock()
+    coord.client.set_blade_height = AsyncMock()
+    coord.client.set_blade_speed = AsyncMock()
+    coord.client.set_sound = AsyncMock()
+    coord.client.set_charge_limit = AsyncMock()
     coord._entry = MagicMock()
     coord._entry.data = {
         CONF_ROBOT_SERIAL: "TEST0003",
@@ -47,6 +52,10 @@ def _make_coordinator(head_type: int = HEAD_TYPE_SNOW_BLOWER) -> MagicMock:
     coord._entry.options = {}
     coord.plan_start_percent = 0
     coord.set_plan_start_percent = MagicMock()
+    coord.charge_limit_min = 0
+    coord.charge_limit_max = 100
+    coord.set_charge_limit_min = MagicMock()
+    coord.set_charge_limit_max = MagicMock()
     telemetry = MagicMock()
     telemetry.head_type = head_type
     coord.data = telemetry
@@ -193,7 +202,7 @@ class TestYarboChuteSteeringWorkNumber:
 
     @pytest.mark.asyncio
     async def test_set_angle_publishes_command(self) -> None:
-        """Setting angle publishes cmd_chute_streeing_work."""
+        """Setting angle calls set_chute_steering_work."""
         coord = _make_coordinator()
         entity = YarboChuteSteeringWorkNumber(coord)
 
@@ -201,10 +210,7 @@ class TestYarboChuteSteeringWorkNumber:
             await entity.async_set_native_value(25.0)
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_raw.assert_called_once_with(
-            "cmd_chute_streeing_work",
-            {"angle": 25},
-        )
+        coord.client.set_chute_steering_work.assert_called_once_with(25)
         assert entity.native_value == 25.0
 
 
@@ -233,7 +239,7 @@ class TestYarboBladeHeightNumber:
 
     @pytest.mark.asyncio
     async def test_set_height_publishes_command(self) -> None:
-        """Setting blade height sends set_blade_height."""
+        """Setting blade height calls set_blade_height."""
         coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
         entity = YarboBladeHeightNumber(coord)
 
@@ -241,7 +247,7 @@ class TestYarboBladeHeightNumber:
             await entity.async_set_native_value(55.0)
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_raw.assert_called_once_with("set_blade_height", {"height": 55})
+        coord.client.set_blade_height.assert_called_once_with(55)
         assert entity.native_value == 55.0
 
 
@@ -250,7 +256,7 @@ class TestYarboBladeSpeedNumber:
 
     @pytest.mark.asyncio
     async def test_set_speed_publishes_command(self) -> None:
-        """Setting blade speed sends set_blade_speed."""
+        """Setting blade speed calls set_blade_speed."""
         coord = _make_coordinator(head_type=HEAD_TYPE_LAWN_MOWER)
         entity = YarboBladeSpeedNumber(coord)
 
@@ -258,7 +264,7 @@ class TestYarboBladeSpeedNumber:
             await entity.async_set_native_value(3200.0)
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_raw.assert_called_once_with("set_blade_speed", {"speed": 3200})
+        coord.client.set_blade_speed.assert_called_once_with(3200)
         assert entity.native_value == 3200.0
 
 
@@ -274,7 +280,7 @@ class TestYarboBlowerSpeedNumber:
 
     @pytest.mark.asyncio
     async def test_set_speed_publishes_command(self) -> None:
-        """Setting blower speed sends blower_speed command."""
+        """Setting blower speed calls set_roller_speed."""
         coord = _make_coordinator(head_type=HEAD_TYPE_LEAF_BLOWER)
         entity = YarboBlowerSpeedNumber(coord)
 
@@ -282,7 +288,7 @@ class TestYarboBlowerSpeedNumber:
             await entity.async_set_native_value(7.0)
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_raw.assert_called_once_with("blower_speed", {"speed": 7})
+        coord.client.set_roller_speed.assert_called_once_with(7)
         assert entity.native_value == 7.0
 
 
@@ -291,7 +297,7 @@ class TestYarboVolumeNumber:
 
     @pytest.mark.asyncio
     async def test_set_volume_publishes_command(self) -> None:
-        """Setting volume sends set_sound_param."""
+        """Setting volume calls set_sound."""
         coord = _make_coordinator()
         entity = YarboVolumeNumber(coord)
 
@@ -299,7 +305,7 @@ class TestYarboVolumeNumber:
             await entity.async_set_native_value(42.0)
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_raw.assert_called_once_with("set_sound_param", {"vol": 42})
+        coord.client.set_sound.assert_called_once_with(42)
         assert entity.native_value == 42.0
 
 
@@ -440,14 +446,15 @@ class TestYarboBatteryChargeMinNumber:
 
     @pytest.mark.asyncio
     async def test_set_min_publishes_command(self) -> None:
-        """Setting min publishes set_charge_limit with min key."""
+        """Setting min calls set_charge_limit with min/max."""
         coord = _make_coordinator()
         entity = YarboBatteryChargeMinNumber(coord)
 
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_set_native_value(20.0)
 
-        coord.client.publish_raw.assert_called_once_with("set_charge_limit", {"min": 20})
+        coord.client.set_charge_limit.assert_called_once_with(min_pct=20, max_pct=100)
+        coord.set_charge_limit_min.assert_called_once_with(20)
         assert entity.native_value == 20.0
 
 
@@ -468,12 +475,13 @@ class TestYarboBatteryChargeMaxNumber:
 
     @pytest.mark.asyncio
     async def test_set_max_publishes_command(self) -> None:
-        """Setting max publishes set_charge_limit with max key."""
+        """Setting max calls set_charge_limit with min/max."""
         coord = _make_coordinator()
         entity = YarboBatteryChargeMaxNumber(coord)
 
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_set_native_value(80.0)
 
-        coord.client.publish_raw.assert_called_once_with("set_charge_limit", {"max": 80})
+        coord.client.set_charge_limit.assert_called_once_with(min_pct=0, max_pct=80)
+        coord.set_charge_limit_max.assert_called_once_with(80)
         assert entity.native_value == 80.0

@@ -201,7 +201,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             client = coordinator.client
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            await client.publish_raw("planning_paused", {})
+            await client.pause_planning()
 
     async def handle_resume(call: ServiceCall) -> None:
         """Handle yarbo.resume — resume paused job."""
@@ -210,7 +210,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             client = coordinator.client
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            await client.publish_raw("resume", {})
+            await client.resume()
 
     async def handle_return_to_dock(call: ServiceCall) -> None:
         """Handle yarbo.return_to_dock — send robot to dock."""
@@ -289,7 +289,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            await client.publish_raw("start_way_point", {"index": index})
+            await client.start_waypoint(index=index)
 
     async def handle_delete_plan(call: ServiceCall) -> None:
         """Handle yarbo.delete_plan — delete a plan by id."""
@@ -341,7 +341,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            await client.publish_raw("save_current_map", {})
+            await client.save_current_map()
 
     async def handle_save_map_backup(call: ServiceCall) -> None:
         """Handle yarbo.save_map_backup_and_get_all_map_backup_nameandid.
@@ -354,7 +354,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            await client.publish_raw("save_map_backup_and_get_all_map_backup_nameandid", {})
+            await client.save_map_backup()
 
     services = {
         SERVICE_SEND_COMMAND: (handle_send_command, SERVICE_SEND_COMMAND_SCHEMA),

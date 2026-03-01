@@ -22,11 +22,16 @@ def mock_client_and_coordinator() -> tuple[AsyncMock, MagicMock]:
     client.publish_raw = AsyncMock()
     client.start_plan = AsyncMock()
     client.return_to_dock = AsyncMock()
+    client.pause_planning = AsyncMock()
+    client.resume = AsyncMock()
     client.set_velocity = AsyncMock()
+    client.start_waypoint = AsyncMock()
     client.delete_plan = AsyncMock()
     client.delete_all_plans = AsyncMock()
     client.erase_map = AsyncMock()
     client.map_recovery = AsyncMock()
+    client.save_current_map = AsyncMock()
+    client.save_map_backup = AsyncMock()
 
     coordinator = MagicMock()
     coordinator.client = client
@@ -297,12 +302,12 @@ class TestManualDriveService:
 class TestGoToWaypointService:
     """Tests for the yarbo.go_to_waypoint service."""
 
-    async def test_go_to_waypoint_publishes_raw(
+    async def test_go_to_waypoint_calls_typed_method(
         self,
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """go_to_waypoint sends start_way_point with index via publish_raw."""
+        """go_to_waypoint calls start_waypoint with index."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -318,7 +323,7 @@ class TestGoToWaypointService:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_raw.assert_awaited_once_with("start_way_point", {"index": 3})
+        client.start_waypoint.assert_awaited_once_with(index=3)
 
 
 class TestDeletePlanService:
@@ -447,12 +452,12 @@ class TestMapManagementServices:
         client.get_controller.assert_awaited_once_with(timeout=5.0)
         client.map_recovery.assert_awaited_once_with(map_id="map-42", confirm=True)
 
-    async def test_save_current_map_publishes_raw(
+    async def test_save_current_map_calls_typed_method(
         self,
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """save_current_map sends save_current_map via publish_raw."""
+        """save_current_map calls save_current_map."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -468,14 +473,14 @@ class TestMapManagementServices:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_raw.assert_awaited_once_with("save_current_map", {})
+        client.save_current_map.assert_awaited_once_with()
 
-    async def test_save_map_backup_publishes_raw(
+    async def test_save_map_backup_calls_typed_method(
         self,
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """save_map_backup sends command via publish_raw."""
+        """save_map_backup calls save_map_backup."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -491,9 +496,7 @@ class TestMapManagementServices:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_raw.assert_awaited_once_with(
-            "save_map_backup_and_get_all_map_backup_nameandid", {}
-        )
+        client.save_map_backup.assert_awaited_once_with()
 
     async def test_map_services_registered(self, hass: HomeAssistant) -> None:
         """All map management services are registered."""
