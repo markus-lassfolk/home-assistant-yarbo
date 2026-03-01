@@ -61,6 +61,9 @@ async def async_setup_entry(
             YarboRoofLightsSwitch(coordinator),
             # #97 — Sound enable
             YarboSoundEnableSwitch(coordinator),
+            # #114 — Vision toggles
+            YarboSmartVisionSwitch(coordinator),
+            YarboVideoRecordSwitch(coordinator),
         ]
     )
 
@@ -546,4 +549,61 @@ class YarboElecFenceSwitch(YarboCommandSwitch):
             "elec_fence",
             "enable_elec_fence",
             payload_key="state",
+        )
+
+
+class YarboSmartVisionSwitch(YarboCommandSwitch):
+    """Smart vision control toggle (#114)."""
+
+    _attr_translation_key = "smart_vision"
+    _attr_icon = "mdi:eye-settings"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            "smart_vision",
+            "smart_vision_control",
+            payload_key="state",
+        )
+
+
+class YarboVideoRecordSwitch(YarboCommandSwitch):
+    """Enable video recording toggle (#114)."""
+
+    _attr_translation_key = "video_record"
+    _attr_icon = "mdi:record-circle"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            "video_record",
+            "enable_video_record",
+            payload_key="state",
+        )
+
+
+class YarboChildLockSwitch(YarboCommandSwitch):
+    """Child lock toggle (#113).
+
+    Payload uses {"disable": bool}: disable=False means lock ON (turn_on),
+    disable=True means lock OFF (turn_off).
+    """
+
+    _attr_translation_key = "child_lock"
+    _attr_icon = "mdi:human-child"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            "child_lock",
+            "open_child_lock",
+            payload_key="disable",
+            on_value=False,
+            off_value=True,
         )

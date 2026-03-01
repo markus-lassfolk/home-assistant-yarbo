@@ -28,13 +28,6 @@
           "selected_endpoint": "Endpoint"
         }
       },
-      "select_endpoint": {
-        "title": "Choose MQTT Endpoint",
-        "description": "We found **{count}** path(s) to your Yarbo mower (order from discovery: Primary, then Secondary). Both connect to the same broker. Failover will try the next in this order when the current one is unavailable.",
-        "data": {
-          "selected_endpoint": "Endpoint"
-        }
-      },
       "mqtt_test": {
         "title": "Connecting to Yarbo",
         "description": "Testing MQTT connection and waiting for telemetry from your robot..."
@@ -85,8 +78,8 @@
       "cannot_connect": "Cannot connect",
       "no_telemetry": "No telemetry received within 30 seconds. Ensure the robot is powered on and near the base station, then try again.",
       "decode_error": "Decode error",
-      "cloud_auth_failed": "Cloud authentication failed — check your email and password",
-      "cloud_not_available": "Cloud client not available — update python-yarbo"
+      "cloud_auth_failed": "Cloud authentication failed \u2014 check your email and password",
+      "cloud_not_available": "Cloud client not available \u2014 update python-yarbo"
     }
   },
   "options": {
@@ -95,7 +88,7 @@
         "title": "Yarbo Options",
         "description": "Configure integration behaviour. Changes take effect immediately (no restart required).",
         "data": {
-          "telemetry_throttle": "Telemetry update interval (1–10 seconds)",
+          "telemetry_throttle": "Telemetry update interval (1\u201310 seconds)",
           "auto_controller": "Auto-acquire controller before commands",
           "cloud_enabled": "Enable cloud features",
           "activity_personality": "Fun activity descriptions (emoji mode)"
@@ -517,6 +510,12 @@
       },
       "elec_fence": {
         "name": "Electric Fence"
+      },
+      "smart_vision": {
+        "name": "Smart Vision"
+      },
+      "video_record": {
+        "name": "Video Record"
       }
     },
     "number": {
