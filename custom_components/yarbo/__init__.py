@@ -101,10 +101,15 @@ def _warmup_connect(host: str, port: int) -> None:
         import socket
         # Force idna and other lazy imports to resolve their metadata now
         import importlib.metadata
-        try:
-            importlib.metadata.version("idna")
-        except importlib.metadata.PackageNotFoundError:
-            pass
+        # Force the exact code path that triggers the blocking read_text
+        # (paho-mqtt → urllib3 → idna metadata resolution)
+        for pkg in ("idna", "paho-mqtt", "certifi"):
+            try:
+                dist = importlib.metadata.distribution(pkg)
+                # Read METADATA file to fill the pathlib cache
+                dist.read_text("METADATA")
+            except (importlib.metadata.PackageNotFoundError, FileNotFoundError):
+                pass
         # Verify broker is reachable (TCP only, no MQTT protocol)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(3)
