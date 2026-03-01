@@ -26,7 +26,7 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import YarboDataCoordinator
-from .error_reporting import init_error_reporting
+from .error_reporting import async_init_error_reporting
 from .services import async_register_services, async_unregister_services
 
 _LOGGER = logging.getLogger(__name__)
@@ -90,6 +90,29 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     return True
 
 
+
+def _warmup_connect(host: str, port: int) -> None:
+    """Pre-fill import caches in executor to avoid blocking the event loop.
+
+    Creates a throwaway raw MQTT connection so that first-time imports
+    (idna metadata, etc.) happen outside the event loop.
+    """
+    try:
+        import socket
+        # Force idna and other lazy imports to resolve their metadata now
+        import importlib.metadata
+        try:
+            importlib.metadata.version("idna")
+        except importlib.metadata.PackageNotFoundError:
+            pass
+        # Verify broker is reachable (TCP only, no MQTT protocol)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(3)
+        s.connect((host, port))
+        s.close()
+    except Exception:  # noqa: BLE001
+        pass  # Warmup failure is non-fatal
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Yarbo from a config entry."""
     # Ensure ordered endpoints list for Primary/Secondary failover (from discovery order)
@@ -113,7 +136,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Opt-in error reporting: set YARBO_SENTRY_DSN to enable
     _serial = entry.data.get(CONF_ROBOT_SERIAL, "unknown")
-    init_error_reporting(
+    await async_init_error_reporting(
+        hass,
         tags={
             "integration": DOMAIN,
             "integration_version": integration_version,
@@ -121,6 +145,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "ha_version": __version__,
         }
     )
+
+    # Pre-fill import caches (idna metadata etc.) in executor to avoid
+    # blocking-call warnings during the real connect.
+    try:
+        await hass.async_add_executor_job(
+            _warmup_connect,
+            entry.data[CONF_BROKER_HOST],
+            entry.data[CONF_BROKER_PORT],
+        )
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("Warmup connect failed (non-fatal)")
 
     client = YarboLocalClient(
         broker=entry.data[CONF_BROKER_HOST],

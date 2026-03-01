@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 import os
 
 _LOGGER = logging.getLogger(__name__)
@@ -114,3 +118,16 @@ def _scrub_event(event: dict, hint: dict) -> dict:  # type: ignore[type-arg]
                 _scrub_dict(ctx_data)
 
     return event
+
+
+async def async_init_error_reporting(
+    hass: HomeAssistant,
+    dsn: str | None = None,
+    environment: str = "production",
+    enabled: bool = True,
+    tags: dict[str, str] | None = None,
+) -> None:
+    """Initialize error reporting in the executor to avoid blocking the event loop."""
+    await hass.async_add_executor_job(
+        init_error_reporting, dsn, environment, enabled, tags
+    )
