@@ -69,7 +69,7 @@ class YarboButton(YarboEntity, ButtonEntity):
             raise HomeAssistantError(error_message)
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_command(normalized_command, payload)
+            await self.coordinator.client.publish_raw(normalized_command, payload)
 
 
 class YarboBeepButton(YarboButton):

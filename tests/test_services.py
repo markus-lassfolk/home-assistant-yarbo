@@ -20,7 +20,13 @@ def mock_client_and_coordinator() -> tuple[AsyncMock, MagicMock]:
     client = AsyncMock()
     client.get_controller = AsyncMock()
     client.publish_raw = AsyncMock()
-    client.publish_command = AsyncMock()
+    client.start_plan = AsyncMock()
+    client.return_to_dock = AsyncMock()
+    client.set_velocity = AsyncMock()
+    client.delete_plan = AsyncMock()
+    client.delete_all_plans = AsyncMock()
+    client.erase_map = AsyncMock()
+    client.map_recovery = AsyncMock()
 
     coordinator = MagicMock()
     coordinator.client = client
@@ -66,12 +72,12 @@ class TestServiceRegistration:
 class TestStartPlanService:
     """Tests for the yarbo.start_plan service (issue #16)."""
 
-    async def test_start_plan_calls_publish_command(
+    async def test_start_plan_calls_typed_method(
         self,
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """start_plan calls publish_command with planId payload."""
+        """start_plan calls client.start_plan with plan_id and percent."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -87,8 +93,8 @@ class TestStartPlanService:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_command.assert_awaited_once_with(
-            "start_plan", {"planId": "plan-abc-123", "percent": coordinator.plan_start_percent}
+        client.start_plan.assert_awaited_once_with(
+            "plan-abc-123", percent=coordinator.plan_start_percent
         )
 
     async def test_start_plan_different_plan_ids(
@@ -112,9 +118,9 @@ class TestStartPlanService:
                     {"device_id": "fake-device-id", "plan_id": plan_id},
                     blocking=True,
                 )
-                client.publish_command.assert_awaited_once_with(
-                    "start_plan",
-                    {"planId": plan_id, "percent": coordinator.plan_start_percent},
+                client.start_plan.assert_awaited_once_with(
+                    plan_id,
+                    percent=coordinator.plan_start_percent,
                 )
 
     async def test_start_plan_raises_for_unknown_device(self, hass: HomeAssistant) -> None:
@@ -133,7 +139,7 @@ class TestStartPlanService:
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """start_plan calls get_controller before publish_command."""
+        """start_plan calls get_controller before start_plan."""
         client, coordinator = mock_client_and_coordinator
         call_order: list[str] = []
 
@@ -142,10 +148,10 @@ class TestStartPlanService:
 
         client.get_controller.side_effect = _get_controller
 
-        async def _publish(*_a: Any, **_kw: Any) -> None:
-            call_order.append("publish_command")
+        async def _start_plan(*_a: Any, **_kw: Any) -> None:
+            call_order.append("start_plan")
 
-        client.publish_command.side_effect = _publish
+        client.start_plan.side_effect = _start_plan
 
         with patch(
             "custom_components.yarbo.services._get_client_and_coordinator",
@@ -159,7 +165,7 @@ class TestStartPlanService:
                 blocking=True,
             )
 
-        assert call_order == ["get_controller", "publish_command"]
+        assert call_order == ["get_controller", "start_plan"]
 
 
 class TestSendCommandService:
@@ -251,14 +257,12 @@ class TestGetClientAndCoordinator:
 
         from custom_components.yarbo.services import _get_client_and_coordinator
 
-        # Mock a device with a config entry that is NOT in hass.data[DOMAIN]
         dev_reg = dr.async_get(hass)
         mock_device = MagicMock()
         mock_device.config_entries = {"unknown-entry-id"}
         mock_device.id = "mock-device-id"
 
         with patch.object(dev_reg, "async_get", return_value=mock_device):
-            # hass.data[DOMAIN] does not have "unknown-entry-id"
             with pytest.raises(ServiceValidationError):
                 _get_client_and_coordinator(hass, "mock-device-id")
 
@@ -266,12 +270,12 @@ class TestGetClientAndCoordinator:
 class TestManualDriveService:
     """Tests for the yarbo.manual_drive service."""
 
-    async def test_manual_drive_publishes_command(
+    async def test_manual_drive_uses_set_velocity(
         self,
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """manual_drive sends cmd_vel with vel/rev keys (bug #1 fix)."""
+        """manual_drive calls client.set_velocity with linear and angular values."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -287,21 +291,18 @@ class TestManualDriveService:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_command.assert_awaited_once_with(
-            "cmd_vel",
-            {"vel": 0.5, "rev": -0.25},
-        )
+        client.set_velocity.assert_awaited_once_with(0.5, -0.25)
 
 
 class TestGoToWaypointService:
     """Tests for the yarbo.go_to_waypoint service."""
 
-    async def test_go_to_waypoint_publishes_command(
+    async def test_go_to_waypoint_publishes_raw(
         self,
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """go_to_waypoint sends start_way_point with index."""
+        """go_to_waypoint sends start_way_point with index via publish_raw."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -317,18 +318,18 @@ class TestGoToWaypointService:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_command.assert_awaited_once_with("start_way_point", {"index": 3})
+        client.publish_raw.assert_awaited_once_with("start_way_point", {"index": 3})
 
 
 class TestDeletePlanService:
     """Tests for the yarbo.delete_plan service."""
 
-    async def test_delete_plan_publishes_command(
+    async def test_delete_plan_calls_typed_method(
         self,
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """delete_plan sends del_plan with id."""
+        """delete_plan calls client.delete_plan(plan_id, confirm=True)."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -344,18 +345,18 @@ class TestDeletePlanService:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_command.assert_awaited_once_with("del_plan", {"planId": "plan-7"})
+        client.delete_plan.assert_awaited_once_with("plan-7", confirm=True)
 
 
 class TestDeleteAllPlansService:
     """Tests for the yarbo.delete_all_plans service."""
 
-    async def test_delete_all_plans_publishes_command(
+    async def test_delete_all_plans_calls_typed_method(
         self,
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """delete_all_plans sends del_all_plan."""
+        """delete_all_plans calls client.delete_all_plans(confirm=True)."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -371,18 +372,18 @@ class TestDeleteAllPlansService:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_command.assert_awaited_once_with("del_all_plan", {})
+        client.delete_all_plans.assert_awaited_once_with(confirm=True)
 
 
 class TestMapManagementServices:
     """Tests for map management services (issue #115)."""
 
-    async def test_erase_map_publishes_command(
+    async def test_erase_map_calls_typed_method(
         self,
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """erase_map sends erase_map command with empty payload."""
+        """erase_map calls client.erase_map(confirm=True)."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -398,14 +399,14 @@ class TestMapManagementServices:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_command.assert_awaited_once_with("erase_map", {})
+        client.erase_map.assert_awaited_once_with(confirm=True)
 
     async def test_map_recovery_without_map_id(
         self,
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """map_recovery without map_id sends empty payload."""
+        """map_recovery without map_id calls client.map_recovery(map_id=None, confirm=True)."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -421,14 +422,14 @@ class TestMapManagementServices:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_command.assert_awaited_once_with("map_recovery", {})
+        client.map_recovery.assert_awaited_once_with(map_id=None, confirm=True)
 
     async def test_map_recovery_with_map_id(
         self,
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """map_recovery with map_id sends mapId in payload."""
+        """map_recovery with map_id calls client.map_recovery(map_id=..., confirm=True)."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -444,14 +445,14 @@ class TestMapManagementServices:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_command.assert_awaited_once_with("map_recovery", {"mapId": "map-42"})
+        client.map_recovery.assert_awaited_once_with(map_id="map-42", confirm=True)
 
-    async def test_save_current_map_publishes_command(
+    async def test_save_current_map_publishes_raw(
         self,
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """save_current_map sends save_current_map command with empty payload."""
+        """save_current_map sends save_current_map via publish_raw."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -467,14 +468,14 @@ class TestMapManagementServices:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_command.assert_awaited_once_with("save_current_map", {})
+        client.publish_raw.assert_awaited_once_with("save_current_map", {})
 
-    async def test_save_map_backup_publishes_command(
+    async def test_save_map_backup_publishes_raw(
         self,
         hass: HomeAssistant,
         mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
     ) -> None:
-        """save_map_backup_and_get_all_map_backup_nameandid sends correct command."""
+        """save_map_backup sends command via publish_raw."""
         client, coordinator = mock_client_and_coordinator
 
         with patch(
@@ -490,7 +491,7 @@ class TestMapManagementServices:
             )
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
-        client.publish_command.assert_awaited_once_with(
+        client.publish_raw.assert_awaited_once_with(
             "save_map_backup_and_get_all_map_backup_nameandid", {}
         )
 

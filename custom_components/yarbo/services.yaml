@@ -246,6 +246,13 @@ delete_plan:
       required: true
       selector:
         text:
+    confirmation:
+      name: Confirm deletion
+      description: Set to true to confirm this destructive operation.
+      required: true
+      default: false
+      selector:
+        boolean:
 
 delete_all_plans:
   name: Delete all plans
@@ -257,6 +264,13 @@ delete_all_plans:
       selector:
         device:
           integration: yarbo
+    confirmation:
+      name: Confirm deletion
+      description: Set to true to confirm this destructive operation.
+      required: true
+      default: false
+      selector:
+        boolean:
 
 erase_map:
   name: Erase map
@@ -268,6 +282,13 @@ erase_map:
       selector:
         device:
           integration: yarbo
+    confirmation:
+      name: Confirm erasure
+      description: Set to true to confirm this destructive operation.
+      required: true
+      default: false
+      selector:
+        boolean:
 
 map_recovery:
   name: Map recovery
@@ -285,6 +306,13 @@ map_recovery:
       required: false
       selector:
         text:
+    confirmation:
+      name: Confirm recovery
+      description: Set to true to confirm this destructive operation.
+      required: true
+      default: false
+      selector:
+        boolean:
 
 save_current_map:
   name: Save current map
