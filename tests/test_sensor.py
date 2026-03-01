@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime
+from datetime import datetime
 from unittest.mock import MagicMock
 
 from custom_components.yarbo.const import (

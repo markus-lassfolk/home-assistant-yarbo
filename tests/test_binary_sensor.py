@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
+import time
 from unittest.mock import MagicMock
 
 from homeassistant.helpers.entity import EntityCategory
 
-import time
-
-from custom_components.yarbo.binary_sensor import YarboNoChargePeriodSensor, YarboOnlineBinarySensor
-from custom_components.yarbo.const import CONF_ROBOT_NAME, CONF_ROBOT_SERIAL, HEARTBEAT_TIMEOUT_SECONDS
+from custom_components.yarbo.binary_sensor import (
+    YarboNoChargePeriodSensor,
+    YarboOnlineBinarySensor,
+)
+from custom_components.yarbo.const import (
+    CONF_ROBOT_NAME,
+    CONF_ROBOT_SERIAL,
+    HEARTBEAT_TIMEOUT_SECONDS,
+)
 
 
 def _make_coordinator() -> MagicMock:

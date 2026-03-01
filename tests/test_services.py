@@ -372,3 +372,134 @@ class TestDeleteAllPlansService:
 
         client.get_controller.assert_awaited_once_with(timeout=5.0)
         client.publish_command.assert_awaited_once_with("del_all_plan", {})
+
+
+class TestMapManagementServices:
+    """Tests for map management services (issue #115)."""
+
+    async def test_erase_map_publishes_command(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """erase_map sends erase_map command with empty payload."""
+        client, coordinator = mock_client_and_coordinator
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            await hass.services.async_call(
+                DOMAIN,
+                "erase_map",
+                {"device_id": "fake-device-id"},
+                blocking=True,
+            )
+
+        client.get_controller.assert_awaited_once_with(timeout=5.0)
+        client.publish_command.assert_awaited_once_with("erase_map", {})
+
+    async def test_map_recovery_without_map_id(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """map_recovery without map_id sends empty payload."""
+        client, coordinator = mock_client_and_coordinator
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            await hass.services.async_call(
+                DOMAIN,
+                "map_recovery",
+                {"device_id": "fake-device-id"},
+                blocking=True,
+            )
+
+        client.get_controller.assert_awaited_once_with(timeout=5.0)
+        client.publish_command.assert_awaited_once_with("map_recovery", {})
+
+    async def test_map_recovery_with_map_id(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """map_recovery with map_id sends mapId in payload."""
+        client, coordinator = mock_client_and_coordinator
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            await hass.services.async_call(
+                DOMAIN,
+                "map_recovery",
+                {"device_id": "fake-device-id", "map_id": "map-42"},
+                blocking=True,
+            )
+
+        client.get_controller.assert_awaited_once_with(timeout=5.0)
+        client.publish_command.assert_awaited_once_with("map_recovery", {"mapId": "map-42"})
+
+    async def test_save_current_map_publishes_command(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """save_current_map sends save_current_map command with empty payload."""
+        client, coordinator = mock_client_and_coordinator
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            await hass.services.async_call(
+                DOMAIN,
+                "save_current_map",
+                {"device_id": "fake-device-id"},
+                blocking=True,
+            )
+
+        client.get_controller.assert_awaited_once_with(timeout=5.0)
+        client.publish_command.assert_awaited_once_with("save_current_map", {})
+
+    async def test_save_map_backup_publishes_command(
+        self,
+        hass: HomeAssistant,
+        mock_client_and_coordinator: tuple[AsyncMock, MagicMock],
+    ) -> None:
+        """save_map_backup_and_get_all_map_backup_nameandid sends correct command."""
+        client, coordinator = mock_client_and_coordinator
+
+        with patch(
+            "custom_components.yarbo.services._get_client_and_coordinator",
+            return_value=(client, coordinator),
+        ):
+            async_register_services(hass)
+            await hass.services.async_call(
+                DOMAIN,
+                "save_map_backup_and_get_all_map_backup_nameandid",
+                {"device_id": "fake-device-id"},
+                blocking=True,
+            )
+
+        client.get_controller.assert_awaited_once_with(timeout=5.0)
+        client.publish_command.assert_awaited_once_with(
+            "save_map_backup_and_get_all_map_backup_nameandid", {}
+        )
+
+    async def test_map_services_registered(self, hass: HomeAssistant) -> None:
+        """All map management services are registered."""
+        async_register_services(hass)
+        assert hass.services.has_service(DOMAIN, "erase_map")
+        assert hass.services.has_service(DOMAIN, "map_recovery")
+        assert hass.services.has_service(DOMAIN, "save_current_map")
+        assert hass.services.has_service(
+            DOMAIN, "save_map_backup_and_get_all_map_backup_nameandid"
+        )
