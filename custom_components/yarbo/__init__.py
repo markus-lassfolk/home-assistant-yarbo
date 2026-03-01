@@ -97,6 +97,7 @@ def _connect_sync(client: YarboLocalClient) -> None:
     during SSL/TLS setup on Python 3.13.  See #104.
     """
     import asyncio
+
     loop = asyncio.new_event_loop()
     try:
         loop.run_until_complete(client.connect())

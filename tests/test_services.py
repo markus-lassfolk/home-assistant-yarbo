@@ -500,6 +500,4 @@ class TestMapManagementServices:
         assert hass.services.has_service(DOMAIN, "erase_map")
         assert hass.services.has_service(DOMAIN, "map_recovery")
         assert hass.services.has_service(DOMAIN, "save_current_map")
-        assert hass.services.has_service(
-            DOMAIN, "save_map_backup_and_get_all_map_backup_nameandid"
-        )
+        assert hass.services.has_service(DOMAIN, "save_map_backup_and_get_all_map_backup_nameandid")
