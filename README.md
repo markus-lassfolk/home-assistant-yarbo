@@ -25,6 +25,8 @@ Local-first Home Assistant integration for [Yarbo](https://www.yarbo.com/) — t
 - **Automation blueprints** — Rain pause, snow deployment, low battery alert, job complete notification
 - **Diagnostics** — One-click download; PII redacted (GPS, serial numbers)
 
+<img width="1312" height="1745" alt="image" src="https://github.com/user-attachments/assets/d9b4182f-cce3-4e96-8be7-6b45e51fbb0c" />
+
 ---
 
 ## Installation
