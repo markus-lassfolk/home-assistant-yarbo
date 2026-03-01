@@ -837,33 +837,3 @@ class TestYarboBagRecordSwitch:
             await entity.async_turn_off()
         coord.client.publish_raw.assert_called_with("bag_record", {"state": 0})
         assert entity.is_on is False
-
-
-from custom_components.yarbo.switch import YarboBagRecordSwitch  # noqa: E402
-
-
-class TestYarboBagRecordSwitch:
-    """Tests for ROS Bag recording switch (#98)."""
-
-    def test_disabled_by_default(self) -> None:
-        coord = _make_coordinator()
-        assert YarboBagRecordSwitch(coord).entity_registry_enabled_default is False
-
-    @pytest.mark.asyncio
-    async def test_turn_on(self) -> None:
-        coord = _make_coordinator()
-        entity = YarboBagRecordSwitch(coord)
-        with patch.object(entity, "async_write_ha_state"):
-            await entity.async_turn_on()
-        coord.client.publish_raw.assert_called_once_with("bag_record", {"state": 1})
-        assert entity.is_on is True
-
-    @pytest.mark.asyncio
-    async def test_turn_off(self) -> None:
-        coord = _make_coordinator()
-        entity = YarboBagRecordSwitch(coord)
-        with patch.object(entity, "async_write_ha_state"):
-            await entity.async_turn_on()
-            await entity.async_turn_off()
-        coord.client.publish_raw.assert_called_with("bag_record", {"state": 0})
-        assert entity.is_on is False
