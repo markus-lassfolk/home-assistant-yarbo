@@ -7,6 +7,11 @@ import os
 
 _LOGGER = logging.getLogger(__name__)
 
+# Default DSN for the home-assistant-yarbo GlitchTip project.
+# Enabled by default during beta to help find issues.
+# Opt-out: set YARBO_SENTRY_DSN="" or pass enabled=False.
+_DEFAULT_DSN = "https://c9d816d9a8714ac288e86b49c683b533@glitchtip.lassfolk.cc/4"
+
 
 def init_error_reporting(
     dsn: str | None = None,
@@ -16,13 +21,14 @@ def init_error_reporting(
 ) -> None:
     """Initialize Sentry/GlitchTip error reporting for the Yarbo HA integration.
 
-    Opt-in error reporting — only enabled when YARBO_SENTRY_DSN is explicitly set.
-    No PII is collected; credentials are scrubbed before sending.
+    Enabled by default during beta with a built-in DSN. No PII is collected;
+    credentials and sensitive keys are scrubbed before sending.
 
-    To enable, set the YARBO_SENTRY_DSN environment variable to your project DSN.
+    To opt out, set ``YARBO_SENTRY_DSN=""`` or pass ``enabled=False``.
 
     Args:
-        dsn: Sentry DSN override. If None, falls back to YARBO_SENTRY_DSN env var.
+        dsn: Sentry DSN override. If None, falls back to YARBO_SENTRY_DSN env var,
+             then the built-in default.
         environment: Environment tag (production/development/testing).
         enabled: Master switch. If False, no SDK initialization occurs.
         tags: Optional extra tags (e.g. robot_serial, ha_version, integration_version).
@@ -30,9 +36,12 @@ def init_error_reporting(
     if not enabled:
         return
 
-    # Resolve DSN: explicit arg > YARBO_SENTRY_DSN env var
+    # Resolve DSN: explicit arg > YARBO_SENTRY_DSN env var > built-in default
     env_dsn = os.environ.get("YARBO_SENTRY_DSN")
-    effective_dsn = dsn or env_dsn
+    if env_dsn is not None and env_dsn == "":
+        return  # Explicitly disabled
+
+    effective_dsn = dsn or env_dsn or _DEFAULT_DSN
 
     if not effective_dsn:
         return
