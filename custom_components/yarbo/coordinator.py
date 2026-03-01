@@ -579,6 +579,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 with contextlib.suppress(asyncio.CancelledError):
                     await feedback_task
                 raise
+            except Exception:
+                feedback_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await feedback_task
+                raise
 
         if skip_lock:
             response = await _execute_command()
