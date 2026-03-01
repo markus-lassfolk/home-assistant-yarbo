@@ -10,6 +10,8 @@ Local-first Home Assistant integration for [Yarbo](https://www.yarbo.com/) — t
 
 > **Status:** Pre-release scaffold. See the [roadmap](docs/roadmap.md) for implementation milestones.
 
+> **⚠️ Disclaimer:** This is a community-driven integration for Home Assistant and is not affiliated with, endorsed by, or supported by Yarbo Inc. or any of its subsidiaries.
+
 ---
 
 ## Features
