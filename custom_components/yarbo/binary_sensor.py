@@ -298,7 +298,7 @@ class YarboNoChargePeriodSensor(YarboBinarySensor):
 
 
 class YarboOnlineBinarySensor(YarboBinarySensor):
-    """Binary sensor that is ON when the robot sent telemetry within the last 60 seconds."""
+    """Binary sensor that is ON when the robot sent telemetry within HEARTBEAT_TIMEOUT_SECONDS."""
 
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_translation_key = "online"
@@ -309,7 +309,7 @@ class YarboOnlineBinarySensor(YarboBinarySensor):
     @property
     def is_on(self) -> bool:
         """Return True if last telemetry was received within HEARTBEAT_TIMEOUT_SECONDS."""
-        last_seen = self.coordinator._last_seen
-        if not last_seen:
+        last_seen = self.coordinator.last_seen
+        if last_seen is None:
             return False
         return time.monotonic() - last_seen < HEARTBEAT_TIMEOUT_SECONDS

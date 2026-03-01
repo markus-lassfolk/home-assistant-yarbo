@@ -6,8 +6,10 @@ from unittest.mock import MagicMock
 
 from homeassistant.helpers.entity import EntityCategory
 
-from custom_components.yarbo.binary_sensor import YarboNoChargePeriodSensor
-from custom_components.yarbo.const import CONF_ROBOT_NAME, CONF_ROBOT_SERIAL
+import time
+
+from custom_components.yarbo.binary_sensor import YarboNoChargePeriodSensor, YarboOnlineBinarySensor
+from custom_components.yarbo.const import CONF_ROBOT_NAME, CONF_ROBOT_SERIAL, HEARTBEAT_TIMEOUT_SECONDS
 
 
 def _make_coordinator() -> MagicMock:
@@ -61,3 +63,40 @@ class TestYarboNoChargePeriodSensor:
         assert entity.extra_state_attributes["start_time"] == "22:00"
         assert entity.extra_state_attributes["end_time"] == "06:00"
         assert entity.extra_state_attributes["periods"] == [{"start": "22:00", "end": "06:00"}]
+
+
+class TestYarboOnlineBinarySensor:
+    """Tests for the Online connectivity binary sensor."""
+
+    def _make_online_coordinator(self, last_seen: float | None = None) -> MagicMock:
+        """Build a minimal coordinator mock for online sensor tests."""
+        coord = MagicMock()
+        coord._entry = MagicMock()
+        coord._entry.data = {
+            CONF_ROBOT_SERIAL: "TEST0116",
+            CONF_ROBOT_NAME: "TestBot",
+        }
+        coord._entry.options = {}
+        coord.last_update_success = True
+        coord.last_seen = last_seen
+        coord.data = None
+        return coord
+
+    def test_true_when_recent(self) -> None:
+        """Returns True when last telemetry was received recently."""
+        coord = self._make_online_coordinator(last_seen=time.monotonic())
+        entity = YarboOnlineBinarySensor(coord)
+        assert entity.is_on is True
+
+    def test_false_when_stale(self) -> None:
+        """Returns False when last telemetry is older than HEARTBEAT_TIMEOUT_SECONDS."""
+        stale_time = time.monotonic() - (HEARTBEAT_TIMEOUT_SECONDS + 10)
+        coord = self._make_online_coordinator(last_seen=stale_time)
+        entity = YarboOnlineBinarySensor(coord)
+        assert entity.is_on is False
+
+    def test_false_when_unset(self) -> None:
+        """Returns False when no telemetry has been received (last_seen is None)."""
+        coord = self._make_online_coordinator(last_seen=None)
+        entity = YarboOnlineBinarySensor(coord)
+        assert entity.is_on is False

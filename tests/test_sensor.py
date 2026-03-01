@@ -661,3 +661,31 @@ class TestRainSensorAvailability:
         coord.last_update_success = True
         entity = YarboRainSensor(coord)
         assert entity.available is False
+
+
+class TestYarboLastSeenSensor:
+    """Tests for the LastSeen timestamp sensor."""
+
+    def test_none_when_unset(self) -> None:
+        """Returns None when no telemetry has been received yet."""
+        coord = _make_coordinator()
+        coord.last_seen = None
+        entity = YarboLastSeenSensor(coord)
+        assert entity.native_value is None
+
+    def test_valid_datetime_when_set(self) -> None:
+        """Returns a UTC datetime when last_seen is set."""
+        coord = _make_coordinator()
+        coord.last_seen = time.monotonic()
+        entity = YarboLastSeenSensor(coord)
+        result = entity.native_value
+        assert result is not None
+        assert isinstance(result, datetime)
+        assert result.tzinfo is not None  # must be timezone-aware (UTC)
+
+    def test_disabled_by_default(self) -> None:
+        """LastSeen sensor is disabled by default."""
+        coord = _make_coordinator()
+        coord.last_seen = None
+        entity = YarboLastSeenSensor(coord)
+        assert entity.entity_registry_enabled_default is False

@@ -122,8 +122,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         integration = await async_get_integration(hass, DOMAIN)
         integration_version = integration.manifest.get("version", "unknown") or "unknown"
-    except Exception:
-        pass
+    except Exception as err:
+        _LOGGER.debug("Could not fetch integration version: %s", err)
 
     # Opt-in error reporting: set YARBO_SENTRY_DSN to enable
     _serial = entry.data.get(CONF_ROBOT_SERIAL, "unknown")

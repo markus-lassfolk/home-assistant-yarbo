@@ -22,7 +22,7 @@ def _make_coordinator(**telemetry_kwargs: object) -> MagicMock:
     coord.last_update_success = True
     telemetry = MagicMock()
     telemetry.charging_status = 0
-    telemetry.work_status = None
+    telemetry.state = None
     for k, v in telemetry_kwargs.items():
         setattr(telemetry, k, v)
     telemetry.raw = {}
@@ -62,21 +62,21 @@ class TestYarboDeviceTracker:
 
     def test_charging_status_0_not_home(self) -> None:
         """charging_status=0 with no work_status → not_home."""
-        coord = _make_coordinator(charging_status=0, work_status=None)
+        coord = _make_coordinator(charging_status=0, state=None)
         entity = YarboDeviceTracker(coord)
         _update(entity)
         assert entity._attr_location_name == STATE_NOT_HOME
 
     def test_work_status_0_is_home(self) -> None:
-        """work_status=0 (idle/standby) → home (#106)."""
-        coord = _make_coordinator(charging_status=0, work_status=0)
+        """state=0 (idle/standby) → home (#106)."""
+        coord = _make_coordinator(charging_status=0, state=0)
         entity = YarboDeviceTracker(coord)
         _update(entity)
         assert entity._attr_location_name == STATE_HOME
 
     def test_work_status_nonzero_not_home(self) -> None:
-        """work_status=1 (active) → not_home when not charging."""
-        coord = _make_coordinator(charging_status=0, work_status=1)
+        """state=1 (active) → not_home when not charging."""
+        coord = _make_coordinator(charging_status=0, state=1)
         entity = YarboDeviceTracker(coord)
         _update(entity)
         assert entity._attr_location_name == STATE_NOT_HOME

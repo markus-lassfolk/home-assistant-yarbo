@@ -1517,8 +1517,8 @@ class YarboLastSeenSensor(YarboSensor):
     @property
     def native_value(self) -> datetime | None:
         """Return the last-seen time as a UTC datetime."""
-        last_seen = self.coordinator._last_seen
-        if not last_seen:
+        last_seen = self.coordinator.last_seen
+        if last_seen is None:
             return None
         elapsed = time.monotonic() - last_seen
         return datetime.now(UTC) - timedelta(seconds=elapsed)
