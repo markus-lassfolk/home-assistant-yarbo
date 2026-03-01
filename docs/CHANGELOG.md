@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2026.3.20] — 2026-03-02
+
+### Fixed
+- **Config flow discovery timeout** — capped at 10 seconds; falls through to manual IP/port entry if no robot found
+- **Blocking I/O in version guard** — `importlib.metadata.version()` now runs in executor thread
+
+### Changed
+- Community disclaimer added to README
+
+---
+
 ## [2026.3.15] — 2026-03-02
 
 ### Added
