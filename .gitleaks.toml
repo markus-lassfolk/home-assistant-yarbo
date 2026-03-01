@@ -1,0 +1,13 @@
+title = "Gitleaks config for home-assistant-yarbo"
+
+# False positives: _attr_translation_key assignments in sensor.py
+[[allowlist]]
+description = "HA entity translation_key attributes (not secrets)"
+regexTarget = "match"
+regexes = ['''_attr_translation_key\s*=\s*"[^"]*"''']
+
+# GlitchTip/Sentry DSN is intentionally public (client-side error reporting)
+[[allowlist]]
+description = "GlitchTip DSN (public, not a secret)"
+regexTarget = "match"
+regexes = ['''YARBO_SENTRY_DSN''', '''glitchtip''', '''sentry.*dsn''']
