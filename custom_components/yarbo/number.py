@@ -5,6 +5,7 @@ from __future__ import annotations
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -78,10 +79,7 @@ class YarboChuteSteeringWorkNumber(YarboEntity, NumberEntity):
         """Set chute steering angle."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_raw(
-                "cmd_chute_streeing_work",
-                {"angle": int(value)},
-            )
+            await self.coordinator.client.set_chute_steering_work(int(value))
         self._current_angle = value
         self.async_write_ha_state()
 
@@ -164,10 +162,7 @@ class YarboBladeHeightNumber(YarboEntity, NumberEntity):
         """Set blade height."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_raw(
-                "set_blade_height",
-                {"height": int(value)},
-            )
+            await self.coordinator.client.set_blade_height(int(value))
         self._current_height = value
         self.async_write_ha_state()
 
@@ -205,10 +200,7 @@ class YarboBladeSpeedNumber(YarboEntity, NumberEntity):
         """Set blade speed."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_raw(
-                "set_blade_speed",
-                {"speed": int(value)},
-            )
+            await self.coordinator.client.set_blade_speed(int(value))
         self._current_speed = value
         self.async_write_ha_state()
 
@@ -248,10 +240,7 @@ class YarboBlowerSpeedNumber(YarboEntity, NumberEntity):
         """Set blower speed."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_raw(
-                "blower_speed",
-                {"speed": int(value)},
-            )
+            await self.coordinator.client.set_roller_speed(int(value))
         self._current_speed = value
         self.async_write_ha_state()
 
@@ -280,10 +269,7 @@ class YarboVolumeNumber(YarboEntity, NumberEntity):
         """Set volume."""
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_raw(
-                "set_sound_param",
-                {"vol": int(value)},
-            )
+            await self.coordinator.client.set_sound(int(value))
         self._current_volume = value
         self.async_write_ha_state()
 
@@ -383,12 +369,16 @@ class YarboBatteryChargeMinNumber(YarboEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set minimum battery charge limit."""
+        min_pct = int(value)
+        max_pct = self.coordinator.charge_limit_max
+        if min_pct > max_pct:
+            raise HomeAssistantError(
+                f"Minimum charge ({min_pct}%) cannot exceed maximum charge ({max_pct}%)"
+            )
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_raw(
-                "set_charge_limit",
-                {"min": int(value)},
-            )
+            await self.coordinator.client.set_charge_limit(min_pct=min_pct, max_pct=max_pct)
+            self.coordinator.set_charge_limit_min(min_pct)
         self._current_value = value
         self.async_write_ha_state()
 
@@ -416,11 +406,15 @@ class YarboBatteryChargeMaxNumber(YarboEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set maximum battery charge limit."""
+        max_pct = int(value)
+        min_pct = self.coordinator.charge_limit_min
+        if max_pct < min_pct:
+            raise HomeAssistantError(
+                f"Maximum charge ({max_pct}%) cannot be below minimum charge ({min_pct}%)"
+            )
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_raw(
-                "set_charge_limit",
-                {"max": int(value)},
-            )
+            await self.coordinator.client.set_charge_limit(min_pct=min_pct, max_pct=max_pct)
+            self.coordinator.set_charge_limit_max(max_pct)
         self._current_value = value
         self.async_write_ha_state()

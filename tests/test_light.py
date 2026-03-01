@@ -38,7 +38,7 @@ def _make_coordinator() -> MagicMock:
     coord.client = MagicMock()
     coord.client.get_controller = AsyncMock()
     coord.client.set_lights = AsyncMock()
-    coord.client.publish_raw = AsyncMock()
+    coord.client.set_head_light = AsyncMock()
     coord._entry = MagicMock()
     coord._entry.data = {
         CONF_ROBOT_SERIAL: "TEST0001",
@@ -235,7 +235,7 @@ class TestYarboHeadLight:
 
     @pytest.mark.asyncio
     async def test_turn_on_publishes_command(self) -> None:
-        """turn_on publishes head_light state=1."""
+        """turn_on calls set_head_light(True)."""
         coord = _make_coordinator()
         entity = YarboHeadLight(coord)
 
@@ -243,12 +243,12 @@ class TestYarboHeadLight:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_raw.assert_called_once_with("head_light", {"state": 1})
+        coord.client.set_head_light.assert_called_once_with(True)
         assert entity.is_on is True
 
     @pytest.mark.asyncio
     async def test_turn_off_publishes_command(self) -> None:
-        """turn_off publishes head_light state=0."""
+        """turn_off calls set_head_light(False)."""
         coord = _make_coordinator()
         entity = YarboHeadLight(coord)
 
@@ -256,5 +256,5 @@ class TestYarboHeadLight:
             await entity.async_turn_on()
             await entity.async_turn_off()
 
-        coord.client.publish_raw.assert_called_with("head_light", {"state": 0})
+        coord.client.set_head_light.assert_called_with(False)
         assert entity.is_on is False

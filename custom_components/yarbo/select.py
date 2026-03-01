@@ -100,10 +100,7 @@ class YarboTurnTypeSelect(YarboEntity, SelectEntity):
             raise HomeAssistantError(f"Unknown turn type: {option}")
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_raw(
-                "set_turn_type",
-                {"turn_type": self._turn_type_map[option]},
-            )
+            await self.coordinator.client.set_turn_type(turn_type=self._turn_type_map[option])
         self._current_option = option
         self.async_write_ha_state()
 
@@ -145,9 +142,6 @@ class YarboSnowPushDirectionSelect(YarboEntity, SelectEntity):
             raise HomeAssistantError(f"Unknown snow push direction: {option}")
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_raw(
-                "push_snow_dir",
-                {"direction": self._direction_map[option]},
-            )
+            await self.coordinator.client.push_snow_dir(direction=self._direction_map[option])
         self._current_option = option
         self.async_write_ha_state()

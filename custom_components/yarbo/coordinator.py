@@ -236,6 +236,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._plan_remaining_time: int | None = None
         self._selected_plan_id: str | int | None = None
         self._plan_start_percent: int = int(entry.options.get("plan_start_percent", 0))
+        self._charge_limit_min: int = 0
+        self._charge_limit_max: int = 100
         self._wifi_name: str | None = None
         self._battery_cell_temp_min: float | None = None
         self._battery_cell_temp_max: float | None = None
@@ -362,6 +364,24 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     def set_plan_start_percent(self, value: int) -> None:
         """Update the stored plan start percentage (0-100)."""
         self._plan_start_percent = max(0, min(100, int(value)))
+
+    @property
+    def charge_limit_min(self) -> int:
+        """Return the stored minimum charge limit (0-100)."""
+        return self._charge_limit_min
+
+    def set_charge_limit_min(self, value: int) -> None:
+        """Update the stored minimum charge limit (0-100)."""
+        self._charge_limit_min = max(0, min(100, int(value)))
+
+    @property
+    def charge_limit_max(self) -> int:
+        """Return the stored maximum charge limit (0-100)."""
+        return self._charge_limit_max
+
+    def set_charge_limit_max(self, value: int) -> None:
+        """Update the stored maximum charge limit (0-100)."""
+        self._charge_limit_max = max(0, min(100, int(value)))
 
     @property
     def wifi_name(self) -> str | None:
@@ -517,10 +537,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Start a work plan by id."""
         async with self.command_lock:
             await self.client.get_controller(timeout=5.0)
-            await self.client.publish_raw(
-                "start_plan",
-                {"planId": plan_id, "percent": self._plan_start_percent},
-            )
+            await self.client.start_plan_direct(plan_id=plan_id, percent=self._plan_start_percent)
         self._selected_plan_id = plan_id
         self.async_update_listeners()
         try:
@@ -534,7 +551,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             raise ValueError(f"Unsupported plan action: {action}")
         async with self.command_lock:
             await self.client.get_controller(timeout=5.0)
-            await self.client.publish_raw("in_plan_action", {"action": action})
+            await self.client.in_plan_action(action=action)
 
     async def _request_data_feedback(
         self,
