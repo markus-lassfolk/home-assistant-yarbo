@@ -275,6 +275,7 @@ class TestYarboSaveMapBackupButton:
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
         coord.client.publish_raw.assert_called_once_with("save_map_backup", {})
+        coord.client.publish_command.assert_called_once_with("save_map_backup", {})
 
 
 # ---- imports for new entities ----
@@ -306,6 +307,7 @@ class TestYarboCameraCalibrationButton:
             await entity.async_press()
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
         coord.client.publish_raw.assert_called_once_with("camera_calibration", {})
+        coord.client.publish_command.assert_called_once_with("camera_calibration", {})
 
 
 class TestYarboCheckCameraStatusButton:
@@ -323,6 +325,7 @@ class TestYarboCheckCameraStatusButton:
             await entity.async_press()
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
         coord.client.publish_raw.assert_called_once_with("check_camera_status", {})
+        coord.client.publish_command.assert_called_once_with("check_camera_status", {})
 
 
 class TestYarboFirmwareUpdateNowButton:
@@ -344,6 +347,7 @@ class TestYarboFirmwareUpdateNowButton:
             await entity.async_press()
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
         coord.client.publish_raw.assert_called_once_with("firmware_update_now", {})
+        coord.client.publish_command.assert_called_once_with("firmware_update_now", {})
 
 
 class TestYarboFirmwareUpdateTonightButton:
@@ -361,6 +365,7 @@ class TestYarboFirmwareUpdateTonightButton:
             await entity.async_press()
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
         coord.client.publish_raw.assert_called_once_with("firmware_update_tonight", {})
+        coord.client.publish_command.assert_called_once_with("firmware_update_tonight", {})
 
 
 class TestYarboFirmwareUpdateLaterButton:
@@ -378,3 +383,4 @@ class TestYarboFirmwareUpdateLaterButton:
             await entity.async_press()
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
         coord.client.publish_raw.assert_called_once_with("firmware_update_later", {})
+        coord.client.publish_command.assert_called_once_with("firmware_update_later", {})
