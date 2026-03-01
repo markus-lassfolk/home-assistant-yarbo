@@ -111,11 +111,14 @@ def _warmup_connect(host: str, port: int) -> None:
                 dist.read_text("RECORD")
             except (importlib.metadata.PackageNotFoundError, FileNotFoundError):
                 pass
-        # Pre-import idna to trigger its internal module loading
+        # Pre-import idna and force its __version__ lookup (which reads METADATA)
         try:
             import idna  # noqa: F401
+            import idna.core  # noqa: F401
             import idna.codec  # noqa: F401
-        except ImportError:
+            import idna.package_data  # noqa: F401
+            _ = idna.__version__  # triggers metadata read
+        except (ImportError, AttributeError):
             pass
         # Verify broker is reachable (TCP only, no MQTT protocol)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
