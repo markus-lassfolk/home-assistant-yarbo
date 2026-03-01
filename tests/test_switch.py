@@ -855,7 +855,7 @@ class TestYarboBagRecordSwitch:
         entity = YarboBagRecordSwitch(coord)
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_turn_on()
-        coord.client.publish_command.assert_called_once_with("bag_record", {"state": 1})
+        coord.client.publish_raw.assert_called_once_with("bag_record", {"state": 1})
         assert entity.is_on is True
 
     @pytest.mark.asyncio
@@ -865,5 +865,5 @@ class TestYarboBagRecordSwitch:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_turn_on()
             await entity.async_turn_off()
-        coord.client.publish_command.assert_called_with("bag_record", {"state": 0})
+        coord.client.publish_raw.assert_called_with("bag_record", {"state": 0})
         assert entity.is_on is False
