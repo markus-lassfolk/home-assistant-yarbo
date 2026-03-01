@@ -12,19 +12,6 @@ Local-first Home Assistant integration for [Yarbo](https://www.yarbo.com/) — t
 
 ---
 
-## Why local MQTT?
-
-| Feature | Cloud integrations | **home-assistant-yarbo** |
-|---|---|---|
-| Latency | 2–10 s | **< 100 ms** |
-| Works offline | ❌ | **✅** |
-| Multi-head | N/A | **✅ snow / mow / leaf / SAM** |
-| RTK GPS | ❌ | **✅** |
-| LED control (7 ch) | ❌ | **✅** |
-| Weather blueprints | ❌ | **✅ (4 shipped)** |
-
----
-
 ## Features
 
 - **Auto-discovery** — Detects the Yarbo base station via DHCP MAC OUI `C8:FE:0F:*`; no IP entry required
