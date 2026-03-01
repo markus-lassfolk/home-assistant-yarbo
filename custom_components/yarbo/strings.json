@@ -516,6 +516,9 @@
       },
       "video_record": {
         "name": "Video Record"
+      },
+      "child_lock": {
+        "name": "Child Lock"
       }
     },
     "number": {
