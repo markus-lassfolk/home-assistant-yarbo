@@ -12,7 +12,8 @@ from pathlib import Path
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from yarbo import YarboLocalClient
@@ -191,7 +192,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._watchdog_task: asyncio.Task[None] | None = None
         self._diagnostic_task: asyncio.Task[None] | None = None
         self._last_update: float = 0.0
-        self._last_seen: float = 0.0
+        self._last_seen: float | None = None
+        self._online_timer_cancel: Any | None = None
         self._issue_active = False
         self._controller_lost_active = False
         self._diagnostic_lock = asyncio.Semaphore(1)
@@ -252,6 +254,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._recharge_point_status: str | None = None
         self._recharge_point_details: dict[str, Any] | None = None
         self._wifi_list: list[Any] = []
+        self._saved_wifi_list: list[Any] = []
         self._map_backups: list[Any] = []
         self._clean_areas: list[Any] = []
         self._motor_temp_c: float | None = None
@@ -313,6 +316,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     def entry(self) -> ConfigEntry:
         """Return the config entry (public accessor)."""
         return self._entry
+
+    @property
+    def last_seen(self) -> float | None:
+        """Return the last-seen monotonic timestamp (public accessor)."""
+        return self._last_seen
 
     @property
     def plan_options(self) -> list[str]:
@@ -446,6 +454,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         return self._wifi_list
 
     @property
+    def saved_wifi_list(self) -> list[Any]:
+        """Return last known saved WiFi list."""
+        return self._saved_wifi_list
+
+    @property
     def map_backups(self) -> list[Any]:
         """Return last known map backups list."""
         return self._map_backups
@@ -504,7 +517,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Start a work plan by id."""
         async with self.command_lock:
             await self.client.get_controller(timeout=5.0)
-            await self.client.publish_command(
+            await self.client.publish_raw(
                 "start_plan",
                 {"planId": plan_id, "percent": self._plan_start_percent},
             )
@@ -521,8 +534,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             raise ValueError(f"Unsupported plan action: {action}")
         async with self.command_lock:
             await self.client.get_controller(timeout=5.0)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await self.client.publish_command("in_plan_action", {"action": action})
+            await self.client.publish_raw("in_plan_action", {"action": action})
 
     async def _request_data_feedback(
         self,
@@ -558,7 +570,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             feedback_task = asyncio.create_task(feedback_coro)
             try:
                 await asyncio.sleep(0)
-                await self.client.publish_command(normalized_command, payload)
+                await self.client.publish_raw(normalized_command, payload)
                 if self._recorder.enabled:
                     try:
                         await self.hass.async_add_executor_job(
@@ -568,6 +580,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
                 return await feedback_task
             except BaseException:
+                feedback_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await feedback_task
+                raise
+            except Exception:
                 feedback_task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await feedback_task
@@ -873,6 +890,28 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._wifi_list = wifi_list
         return wifi_list
 
+    async def get_saved_wifi_list(self, timeout: float = 5.0, skip_lock: bool = False) -> list[Any]:
+        """Request saved (remembered) WiFi networks list.
+
+        May only return data when the robot is actively connected or in setup mode.
+        Shows "unavailable" when no data is received.
+        """
+        response = await self._request_data_feedback("get_saved_wifi_list", {}, timeout, skip_lock)
+        if not response:
+            return self._saved_wifi_list
+        data = response.get("data", response)
+        saved: list[Any] = []
+        if isinstance(data, list):
+            saved = data
+        elif isinstance(data, dict):
+            for key in ("saved_wifi_list", "list", "networks", "saved"):
+                value = data.get(key)
+                if isinstance(value, list):
+                    saved = value
+                    break
+        self._saved_wifi_list = saved
+        return saved
+
     async def get_map_backups(self, timeout: float = 5.0, skip_lock: bool = False) -> list[Any]:
         """Request map backup list."""
         # ❓ No response while idle — may need active state
@@ -990,6 +1029,12 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """Return the MQTT recorder instance."""
         return self._recorder
 
+    @callback
+    def _force_online_reeval(self, _now: Any = None) -> None:
+        """Force online status re-evaluation after heartbeat timeout."""
+        self._online_timer_cancel = None
+        self.async_set_updated_data(self.data)
+
     async def _telemetry_loop(self) -> None:
         """Listen to python-yarbo telemetry stream and push updates.
 
@@ -1001,6 +1046,14 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 async for telemetry in self.client.watch_telemetry():
                     now = time.monotonic()
                     self._last_seen = now
+                    # Cancel previous offline timer and schedule a new one
+                    if self._online_timer_cancel is not None:
+                        self._online_timer_cancel()
+                        self._online_timer_cancel = None
+
+                    self._online_timer_cancel = async_call_later(
+                        self.hass, HEARTBEAT_TIMEOUT_SECONDS + 5, self._force_online_reeval
+                    )
                     if now - self._last_update < self._throttle_interval:
                         continue
                     # Record raw telemetry for diagnostics
@@ -1082,7 +1135,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         except Exception as ctrl_err:
                             _LOGGER.warning("Failover controller acquisition failed: %s", ctrl_err)
                         _LOGGER.info("Failover to %s succeeded", next_host)
-                        await asyncio.sleep(2)
+                        await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
                         continue
                     except Exception as connect_err:
                         _LOGGER.warning(
@@ -1120,7 +1173,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         try:
             while True:
                 await asyncio.sleep(5)
-                if not self._last_seen:
+                if self._last_seen is None:
                     continue
                 if time.monotonic() - self._last_seen < HEARTBEAT_TIMEOUT_SECONDS:
                     continue
@@ -1207,6 +1260,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             with contextlib.suppress(asyncio.CancelledError):
                 await self._diagnostic_task
             self._diagnostic_task = None
+        if self._online_timer_cancel is not None:
+            self._online_timer_cancel()
+            self._online_timer_cancel = None
         if self._recorder.enabled:
             await self._async_stop_recorder()
         if self._debug_logging:

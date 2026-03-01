@@ -9,7 +9,7 @@ from homeassistant.const import STATE_HOME, STATE_NOT_HOME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DATA_COORDINATOR, DOMAIN
+from .const import DATA_COORDINATOR, DOMAIN, WORKING_STATE_IDLE
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 from .telemetry import get_gngga_data, get_nested_raw_value
@@ -53,7 +53,10 @@ class YarboDeviceTracker(YarboEntity, TrackerEntity):
             charging_status = getattr(telemetry, "charging_status", None)
             if charging_status is None:
                 charging_status = get_nested_raw_value(telemetry, "StateMSG", "charging_status")
-            if charging_status in (1, 2, 3):
+            working_state = getattr(telemetry, "state", None)
+            if working_state is None:
+                working_state = get_nested_raw_value(telemetry, "StateMSG", "working_state")
+            if charging_status in (1, 2, 3) or working_state == WORKING_STATE_IDLE:
                 self._attr_location_name = STATE_HOME
             else:
                 self._attr_location_name = STATE_NOT_HOME

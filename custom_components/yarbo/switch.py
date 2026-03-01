@@ -51,13 +51,23 @@ async def async_setup_entry(
             # #94 — Smart/edge blowing (leaf blower only)
             YarboSmartBlowingSwitch(coordinator),
             YarboEdgeBlowingSwitch(coordinator),
-            # #95 — Motor protect + mower head sensor
+            # #95 — Motor protect + mower head sensor + ngz_edge + geo_fence + elec_fence
             YarboMotorProtectSwitch(coordinator),
             YarboMowerHeadSensorSwitch(coordinator),
+            YarboMowerNgzEdgeSwitch(coordinator),
+            YarboGeoFenceSwitch(coordinator),
+            YarboElecFenceSwitch(coordinator),
             # #96 — Roof lights
             YarboRoofLightsSwitch(coordinator),
             # #97 — Sound enable
             YarboSoundEnableSwitch(coordinator),
+            # #114 — Vision toggles
+            YarboSmartVisionSwitch(coordinator),
+            YarboVideoRecordSwitch(coordinator),
+            # #113 — Child lock
+            YarboChildLockSwitch(coordinator),
+            # #98 — ROS Bag recording
+            YarboBagRecordSwitch(coordinator),
         ]
     )
 
@@ -131,7 +141,7 @@ class YarboCommandSwitch(YarboEntity, SwitchEntity):
             raise HomeAssistantError(error_message)
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_command(
+            await self.coordinator.client.publish_raw(
                 normalized_command,
                 {self._payload_key: value},
             )
@@ -484,3 +494,132 @@ class YarboSoundEnableSwitch(YarboCommandSwitch):
             on_value=True,
             off_value=False,
         )
+
+
+class YarboMowerNgzEdgeSwitch(YarboCommandSwitch):
+    """Mower no-go zone edge switch — lawn mower heads only (#95)."""
+
+    _attr_translation_key = "mower_ngz_edge"
+    _attr_icon = "mdi:map-marker-minus"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            "mower_ngz_edge",
+            "mower_ngz_edge_sw",
+            payload_key="state",
+        )
+
+    @property
+    def available(self) -> bool:
+        """Only available when lawn mower head is installed."""
+        if not super().available:
+            return False
+        if not self.telemetry:
+            return False
+        return self.telemetry.head_type in {HEAD_TYPE_LAWN_MOWER, HEAD_TYPE_LAWN_MOWER_PRO}
+
+
+class YarboGeoFenceSwitch(YarboCommandSwitch):
+    """Geofence enable toggle (#95)."""
+
+    _attr_translation_key = "geo_fence"
+    _attr_icon = "mdi:map-marker-radius"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            "geo_fence",
+            "enable_geo_fence",
+            payload_key="state",
+        )
+
+
+class YarboElecFenceSwitch(YarboCommandSwitch):
+    """Electric fence enable toggle (#95)."""
+
+    _attr_translation_key = "elec_fence"
+    _attr_icon = "mdi:electric-switch"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            "elec_fence",
+            "enable_elec_fence",
+            payload_key="state",
+        )
+
+
+class YarboSmartVisionSwitch(YarboCommandSwitch):
+    """Smart vision control toggle (#114)."""
+
+    _attr_translation_key = "smart_vision"
+    _attr_icon = "mdi:eye-settings"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            "smart_vision",
+            "smart_vision_control",
+            payload_key="state",
+        )
+
+
+class YarboVideoRecordSwitch(YarboCommandSwitch):
+    """Enable video recording toggle (#114)."""
+
+    _attr_translation_key = "video_record"
+    _attr_icon = "mdi:record-circle"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            "video_record",
+            "enable_video_record",
+            payload_key="state",
+        )
+
+
+class YarboChildLockSwitch(YarboCommandSwitch):
+    """Child lock toggle (#113).
+
+    Payload uses {"disable": bool}: disable=False means lock ON (turn_on),
+    disable=True means lock OFF (turn_off).
+    """
+
+    _attr_translation_key = "child_lock"
+    _attr_icon = "mdi:human-child"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(
+            coordinator,
+            "child_lock",
+            "open_child_lock",
+            payload_key="disable",
+            on_value=False,
+            off_value=True,
+        )
+
+
+class YarboBagRecordSwitch(YarboCommandSwitch):
+    """ROS Bag recording toggle (#98)."""
+
+    _attr_translation_key = "bag_record"
+    _attr_icon = "mdi:record"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "bag_record", "bag_record", payload_key="state")

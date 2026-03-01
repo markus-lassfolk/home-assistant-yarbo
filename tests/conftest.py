@@ -180,7 +180,7 @@ def mock_yarbo_client_autouse() -> Generator[MagicMock, None, None]:
         client.get_controller = AsyncMock()
         client.get_status = AsyncMock(return_value=MOCK_TELEMETRY)
         client.publish_raw = AsyncMock()
-        client.publish_command = AsyncMock()
+        client.publish_command = AsyncMock()  # legacy compat
         client.wait_for_data_feedback = AsyncMock(return_value={"data": []})
         client.set_lights = AsyncMock()
         client.buzzer = AsyncMock()
@@ -208,7 +208,7 @@ def mock_yarbo_client() -> Generator[MagicMock, None, None]:
         client.get_controller = AsyncMock()
         client.get_status = AsyncMock(return_value=MOCK_TELEMETRY)
         client.publish_raw = AsyncMock()
-        client.publish_command = AsyncMock()
+        client.publish_command = AsyncMock()  # legacy compat
         client.wait_for_data_feedback = AsyncMock(return_value={"data": []})
         client.set_lights = AsyncMock()
         client.buzzer = AsyncMock()

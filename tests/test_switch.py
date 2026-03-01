@@ -47,7 +47,7 @@ def _make_coordinator(head_type: int | None = None) -> MagicMock:
     coord.client = MagicMock()
     coord.client.get_controller = AsyncMock()
     coord.client.buzzer = AsyncMock()
-    coord.client.publish_command = AsyncMock()
+    coord.client.publish_raw = AsyncMock()
     coord._entry = MagicMock()
     coord._entry.data = {
         CONF_ROBOT_SERIAL: "TEST0002",
@@ -167,9 +167,7 @@ class TestYarboPersonDetectSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with(
-            "set_person_detect", {"disable": False}
-        )
+        coord.client.publish_raw.assert_called_once_with("set_person_detect", {"disable": False})
         assert entity.is_on is True
 
     @pytest.mark.asyncio
@@ -182,7 +180,7 @@ class TestYarboPersonDetectSwitch:
             await entity.async_turn_on()
             await entity.async_turn_off()
 
-        coord.client.publish_command.assert_called_with("set_person_detect", {"disable": True})
+        coord.client.publish_raw.assert_called_with("set_person_detect", {"disable": True})
         assert entity.is_on is False
 
 
@@ -211,7 +209,7 @@ class TestYarboHeatingFilmSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("heating_film_ctrl", {"state": 1})
+        coord.client.publish_raw.assert_called_once_with("heating_film_ctrl", {"state": 1})
         assert entity.is_on is True
 
 
@@ -234,7 +232,7 @@ class TestYarboFollowModeSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("set_follow_state", {"state": 1})
+        coord.client.publish_raw.assert_called_once_with("set_follow_state", {"state": 1})
         assert entity.is_on is True
 
 
@@ -269,7 +267,7 @@ class TestYarboAutoUpdateSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with(
+        coord.client.publish_raw.assert_called_once_with(
             "set_greengrass_auto_update_switch",
             {"enable": 1},
         )
@@ -301,7 +299,7 @@ class TestYarboCameraOtaSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with(
+        coord.client.publish_raw.assert_called_once_with(
             "set_ipcamera_ota_switch",
             {"enable": 1},
         )
@@ -335,7 +333,7 @@ class TestYarboTrimmerSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("cmd_trimmer", {"state": 1})
+        coord.client.publish_raw.assert_called_once_with("cmd_trimmer", {"state": 1})
         assert entity.is_on is True
 
 
@@ -364,7 +362,7 @@ class TestYarboCameraSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("camera_toggle", {"enabled": True})
+        coord.client.publish_raw.assert_called_once_with("camera_toggle", {"enabled": True})
         assert entity.is_on is True
 
     @pytest.mark.asyncio
@@ -377,7 +375,7 @@ class TestYarboCameraSwitch:
             await entity.async_turn_on()
             await entity.async_turn_off()
 
-        coord.client.publish_command.assert_called_with("camera_toggle", {"enabled": False})
+        coord.client.publish_raw.assert_called_with("camera_toggle", {"enabled": False})
         assert entity.is_on is False
 
 
@@ -406,7 +404,7 @@ class TestYarboLaserSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("laser_toggle", {"enabled": True})
+        coord.client.publish_raw.assert_called_once_with("laser_toggle", {"enabled": True})
         assert entity.is_on is True
 
     @pytest.mark.asyncio
@@ -419,7 +417,7 @@ class TestYarboLaserSwitch:
             await entity.async_turn_on()
             await entity.async_turn_off()
 
-        coord.client.publish_command.assert_called_with("laser_toggle", {"enabled": False})
+        coord.client.publish_raw.assert_called_with("laser_toggle", {"enabled": False})
         assert entity.is_on is False
 
 
@@ -448,7 +446,7 @@ class TestYarboUsbSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("usb_toggle", {"enabled": True})
+        coord.client.publish_raw.assert_called_once_with("usb_toggle", {"enabled": True})
         assert entity.is_on is True
 
     @pytest.mark.asyncio
@@ -461,7 +459,7 @@ class TestYarboUsbSwitch:
             await entity.async_turn_on()
             await entity.async_turn_off()
 
-        coord.client.publish_command.assert_called_with("usb_toggle", {"enabled": False})
+        coord.client.publish_raw.assert_called_with("usb_toggle", {"enabled": False})
         assert entity.is_on is False
 
 
@@ -490,7 +488,7 @@ class TestYarboIgnoreObstaclesSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("ignore_obstacles", {"state": 1})
+        coord.client.publish_raw.assert_called_once_with("ignore_obstacles", {"state": 1})
         assert entity.is_on is True
 
 
@@ -519,7 +517,7 @@ class TestYarboDrawModeSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("start_draw_cmd", {"state": 1})
+        coord.client.publish_raw.assert_called_once_with("start_draw_cmd", {"state": 1})
         assert entity.is_on is True
 
 
@@ -548,7 +546,7 @@ class TestYarboModuleLockSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("module_lock_ctl", {"state": 1})
+        coord.client.publish_raw.assert_called_once_with("module_lock_ctl", {"state": 1})
         assert entity.is_on is True
 
 
@@ -577,7 +575,7 @@ class TestYarboWireChargingLockSwitch:
             await entity.async_turn_on()
 
         coord.client.get_controller.assert_called_once_with(timeout=5.0)
-        coord.client.publish_command.assert_called_once_with("wire_charging_lock", {"state": 1})
+        coord.client.publish_raw.assert_called_once_with("wire_charging_lock", {"state": 1})
         assert entity.is_on is True
 
 
@@ -625,7 +623,7 @@ class TestYarboSmartBlowingSwitch:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_turn_on()
 
-        coord.client.publish_command.assert_called_once_with("smart_blowing", {"state": 1})
+        coord.client.publish_raw.assert_called_once_with("smart_blowing", {"state": 1})
         assert entity.is_on is True
 
 
@@ -654,7 +652,7 @@ class TestYarboEdgeBlowingSwitch:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_turn_on()
 
-        coord.client.publish_command.assert_called_once_with("edge_blowing", {"state": 1})
+        coord.client.publish_raw.assert_called_once_with("edge_blowing", {"state": 1})
         assert entity.is_on is True
 
 
@@ -682,7 +680,7 @@ class TestYarboMotorProtectSwitch:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_turn_on()
 
-        coord.client.publish_command.assert_called_once_with("cmd_motor_protect", {"state": 1})
+        coord.client.publish_raw.assert_called_once_with("cmd_motor_protect", {"state": 1})
         assert entity.is_on is True
 
 
@@ -725,9 +723,7 @@ class TestYarboMowerHeadSensorSwitch:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_turn_on()
 
-        coord.client.publish_command.assert_called_once_with(
-            "mower_head_sensor_switch", {"state": 1}
-        )
+        coord.client.publish_raw.assert_called_once_with("mower_head_sensor_switch", {"state": 1})
         assert entity.is_on is True
 
 
@@ -755,7 +751,7 @@ class TestYarboRoofLightsSwitch:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_turn_on()
 
-        coord.client.publish_command.assert_called_once_with("roof_lights_enable", {"enable": 1})
+        coord.client.publish_raw.assert_called_once_with("roof_lights_enable", {"enable": 1})
         assert entity.is_on is True
 
     @pytest.mark.asyncio
@@ -768,7 +764,7 @@ class TestYarboRoofLightsSwitch:
             await entity.async_turn_on()
             await entity.async_turn_off()
 
-        coord.client.publish_command.assert_called_with("roof_lights_enable", {"enable": 0})
+        coord.client.publish_raw.assert_called_with("roof_lights_enable", {"enable": 0})
         assert entity.is_on is False
 
 
@@ -796,7 +792,7 @@ class TestYarboSoundEnableSwitch:
         with patch.object(entity, "async_write_ha_state"):
             await entity.async_turn_on()
 
-        coord.client.publish_command.assert_called_once_with("set_sound_param", {"enable": 1})
+        coord.client.publish_raw.assert_called_once_with("set_sound_param", {"enable": 1})
         assert entity.is_on is True
 
     @pytest.mark.asyncio
@@ -809,5 +805,65 @@ class TestYarboSoundEnableSwitch:
             await entity.async_turn_on()
             await entity.async_turn_off()
 
-        coord.client.publish_command.assert_called_with("set_sound_param", {"enable": 0})
+        coord.client.publish_raw.assert_called_with("set_sound_param", {"enable": 0})
+        assert entity.is_on is False
+
+
+from custom_components.yarbo.switch import YarboBagRecordSwitch  # noqa: E402
+
+
+class TestYarboBagRecordSwitch:
+    """Tests for ROS Bag recording switch (#98)."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        assert YarboBagRecordSwitch(coord).entity_registry_enabled_default is False
+
+    @pytest.mark.asyncio
+    async def test_turn_on(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboBagRecordSwitch(coord)
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+        coord.client.publish_raw.assert_called_once_with("bag_record", {"state": 1})
+        assert entity.is_on is True
+
+    @pytest.mark.asyncio
+    async def test_turn_off(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboBagRecordSwitch(coord)
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+            await entity.async_turn_off()
+        coord.client.publish_raw.assert_called_with("bag_record", {"state": 0})
+        assert entity.is_on is False
+
+
+from custom_components.yarbo.switch import YarboBagRecordSwitch  # noqa: E402
+
+
+class TestYarboBagRecordSwitch:
+    """Tests for ROS Bag recording switch (#98)."""
+
+    def test_disabled_by_default(self) -> None:
+        coord = _make_coordinator()
+        assert YarboBagRecordSwitch(coord).entity_registry_enabled_default is False
+
+    @pytest.mark.asyncio
+    async def test_turn_on(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboBagRecordSwitch(coord)
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+        coord.client.publish_raw.assert_called_once_with("bag_record", {"state": 1})
+        assert entity.is_on is True
+
+    @pytest.mark.asyncio
+    async def test_turn_off(self) -> None:
+        coord = _make_coordinator()
+        entity = YarboBagRecordSwitch(coord)
+        with patch.object(entity, "async_write_ha_state"):
+            await entity.async_turn_on()
+            await entity.async_turn_off()
+        coord.client.publish_raw.assert_called_with("bag_record", {"state": 0})
         assert entity.is_on is False

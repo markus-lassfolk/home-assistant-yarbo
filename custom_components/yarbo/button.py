@@ -44,6 +44,12 @@ async def async_setup_entry(
             YarboSaveChargingPointButton(coordinator),
             YarboStartHotspotButton(coordinator),
             YarboSaveMapBackupButton(coordinator),
+            # #98 — Camera and firmware commands
+            YarboCameraCalibrationButton(coordinator),
+            YarboCheckCameraStatusButton(coordinator),
+            YarboFirmwareUpdateNowButton(coordinator),
+            YarboFirmwareUpdateTonightButton(coordinator),
+            YarboFirmwareUpdateLaterButton(coordinator),
         ]
     )
 
@@ -63,7 +69,7 @@ class YarboButton(YarboEntity, ButtonEntity):
             raise HomeAssistantError(error_message)
         async with self.coordinator.command_lock:
             await self.coordinator.client.get_controller(timeout=5.0)
-            await self.coordinator.client.publish_command(normalized_command, payload)
+            await self.coordinator.client.publish_raw(normalized_command, payload)
 
 
 class YarboBeepButton(YarboButton):
@@ -261,3 +267,83 @@ class YarboSaveMapBackupButton(YarboButton):
     async def async_press(self) -> None:
         # 🔇 Fire-and-forget: no data_feedback response
         await self._send_command("save_map_backup", {})
+
+
+class YarboCameraCalibrationButton(YarboButton):
+    """Calibrate the robot camera."""
+
+    _attr_translation_key = "camera_calibration"
+    _attr_icon = "mdi:camera-enhance"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "camera_calibration")
+
+    async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
+        await self._send_command("camera_calibration", {})
+
+
+class YarboCheckCameraStatusButton(YarboButton):
+    """Request current camera status."""
+
+    _attr_translation_key = "check_camera_status"
+    _attr_icon = "mdi:camera-outline"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "check_camera_status")
+
+    async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
+        await self._send_command("check_camera_status", {})
+
+
+class YarboFirmwareUpdateNowButton(YarboButton):
+    """Trigger an immediate firmware update."""
+
+    _attr_translation_key = "firmware_update_now"
+    _attr_icon = "mdi:download-circle"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "firmware_update_now")
+
+    async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
+        await self._send_command("firmware_update_now", {})
+
+
+class YarboFirmwareUpdateTonightButton(YarboButton):
+    """Schedule a firmware update for tonight."""
+
+    _attr_translation_key = "firmware_update_tonight"
+    _attr_icon = "mdi:download-circle-outline"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "firmware_update_tonight")
+
+    async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
+        await self._send_command("firmware_update_tonight", {})
+
+
+class YarboFirmwareUpdateLaterButton(YarboButton):
+    """Defer the pending firmware update."""
+
+    _attr_translation_key = "firmware_update_later"
+    _attr_icon = "mdi:update"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "firmware_update_later")
+
+    async def async_press(self) -> None:
+        # 🔇 Fire-and-forget: no data_feedback response
+        await self._send_command("firmware_update_later", {})

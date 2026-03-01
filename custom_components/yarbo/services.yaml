@@ -246,10 +246,90 @@ delete_plan:
       required: true
       selector:
         text:
+    confirmation:
+      name: Confirm deletion
+      description: Set to true to confirm this destructive operation.
+      required: true
+      default: false
+      selector:
+        boolean:
 
 delete_all_plans:
   name: Delete all plans
   description: Delete all saved plans on the robot.
+  fields:
+    device_id:
+      name: Device
+      required: true
+      selector:
+        device:
+          integration: yarbo
+    confirmation:
+      name: Confirm deletion
+      description: Set to true to confirm this destructive operation.
+      required: true
+      default: false
+      selector:
+        boolean:
+
+erase_map:
+  name: Erase map
+  description: Erase the current map stored on the robot.
+  fields:
+    device_id:
+      name: Device
+      required: true
+      selector:
+        device:
+          integration: yarbo
+    confirmation:
+      name: Confirm erasure
+      description: Set to true to confirm this destructive operation.
+      required: true
+      default: false
+      selector:
+        boolean:
+
+map_recovery:
+  name: Map recovery
+  description: Recover a previously saved map by optional map ID.
+  fields:
+    device_id:
+      name: Device
+      required: true
+      selector:
+        device:
+          integration: yarbo
+    map_id:
+      name: Map ID
+      description: Optional map ID to recover. If omitted, the robot uses its default recovery.
+      required: false
+      selector:
+        text:
+    confirmation:
+      name: Confirm recovery
+      description: Set to true to confirm this destructive operation.
+      required: true
+      default: false
+      selector:
+        boolean:
+
+save_current_map:
+  name: Save current map
+  description: Save the robot's current working map.
+  fields:
+    device_id:
+      name: Device
+      required: true
+      selector:
+        device:
+          integration: yarbo
+
+save_map_backup_and_get_all_map_backup_nameandid:
+  name: Save map backup and list backups
+  description: >
+    Save a backup of the current map and retrieve a list of all existing
+    map backup names and IDs from the robot.
   fields:
     device_id:
       name: Device

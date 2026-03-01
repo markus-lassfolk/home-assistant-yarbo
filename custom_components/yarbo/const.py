@@ -53,8 +53,8 @@ DEFAULT_AUTO_CONTROLLER = True
 DEFAULT_CLOUD_ENABLED = False
 DEFAULT_ACTIVITY_PERSONALITY = False  # Boolean: False=standard, True=fun/verbose descriptions
 
-# Head types — MQTT wire values from APK _HEAD_TYPE_MAP (Smi-decoded keys)
-# Confirmed via Blutter decompilation of deviceRules.dart + live telemetry.
+# Head types — MQTT wire values from community protocol documentation
+# Confirmed via observed behavior and live telemetry.
 # Wire 1 = Snow Blower confirmed via live MQTT + visual inspection.
 HEAD_TYPE_NONE = 0
 HEAD_TYPE_SNOW_BLOWER = 1
@@ -74,7 +74,7 @@ HEAD_TYPE_NAMES: dict[int, str] = {
     HEAD_TYPE_TRIMMER: "Trimmer",
 }
 
-# Command name aliases (Dart/UI naming confusion)
+# Command name aliases (UI naming conventions)
 COMMAND_ALIASES: dict[str, str] = {
     "read_all_clean_area": "read_clean_area",
     "readCleanArea": "read_clean_area",
@@ -101,6 +101,9 @@ ACTIVE_ONLY_DIAGNOSTIC_COMMANDS: set[str] = {
     "product_code_msg",
     "hub_info",
 }
+
+# Robot working state values (telemetry.state field)
+WORKING_STATE_IDLE = 0
 
 # Heartbeat timeout before raising a repair issue
 HEARTBEAT_TIMEOUT_SECONDS = 60

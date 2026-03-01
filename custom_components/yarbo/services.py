@@ -35,6 +35,10 @@ SERVICE_MANUAL_DRIVE = "manual_drive"
 SERVICE_GO_TO_WAYPOINT = "go_to_waypoint"
 SERVICE_DELETE_PLAN = "delete_plan"
 SERVICE_DELETE_ALL_PLANS = "delete_all_plans"
+SERVICE_ERASE_MAP = "erase_map"
+SERVICE_MAP_RECOVERY = "map_recovery"
+SERVICE_SAVE_CURRENT_MAP = "save_current_map"
+SERVICE_SAVE_MAP_BACKUP = "save_map_backup_and_get_all_map_backup_nameandid"
 
 SERVICE_SEND_COMMAND_SCHEMA = vol.Schema(
     {
@@ -98,6 +102,13 @@ SERVICE_DELETE_PLAN_SCHEMA = vol.Schema(
     {
         vol.Required("device_id"): str,
         vol.Required("plan_id"): str,
+    }
+)
+
+SERVICE_MAP_RECOVERY_SCHEMA = vol.Schema(
+    {
+        vol.Required("device_id"): str,
+        vol.Optional("map_id"): str,
     }
 )
 
@@ -172,8 +183,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             client = coordinator.client
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await client.publish_command("start_plan", {"planId": plan_id, "percent": percent})
+            await client.start_plan(plan_id, percent=percent)
 
     async def handle_pause(call: ServiceCall) -> None:
         """Handle yarbo.pause — pause current job."""
@@ -182,8 +192,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             client = coordinator.client
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await client.publish_command("planning_paused", {})
+            await client.publish_raw("planning_paused", {})
 
     async def handle_resume(call: ServiceCall) -> None:
         """Handle yarbo.resume — resume paused job."""
@@ -192,8 +201,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             client = coordinator.client
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await client.publish_command("resume", {})
+            await client.publish_raw("resume", {})
 
     async def handle_return_to_dock(call: ServiceCall) -> None:
         """Handle yarbo.return_to_dock — send robot to dock."""
@@ -202,8 +210,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             client = coordinator.client
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await client.publish_command("cmd_recharge", {})
+            await client.return_to_dock()
 
     async def handle_set_lights(call: ServiceCall) -> None:
         """Handle yarbo.set_lights — set 7 LED channel brightness values."""
@@ -262,8 +269,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await client.publish_command("cmd_vel", {"vel": linear, "rev": angular})
+            await client.set_velocity(linear, angular)
 
     async def handle_go_to_waypoint(call: ServiceCall) -> None:
         """Handle yarbo.go_to_waypoint — navigate to waypoint index."""
@@ -274,8 +280,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await client.publish_command("start_way_point", {"index": index})
+            await client.publish_raw("start_way_point", {"index": index})
 
     async def handle_delete_plan(call: ServiceCall) -> None:
         """Handle yarbo.delete_plan — delete a plan by id."""
@@ -286,8 +291,7 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await client.publish_command("del_plan", {"planId": plan_id})
+            await client.delete_plan(plan_id, confirm=True)
 
     async def handle_delete_all_plans(call: ServiceCall) -> None:
         """Handle yarbo.delete_all_plans — delete all plans."""
@@ -297,8 +301,51 @@ def async_register_services(hass: HomeAssistant) -> None:
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
                 await _acquire_controller(client, coordinator)
-            # 🔇 Fire-and-forget: no data_feedback response
-            await client.publish_command("del_all_plan", {})
+            await client.delete_all_plans(confirm=True)
+
+    async def handle_erase_map(call: ServiceCall) -> None:
+        """Handle yarbo.erase_map — erase the current map."""
+        device_id: str = call.data["device_id"]
+        _LOGGER.debug("yarbo.erase_map: device=%s", device_id)
+        client, coordinator = _get_client_and_coordinator(hass, device_id)
+        async with coordinator.command_lock:
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
+            await client.erase_map(confirm=True)
+
+    async def handle_map_recovery(call: ServiceCall) -> None:
+        """Handle yarbo.map_recovery — recover a map by optional map ID."""
+        device_id: str = call.data["device_id"]
+        map_id: str | None = call.data.get("map_id")
+        _LOGGER.debug("yarbo.map_recovery: device=%s map_id=%s", device_id, map_id)
+        client, coordinator = _get_client_and_coordinator(hass, device_id)
+        async with coordinator.command_lock:
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
+            await client.map_recovery(map_id=map_id, confirm=True)
+
+    async def handle_save_current_map(call: ServiceCall) -> None:
+        """Handle yarbo.save_current_map — save the current working map."""
+        device_id: str = call.data["device_id"]
+        _LOGGER.debug("yarbo.save_current_map: device=%s", device_id)
+        client, coordinator = _get_client_and_coordinator(hass, device_id)
+        async with coordinator.command_lock:
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
+            await client.publish_raw("save_current_map", {})
+
+    async def handle_save_map_backup(call: ServiceCall) -> None:
+        """Handle yarbo.save_map_backup_and_get_all_map_backup_nameandid.
+
+        Saves a backup of the current map and retrieves all backup names and IDs.
+        """
+        device_id: str = call.data["device_id"]
+        _LOGGER.debug("yarbo.save_map_backup: device=%s", device_id)
+        client, coordinator = _get_client_and_coordinator(hass, device_id)
+        async with coordinator.command_lock:
+            if _should_auto_acquire_controller(coordinator):
+                await _acquire_controller(client, coordinator)
+            await client.publish_raw("save_map_backup_and_get_all_map_backup_nameandid", {})
 
     services = {
         SERVICE_SEND_COMMAND: (handle_send_command, SERVICE_SEND_COMMAND_SCHEMA),
@@ -312,6 +359,10 @@ def async_register_services(hass: HomeAssistant) -> None:
         SERVICE_GO_TO_WAYPOINT: (handle_go_to_waypoint, SERVICE_GO_TO_WAYPOINT_SCHEMA),
         SERVICE_DELETE_PLAN: (handle_delete_plan, SERVICE_DELETE_PLAN_SCHEMA),
         SERVICE_DELETE_ALL_PLANS: (handle_delete_all_plans, SERVICE_DEVICE_ONLY_SCHEMA),
+        SERVICE_ERASE_MAP: (handle_erase_map, SERVICE_DEVICE_ONLY_SCHEMA),
+        SERVICE_MAP_RECOVERY: (handle_map_recovery, SERVICE_MAP_RECOVERY_SCHEMA),
+        SERVICE_SAVE_CURRENT_MAP: (handle_save_current_map, SERVICE_DEVICE_ONLY_SCHEMA),
+        SERVICE_SAVE_MAP_BACKUP: (handle_save_map_backup, SERVICE_DEVICE_ONLY_SCHEMA),
     }
 
     for name, (handler, schema) in services.items():
@@ -335,6 +386,10 @@ def async_unregister_services(hass: HomeAssistant) -> None:
         SERVICE_GO_TO_WAYPOINT,
         SERVICE_DELETE_PLAN,
         SERVICE_DELETE_ALL_PLANS,
+        SERVICE_ERASE_MAP,
+        SERVICE_MAP_RECOVERY,
+        SERVICE_SAVE_CURRENT_MAP,
+        SERVICE_SAVE_MAP_BACKUP,
     ]
     for name in service_names:
         if hass.services.has_service(DOMAIN, name):
