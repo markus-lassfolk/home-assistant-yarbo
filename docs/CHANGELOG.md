@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2026.3.21] — 2026-03-02
+
+### Fixed
+- **Sentry event filtering** — error reports now only capture exceptions from the Yarbo integration; errors from other HA integrations (Tibber, Victron, Cast, etc.) are dropped before sending
+
+---
+
 ## [2026.3.20] — 2026-03-02
 
 ### Fixed
