@@ -98,8 +98,22 @@ def _scrub_dict(data: dict) -> None:  # type: ignore[type-arg]
             data[key] = "[REDACTED]"
 
 
-def _scrub_event(event: dict, hint: dict) -> dict:  # type: ignore[type-arg]
-    """Remove sensitive data before sending."""
+def _scrub_event(event: dict, hint: dict) -> dict | None:  # type: ignore[type-arg]
+    """Remove sensitive data and drop events not from our integration."""
+    # Only report errors originating from our code
+    _OUR_MODULES = ("custom_components.yarbo", "yarbo.")
+    is_ours = False
+    for entry in event.get("exception", {}).get("values", []):
+        for frame in entry.get("stacktrace", {}).get("frames", []):
+            module = frame.get("module", "") or frame.get("filename", "") or ""
+            if any(module.startswith(prefix) or prefix in module for prefix in _OUR_MODULES):
+                is_ours = True
+                break
+        if is_ours:
+            break
+    if not is_ours:
+        return None  # Drop — not from our integration
+
     if "extra" in event:
         _scrub_dict(event["extra"])
 
