@@ -37,7 +37,7 @@ Local-first Home Assistant integration for [Yarbo](https://www.yarbo.com/) — t
 2. Add `https://github.com/markus-lassfolk/home-assistant-yarbo` → category **Integration**
 3. Search **Yarbo** → **Download**
 4. Restart Home Assistant
-5. a) Wait for auto discovery to find your device. 1-5 minutes. OR 
+5. A) Wait for auto discovery to find your device. 1-5 minutes. OR 
 5. B) **Settings → Devices & Services → Add Integration → Yarbo**
 
 ### Manual
