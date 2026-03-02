@@ -98,21 +98,38 @@ def _scrub_dict(data: dict) -> None:  # type: ignore[type-arg]
             data[key] = "[REDACTED]"
 
 
+def _frame_is_yarbo(frame: dict) -> bool:
+    """True if this stack frame is from the Yarbo integration or python-yarbo lib."""
+    module = (frame.get("module") or "") or (frame.get("filename") or "")
+    if not module:
+        return False
+    # Module names: custom_components.yarbo.*, yarbo.*
+    if (
+        module.startswith("custom_components.yarbo")
+        or module.startswith("yarbo.")
+    ):
+        return True
+    # File paths: .../custom_components/yarbo/... or .../yarbo/...
+    norm = module.replace("\\", "/")
+    if "/custom_components/yarbo/" in norm or "/yarbo/" in norm:
+        return True
+    return False
+
+
 def _scrub_event(event: dict, hint: dict) -> dict | None:  # type: ignore[type-arg]
     """Remove sensitive data and drop events not from our integration."""
-    # Only report errors originating from our code
-    _OUR_MODULES = ("custom_components.yarbo", "yarbo.")
-    is_ours = False
-    for entry in event.get("exception", {}).get("values", []):
-        for frame in entry.get("stacktrace", {}).get("frames", []):
-            module = frame.get("module", "") or frame.get("filename", "") or ""
-            if any(module.startswith(prefix) or prefix in module for prefix in _OUR_MODULES):
-                is_ours = True
-                break
-        if is_ours:
+    # Only report if the exception was *raised* in our code (top of stack),
+    # not if our code only appears somewhere in the stack (e.g. HA core).
+    values = event.get("exception", {}).get("values") or []
+    raising_frame_ours = False
+    for entry in values:
+        frames = entry.get("stacktrace", {}).get("frames") or []
+        # Frames: oldest → newest; last frame is where the exception was raised.
+        if frames and _frame_is_yarbo(frames[-1]):
+            raising_frame_ours = True
             break
-    if not is_ours:
-        return None  # Drop — not from our integration
+    if not raising_frame_ours:
+        return None  # Drop — not raised in our integration
 
     if "extra" in event:
         _scrub_dict(event["extra"])
