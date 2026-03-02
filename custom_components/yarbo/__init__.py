@@ -12,7 +12,13 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.loader import async_get_integration
 
 from yarbo import YarboLocalClient
+from yarbo.error_reporting import init_error_reporting as _lib_init_error_reporting
 from yarbo.exceptions import YarboConnectionError
+
+# Safety net: disable library-level Sentry auto-init in case an older version of
+# python-yarbo still calls init_error_reporting() at module level on import.
+# HA manages its own error reporting via custom_components/yarbo/error_reporting.py.
+_lib_init_error_reporting(enabled=False)
 
 # Minimum python-yarbo version required by this integration.
 # Bump this when using new library features (e.g. get_controller(timeout=...)).
@@ -94,7 +100,6 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     return True
 
 
-
 def _warmup_connect(host: str, port: int) -> None:
     """Pre-fill import caches in executor to avoid blocking the event loop.
 
@@ -103,11 +108,13 @@ def _warmup_connect(host: str, port: int) -> None:
     """
     try:
         import socket
+
         # Force idna and other lazy imports to resolve their metadata now
         # Force all lazy imports and metadata reads that paho-mqtt triggers
         # during connect. These must happen in the executor thread, not the
         # event loop, to avoid HA's blocking call detection.
         import importlib.metadata
+
         for pkg in ("idna", "paho-mqtt", "certifi", "charset-normalizer"):
             try:
                 dist = importlib.metadata.distribution(pkg)
@@ -121,6 +128,7 @@ def _warmup_connect(host: str, port: int) -> None:
             import idna.core  # noqa: F401
             import idna.codec  # noqa: F401
             import idna.package_data  # noqa: F401
+
             _ = idna.__version__  # triggers metadata read
         except (ImportError, AttributeError):
             pass
@@ -132,11 +140,14 @@ def _warmup_connect(host: str, port: int) -> None:
     except Exception:  # noqa: BLE001
         pass  # Warmup failure is non-fatal
 
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Yarbo from a config entry."""
+
     # --- Library version guard (runs in executor to avoid blocking I/O) ---
     def _check_lib_version() -> str | None:
         import importlib.metadata as _meta
+
         try:
             return _meta.version("python-yarbo")
         except _meta.PackageNotFoundError:
@@ -145,11 +156,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _lib_ver = await hass.async_add_executor_job(_check_lib_version)
     if _lib_ver is not None:
         from packaging.version import Version
+
         if Version(_lib_ver) < Version(MIN_LIB_VERSION):
             _LOGGER.error(
                 "python-yarbo %s is too old; need >= %s. "
                 "Clear /config/deps and restart HA to upgrade.",
-                _lib_ver, MIN_LIB_VERSION,
+                _lib_ver,
+                MIN_LIB_VERSION,
             )
             raise ConfigEntryNotReady(
                 f"python-yarbo {_lib_ver} < {MIN_LIB_VERSION}; upgrade required"
@@ -183,7 +196,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "integration_version": integration_version,
             "robot_serial": f"****{_serial[-4:]}" if len(_serial) > 4 else _serial,
             "ha_version": __version__,
-        }
+        },
     )
 
     # Pre-fill import caches (idna metadata etc.) in executor to avoid
