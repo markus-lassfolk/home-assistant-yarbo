@@ -42,6 +42,7 @@ from .const import (
     OPT_MQTT_RECORDING,
     OPT_TELEMETRY_THROTTLE,
     TELEMETRY_RETRY_DELAY_SECONDS,
+    get_activity_state,
     is_active_only_diagnostic_command,
     is_active_operation,
     normalize_command_name,
@@ -235,6 +236,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._plan_by_id: dict[str | int, PlanSummary] = {}
         self._plan_remaining_time: int | None = None
         self._selected_plan_id: str | int | None = None
+        self._last_plan_fetch_attempt: float = 0.0
+        self._plan_fetch_retry_cooldown_sec: float = 120.0
         self._plan_start_percent: int = int(entry.options.get("plan_start_percent", 0))
         self._charge_limit_min: int = 0
         self._charge_limit_max: int = 100
@@ -495,10 +498,15 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def read_all_plans(self, timeout: float = 5.0) -> list[PlanSummary]:
         """Read all plan summaries from the robot."""
-        # ❓ No response while idle — may need active state
+        # ❓ No response while idle — may need active state; coordinator retries when robot becomes "working"
         response = await self._request_data_feedback("read_all_plan", {}, timeout)
         data = response.get("data") if isinstance(response, dict) else None
         plans = data if isinstance(data, list) else []
+        if not plans and not response:
+            _LOGGER.debug(
+                "read_all_plan returned no data (robot often does not respond when idle; "
+                "plans will be retried when the robot starts working)"
+            )
         summaries: list[PlanSummary] = []
         for plan in plans:
             if not isinstance(plan, dict):
@@ -514,6 +522,26 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._plan_by_id = {plan.plan_id: plan for plan in summaries}
         self.async_update_listeners()
         return summaries
+
+    async def _fetch_plans_when_active(self) -> None:
+        """Retry loading work plans after a short delay when the robot is active.
+
+        The robot often does not respond to read_all_plan when idle; this is
+        called from the telemetry loop when activity becomes 'working' and
+        the plan list is still empty. Cooldown is applied when scheduling.
+        """
+        await asyncio.sleep(3.0)
+        if self._plan_summaries:
+            return
+        try:
+            summaries = await self.read_all_plans(timeout=10.0)
+            if summaries:
+                _LOGGER.info(
+                    "Work plan list loaded (%d plan(s)) after robot became active",
+                    len(summaries),
+                )
+        except Exception as err:
+            _LOGGER.debug("Retry read_all_plans when active failed: %s", err)
 
     async def read_plan(self, plan_id: str | int, timeout: float = 5.0) -> dict[str, Any]:
         """Read a specific plan detail and update remaining time."""
@@ -1084,6 +1112,15 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     if self._issue_active:
                         async_delete_mqtt_disconnect_issue(self.hass, self._entry.entry_id)
                         self._issue_active = False
+                    # When robot becomes active and we have no plans, retry read_all_plan
+                    # (robot often does not respond to read_all_plan when idle)
+                    if (
+                        get_activity_state(telemetry) == "working"
+                        and not self._plan_summaries
+                        and (now - self._last_plan_fetch_attempt) >= self._plan_fetch_retry_cooldown_sec
+                    ):
+                        self._last_plan_fetch_attempt = now
+                        self.hass.async_create_task(self._fetch_plans_when_active())
             except asyncio.CancelledError:
                 _LOGGER.debug("Telemetry loop cancelled")
                 raise

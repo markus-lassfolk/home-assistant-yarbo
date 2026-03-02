@@ -100,7 +100,7 @@ Most diagnostic and config-category entities are disabled by default to keep the
 
 **Q: Why does the Work Plan select sometimes show no options?**
 
-The work plan list is loaded from the robot when the integration starts. If you just created a new plan in the app, you may need to reload the integration: **Settings → Devices & Services → Yarbo → ⋮ → Reload**.
+The work plan list is loaded from the robot when the integration starts. Many robots **do not respond** to the plan-list command when idle; the integration will **retry automatically** when the robot starts working (e.g. when you run a plan from the app). After that, the select should show your plans. You can also reload the integration after creating new plans: **Settings → Devices & Services → Yarbo → ⋮ → Reload**.
 
 ---
 

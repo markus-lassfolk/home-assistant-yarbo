@@ -118,14 +118,15 @@ See [Multi-Head Guide](multi-head.md) for entity availability per head type.
 
 ### Work Plan Select Shows No Plans
 
-**Symptoms:** The Work Plan select entity is empty.
+**Symptoms:** The Work Plan select entity is empty (no options).
 
-**Cause:** The robot has no saved plans, or the plan list hasn't been read yet.
+**Cause:** The robot has no saved plans, or the plan list has not been read yet. Many Yarbo robots **do not respond** to the `read_all_plan` command when idle — they only reply when the robot is in an active state (e.g. working).
 
 **Fix:**
-- Create plans using the Yarbo app
-- Reload the integration to refresh the plan list
-- Check that `read_all_plan` succeeds (enable debug logging to verify)
+- Create at least one plan in the Yarbo app if you have not already.
+- **Reload the integration** after creating plans: **Settings → Devices & Services → Yarbo → ⋮ → Reload**.
+- The integration automatically **retries** loading the plan list when the robot starts working (e.g. when you start a plan from the app). After the robot has been active, the Work Plan select should populate; you can reload the integration to refresh immediately.
+- To confirm whether the robot is responding, enable **Debug logging** for the integration (integration options) and check logs for `read_all_plan` (e.g. "returned no data" when idle is normal).
 
 ### Plan Doesn't Start
 
