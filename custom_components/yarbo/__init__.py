@@ -16,7 +16,7 @@ from yarbo.exceptions import YarboConnectionError
 
 # Minimum python-yarbo version required by this integration.
 # Bump this when using new library features (e.g. get_controller(timeout=...)).
-MIN_LIB_VERSION = "2026.3.15"
+MIN_LIB_VERSION = "2026.3.20"
 
 from .const import (
     CONF_ALTERNATE_BROKER_HOST,
