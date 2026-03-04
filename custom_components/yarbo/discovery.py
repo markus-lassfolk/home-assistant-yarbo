@@ -94,6 +94,15 @@ def _from_library_result(r: object, port: int) -> YarboEndpoint | None:
     )
 
 
+@dataclass
+class _YarboProbeResult:
+    """Result of a Yarbo MQTT probe — includes SN and name if found."""
+
+    is_yarbo: bool = False
+    serial: str | None = None
+    name: str | None = None
+
+
 async def _probe_mqtt(host: str, port: int) -> bool:
     """Try to open a TCP connection to host:port.
 
@@ -110,6 +119,85 @@ async def _probe_mqtt(host: str, port: int) -> bool:
         return True
     except (OSError, TimeoutError):
         return False
+
+
+def _sync_yarbo_probe(host: str, port: int, timeout: float = 5.0) -> _YarboProbeResult:
+    """Connect via MQTT and listen for snowbot/+/device/... topics.
+
+    Returns a result indicating whether this is a real Yarbo broker,
+    plus the serial number and robot name if found.
+    """
+    import json as _json
+    import threading
+    import time
+
+    try:
+        import paho.mqtt.client as mqtt
+    except ImportError:
+        _LOGGER.debug("paho-mqtt not available for Yarbo probe")
+        return _YarboProbeResult()
+
+    result = _YarboProbeResult()
+    got_telemetry = threading.Event()
+
+    def on_connect(client, userdata, flags, rc, props=None):  # noqa: ARG001
+        rc_val = getattr(rc, "value", rc)
+        if rc_val == 0:
+            client.subscribe("snowbot/+/device/DeviceMSG")
+            client.subscribe("snowbot/+/device/heart_beat")
+
+    def on_message(client, userdata, msg):  # noqa: ARG001
+        parts = msg.topic.split("/")
+        if len(parts) >= 2 and parts[0] == "snowbot" and parts[1]:
+            result.serial = parts[1]
+            result.is_yarbo = True
+        try:
+            import zlib
+
+            try:
+                raw = zlib.decompress(msg.payload)
+            except zlib.error:
+                raw = msg.payload
+            payload = _json.loads(raw)
+            if not result.name:
+                result.name = (
+                    payload.get("name")
+                    or payload.get("robotName")
+                    or payload.get("snowbotName")
+                )
+        except Exception:  # noqa: BLE001
+            pass
+        if result.serial:
+            got_telemetry.set()
+
+    client = mqtt.Client(
+        callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+        client_id=f"yarbo-ha-discover-{int(time.time())}",
+    )
+    client.on_connect = on_connect
+    client.on_message = on_message
+    try:
+        client.connect(host, port, keepalive=10)
+        client.loop_start()
+        got_telemetry.wait(timeout=timeout)
+    except Exception:  # noqa: BLE001
+        pass
+    finally:
+        try:
+            client.loop_stop()
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            client.disconnect()
+        except Exception:  # noqa: BLE001
+            pass
+
+    return result
+
+
+async def _async_yarbo_probe(host: str, port: int, timeout: float = 5.0) -> _YarboProbeResult:
+    """Async wrapper around the synchronous Yarbo MQTT probe."""
+    return await asyncio.to_thread(_sync_yarbo_probe, host, port, timeout)
 
 
 async def _discover_from_arp(port: int = DEFAULT_BROKER_PORT) -> list[YarboEndpoint]:
@@ -150,19 +238,47 @@ async def _discover_from_arp(port: int = DEFAULT_BROKER_PORT) -> list[YarboEndpo
         port,
     )
 
-    # Probe all neighbours in parallel with concurrency limit
+    # Phase 1: fast TCP probe to find hosts with MQTT port open
     semaphore = asyncio.Semaphore(_MAX_CONCURRENT_PROBES)
 
-    async def _limited_probe(ip: str) -> bool:
+    async def _limited_tcp_probe(ip: str) -> bool:
         async with semaphore:
             return await _probe_mqtt(ip, port)
 
-    results = await asyncio.gather(*[_limited_probe(ip) for ip, _mac in neighbours])
+    tcp_results = await asyncio.gather(
+        *[_limited_tcp_probe(ip) for ip, _mac in neighbours]
+    )
+
+    mqtt_hosts: list[tuple[str, str]] = []
+    for (ip, mac), is_open in zip(neighbours, tcp_results, strict=True):
+        if is_open:
+            _LOGGER.debug("ARP discovery: MQTT port open at %s (MAC %s)", ip, mac)
+            mqtt_hosts.append((ip, mac))
+
+    if not mqtt_hosts:
+        return []
+
+    # Phase 2: Yarbo-specific probe — connect via MQTT and listen for
+    # snowbot/+/device/... topics. Only real Yarbo devices respond.
+    _LOGGER.debug(
+        "ARP discovery: verifying %d MQTT hosts for Yarbo SN broadcast",
+        len(mqtt_hosts),
+    )
+
+    yarbo_results = await asyncio.gather(
+        *[_async_yarbo_probe(ip, port, timeout=6.0) for ip, _mac in mqtt_hosts]
+    )
 
     endpoints: list[YarboEndpoint] = []
-    for (ip, mac), is_open in zip(neighbours, results, strict=True):
-        if is_open:
-            _LOGGER.debug("ARP discovery: found MQTT broker at %s (MAC %s)", ip, mac)
+    for (ip, mac), probe in zip(mqtt_hosts, yarbo_results, strict=True):
+        if probe.is_yarbo:
+            _LOGGER.info(
+                "ARP discovery: confirmed Yarbo at %s (MAC %s, SN %s, name %s)",
+                ip,
+                mac,
+                probe.serial,
+                probe.name,
+            )
             endpoints.append(
                 YarboEndpoint(
                     host=ip,
@@ -171,6 +287,10 @@ async def _discover_from_arp(port: int = DEFAULT_BROKER_PORT) -> list[YarboEndpo
                     endpoint_type=ENDPOINT_TYPE_UNKNOWN,
                     recommended=False,
                 )
+            )
+        else:
+            _LOGGER.debug(
+                "ARP discovery: %s has MQTT but no Yarbo SN — skipping", ip
             )
 
     return endpoints
