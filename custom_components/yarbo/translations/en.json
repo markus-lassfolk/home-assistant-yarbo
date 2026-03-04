@@ -93,7 +93,8 @@
           "cloud_enabled": "Enable cloud features",
           "activity_personality": "Fun activity descriptions (emoji mode)",
           "debug_logging": "Enable debug logging",
-          "mqtt_recording": "Record MQTT traffic for diagnostics"
+          "mqtt_recording": "Record MQTT traffic for diagnostics",
+          "error_reporting": "Enable anonymous crash reporting (helps improve the integration)"
         },
         "data_description": {
           "telemetry_throttle": "How often telemetry updates are pushed to Home Assistant. Lower values mean more frequent updates but higher recorder load.",

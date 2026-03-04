@@ -32,7 +32,9 @@ from .const import (
     CONF_ROBOT_SERIAL,
     DATA_CLIENT,
     DATA_COORDINATOR,
+    DEFAULT_ERROR_REPORTING,
     DOMAIN,
+    OPT_ERROR_REPORTING,
     PLATFORMS,
 )
 from .coordinator import YarboDataCoordinator
@@ -107,13 +109,12 @@ def _warmup_connect(host: str, port: int) -> None:
     (idna metadata, etc.) happen outside the event loop.
     """
     try:
-        import socket
-
         # Force idna and other lazy imports to resolve their metadata now
         # Force all lazy imports and metadata reads that paho-mqtt triggers
         # during connect. These must happen in the executor thread, not the
         # event loop, to avoid HA's blocking call detection.
         import importlib.metadata
+        import socket
 
         for pkg in ("idna", "paho-mqtt", "certifi", "charset-normalizer"):
             try:
@@ -124,10 +125,10 @@ def _warmup_connect(host: str, port: int) -> None:
                 pass
         # Pre-import idna and force its __version__ lookup (which reads METADATA)
         try:
-            import idna  # noqa: F401
-            import idna.core  # noqa: F401
-            import idna.codec  # noqa: F401
-            import idna.package_data  # noqa: F401
+            import idna
+            import idna.codec
+            import idna.core
+            import idna.package_data
 
             _ = idna.__version__  # triggers metadata read
         except (ImportError, AttributeError):
@@ -137,7 +138,7 @@ def _warmup_connect(host: str, port: int) -> None:
         s.settimeout(3)
         s.connect((host, port))
         s.close()
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass  # Warmup failure is non-fatal
 
 
@@ -187,10 +188,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as err:
         _LOGGER.debug("Could not fetch integration version: %s", err)
 
-    # Opt-in error reporting: set YARBO_SENTRY_DSN to enable
+    # Opt-in error reporting: read option, default enabled during beta
     _serial = entry.data.get(CONF_ROBOT_SERIAL, "unknown")
+    error_reporting_enabled = entry.options.get(OPT_ERROR_REPORTING, DEFAULT_ERROR_REPORTING)
     await async_init_error_reporting(
         hass,
+        enabled=error_reporting_enabled,
         tags={
             "integration": DOMAIN,
             "integration_version": integration_version,
@@ -207,7 +210,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry.data[CONF_BROKER_HOST],
             entry.data[CONF_BROKER_PORT],
         )
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.debug("Warmup connect failed (non-fatal)")
 
     client = YarboLocalClient(
