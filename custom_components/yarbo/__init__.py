@@ -255,7 +255,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update — propagate new options to the coordinator."""
-    coordinator: YarboDataCoordinator = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
+    entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if entry_data is None:
+        _LOGGER.warning(
+            "Options update for entry %s skipped — integration not fully loaded",
+            entry.entry_id,
+        )
+        return
+    coordinator: YarboDataCoordinator = entry_data[DATA_COORDINATOR]
     options: dict[str, Any] = dict(entry.options)
     coordinator.update_options(options)
     _LOGGER.debug("Yarbo options applied for entry %s", entry.entry_id)
