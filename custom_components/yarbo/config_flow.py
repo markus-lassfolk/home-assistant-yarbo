@@ -90,6 +90,7 @@ from .const import (  # noqa: E402
     DEFAULT_AUTO_CONTROLLER,
     DEFAULT_BROKER_PORT,
     DEFAULT_DEBUG_LOGGING,
+    DEFAULT_ERROR_REPORTING,
     DEFAULT_MQTT_RECORDING,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
@@ -98,6 +99,7 @@ from .const import (  # noqa: E402
     OPT_ACTIVITY_PERSONALITY,
     OPT_AUTO_CONTROLLER,
     OPT_DEBUG_LOGGING,
+    OPT_ERROR_REPORTING,
     OPT_MQTT_RECORDING,
     OPT_TELEMETRY_THROTTLE,
 )
@@ -787,6 +789,12 @@ class YarboOptionsFlow(OptionsFlow):
                     OPT_ACTIVITY_PERSONALITY,
                     default=self._config_entry.options.get(
                         OPT_ACTIVITY_PERSONALITY, DEFAULT_ACTIVITY_PERSONALITY
+                    ),
+                ): bool,
+                vol.Optional(
+                    OPT_ERROR_REPORTING,
+                    default=self._config_entry.options.get(
+                        OPT_ERROR_REPORTING, DEFAULT_ERROR_REPORTING
                     ),
                 ): bool,
             }

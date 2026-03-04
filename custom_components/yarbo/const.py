@@ -218,4 +218,8 @@ OPT_DEBUG_LOGGING = "debug_logging"
 OPT_MQTT_RECORDING = "mqtt_recording"
 DEFAULT_DEBUG_LOGGING = False
 DEFAULT_MQTT_RECORDING = False
+
+# Error reporting opt-out
+OPT_ERROR_REPORTING = "error_reporting"
+DEFAULT_ERROR_REPORTING = True  # enabled by default during beta
 MQTT_RECORDING_MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
