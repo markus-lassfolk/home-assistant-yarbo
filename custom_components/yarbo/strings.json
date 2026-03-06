@@ -98,7 +98,7 @@
         "data_description": {
           "telemetry_throttle": "How often telemetry updates are pushed to Home Assistant. Lower values mean more frequent updates but higher recorder load.",
           "poll_interval": "How often to request telemetry from the robot when the app is closed. Lower = fresher data but more network traffic. Range: 1–3600. When the robot is working, the library uses 1s for live telemetry.",
-          "poll_acquire_controller": "If enabled, the integration calls get_controller before get_status and before each telemetry poll. Disable (default) to only query status so the mobile app can stay in control.",
+          "poll_acquire_controller": "When the app is closed, Home Assistant periodically asks the robot for status (battery, activity, Last Seen). If this is on, each of those requests also takes \"controller\" from the robot (same as opening the app). Leave off (default) so the robot stays in normal standby and you still get updates; turn on only if you need HA to hold controller during background polling.",
           "auto_controller": "If enabled, the integration calls get_controller before each user action (e.g. Start plan, Return to dock, Lights). Enable (default) so commands are sent with controller; disable if you only want to observe status.",
           "activity_personality": "When enabled, the activity sensor includes fun emoji descriptions as extra attributes."
         }
