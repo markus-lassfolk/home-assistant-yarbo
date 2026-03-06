@@ -8,6 +8,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2026.3.62] — 2026-03-06
+
+### Added
+- **Performance diagnostics** — coordinator diagnostics now include `listener_count` and `poll_interval` to help diagnose "HA hangs" or high load when there are many entities.
+- **Performance troubleshooting** — new section in [Troubleshooting](troubleshooting.md): "HA hangs or runs out of resources when Yarbo is enabled" (what to collect, what to try, how to report).
+- **Debug timing** — when debug logging is on, log when `async_set_updated_data` takes >0.1s (listener count in message).
+- **Performance test** — `tests/test_coordinator_performance.py` (diagnostics include listener_count and poll_interval).
+
+### Changed
+- **Diagnostic polling** — 0.3s delay between each diagnostic request (every 300s) to avoid blocking the event loop and reduce burst load on the robot.
+- **Options** — improved description for `poll_acquire_controller` (when app is closed, what "acquire controller" means, when to leave off).
+
+### Fixed
+- One-time INFO when entity count >40 suggesting to raise telemetry update interval if HA is slow.
+
+---
+
 ## [2026.3.61] — 2026-03-06
 
 All changes since 2026.3.40.

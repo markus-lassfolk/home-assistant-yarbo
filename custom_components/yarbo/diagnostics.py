@@ -66,17 +66,28 @@ async def async_get_config_entry_diagnostics(
     except Exception:
         pass
 
+    # Listener count helps diagnose "HA hangs" — many entities = more work per update
+    listener_count: int | None = None
+    try:
+        listeners = getattr(coordinator, "_listeners", None)
+        if listeners is not None and isinstance(listeners, list):
+            listener_count = len(listeners)
+    except Exception:
+        pass
+
     diagnostics = {
         "config_entry": _redact_config(entry.data),
         "coordinator": {
             "last_update_success": coordinator.last_update_success,
             "update_count": coordinator._update_count,
+            "listener_count": listener_count,
             "last_seen": coordinator._last_seen,
             "last_telemetry_received_utc": getattr(
                 coordinator, "_last_telemetry_received_utc", None
             ),
             "seconds_since_last_telemetry": seconds_since_last_telemetry,
             "throttle_interval": coordinator._throttle_interval,
+            "poll_interval": getattr(coordinator, "_poll_interval", None),
         },
         "telemetry": {
             "raw": _redact_telemetry(raw),

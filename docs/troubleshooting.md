@@ -204,6 +204,56 @@ The robot automatically returns to the dock when the battery drops below the `Ba
 
 ---
 
+## HA hangs or runs out of resources when Yarbo is enabled
+
+If Home Assistant becomes slow, unresponsive, or runs out of memory/CPU after you enable the Yarbo integration, and there is **nothing useful in the logs** or in GlitchTip, use the steps below to narrow it down.
+
+### 1. Collect diagnostics (no logs needed)
+
+1. Go to **Settings → Devices & Services → Yarbo → ⋮ → Diagnostics**.
+2. Download or copy the diagnostics JSON.
+3. In the **coordinator** section, note:
+   - **listener_count** — number of entities (sensors, switches, buttons, etc.). High values (e.g. 50+) mean every telemetry update notifies many entities; if your system is already under load, this can add up.
+   - **throttle_interval** — how often (seconds) we push updates to HA. Lower = more updates per minute.
+   - **poll_interval** — how often we request status from the robot when the app is closed.
+4. In **mqtt_recording**, if **enabled** is true, recording writes to disk on every message; on slow or busy systems this can contribute to load.
+
+Share these values when reporting the issue (e.g. listener_count, throttle_interval, mqtt_recording.enabled).
+
+### 2. Try these changes first
+
+| Change | Why it can help |
+|--------|------------------|
+| **Raise telemetry update interval** | In Yarbo options, set *Telemetry update interval* to **2–5 seconds** (default is 1). Fewer updates = less work for the recorder and entity callbacks. |
+| **Turn off MQTT recording** | If it’s on, disable *MQTT recording* in options. Stops writing to disk on every message. |
+| **Raise poll interval** | If the app is often closed, set *Telemetry poll interval* to **30** or **60** seconds instead of 10. Reduces how often we ask the robot for status. |
+| **Disable debug logging** | If you had turned on *Debug logging*, turn it off. Debug I/O can add load. |
+
+### 3. Enable debug to measure update cost (optional)
+
+If the problem persists, enable **Debug logging** for the integration (options or `logger: custom_components.yarbo: debug`). After a few minutes, check the log for lines like:
+
+```text
+async_set_updated_data took 0.XXXs (listeners=N)
+```
+
+If you see times **over 0.1–0.2 seconds** regularly, entity updates are taking significant time; raising the telemetry update interval (step 2) usually helps. If you see a one-time INFO about “Yarbo has N entities … try raising telemetry update interval”, that’s a hint to use a higher throttle.
+
+### 4. Compare with and without Yarbo
+
+- Disable or remove the Yarbo integration and restart HA. If the system is fine without it, the cause is likely this integration or its interaction with your setup.
+- Re-enable Yarbo with the options above (higher throttle, no recording, higher poll interval) and see if the problem comes back.
+
+### 5. Report an issue
+
+When opening a GitHub issue, please include:
+
+- Diagnostics JSON (or at least coordinator.listener_count, throttle_interval, poll_interval, mqtt_recording.enabled).
+- What you tried from step 2 and whether it helped.
+- HA version, OS (e.g. HA OS / Supervised / venv), and whether you have one or multiple Yarbo devices.
+
+---
+
 ## Integration Errors in HA Log
 
 ### Enable Debug Logging

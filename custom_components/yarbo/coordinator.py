@@ -276,6 +276,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._map_backups: list[Any] = []
         self._clean_areas: list[Any] = []
         self._motor_temp_c: float | None = None
+        self._logged_high_listeners = False
 
     def update_options(self, options: dict[str, Any]) -> None:
         """Apply updated config entry options without requiring a full reload.
@@ -1167,7 +1168,29 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                             _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
                     self._last_update = now
                     self._update_count += 1
+                    if _LOGGER.isEnabledFor(logging.DEBUG):
+                        t0 = time.monotonic()
                     self.async_set_updated_data(telemetry)
+                    if _LOGGER.isEnabledFor(logging.DEBUG):
+                        elapsed = time.monotonic() - t0
+                        if elapsed > 0.1:
+                            _LOGGER.debug(
+                                "async_set_updated_data took %.3fs (listeners=%s)",
+                                elapsed,
+                                len(getattr(self, "_listeners", [])),
+                            )
+                    if not self._logged_high_listeners:
+                        try:
+                            n = len(getattr(self, "_listeners", []))
+                            if n > 40:
+                                self._logged_high_listeners = True
+                                _LOGGER.info(
+                                    "Yarbo has %d entities (listeners). If HA is slow, try raising "
+                                    "telemetry update interval in integration options (e.g. 2–5s).",
+                                    n,
+                                )
+                        except Exception:
+                            pass
                     if self._issue_active:
                         async_delete_mqtt_disconnect_issue(self.hass, self._entry.entry_id)
                         self._issue_active = False
@@ -1385,6 +1408,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                             await method(timeout=1.0, skip_lock=True)
                         except Exception as err:
                             _LOGGER.debug("Diagnostic request failed (non-fatal): %s", err)
+                        await asyncio.sleep(0.3)
                     self.async_update_listeners()
             except asyncio.CancelledError:
                 _LOGGER.debug("Diagnostic polling loop cancelled")
