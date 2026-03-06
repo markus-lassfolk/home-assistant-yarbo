@@ -76,6 +76,31 @@ nc -zv <robot_ip> 1883
 - Go to **Settings → Devices & Services → Yarbo → Reconfigure** to update the IP address
 - Restart the integration entry: **Settings → Devices & Services → Yarbo → ⋮ → Reload**
 
+### Last Seen Not Updating When Running a Script (e.g. get_status / test_polling_with_app_in_control)
+
+**Symptoms:** You run a python-yarbo script that sends `get_device_msg` (e.g. `test_polling_with_app_in_control.py --broker 192.168.1.55 --sn ...`), and the robot responds with telemetry, but the Home Assistant **Last Seen** sensor still shows an old value (e.g. "25 minutes ago").
+
+**Cause:** Home Assistant and the script use **different MQTT brokers**. The robot sends the response to the **same broker** the request was sent to. So:
+
+- If the script uses `--broker 192.168.1.55`, the robot’s `data_feedback` reply is published on the MQTT server at **192.168.1.55**.
+- If the integration is configured with a different broker (e.g. **192.168.1.24**), HA is subscribed on 192.168.1.24 and **never receives** those messages.
+
+**How to check:**
+
+1. In Home Assistant: **Settings → Devices & Services → Yarbo → ⋮ → Diagnostics**. In the **connection** section, note **broker_host** (the IP HA is connected to).
+2. Compare with the broker you pass to the script (e.g. `--broker 192.168.1.55`). If they differ, that’s why Last Seen doesn’t update.
+
+**Fix:**
+
+- **Option A:** Reconfigure the integration to use the **same** broker as the script (e.g. 192.168.1.55): **Settings → Devices & Services → Yarbo → ⋮ → Reconfigure** and set the base station / broker IP to 192.168.1.55.
+- **Option B:** Run the script with the **same** broker as HA (e.g. `--broker 192.168.1.24` if that’s what diagnostics show).
+
+Some setups have two broker IPs (e.g. rover 192.168.1.55 and DC 192.168.1.24) that mirror traffic; if yours doesn’t, HA and the script must use the same broker to see each other’s traffic.
+
+**Also:** Last Seen updates when the integration receives any telemetry: **DeviceMSG** (when the app is connected), **data_feedback** (e.g. from the integration’s own polling or a script’s `get_device_msg`), or **heart_beat** (robot sends ~1 Hz when connected). So with the same broker, Last Seen should update when the script runs. If it still doesn’t, check **Diagnostics → coordinator → last_telemetry_received_utc** while the script runs; if that timestamp doesn’t advance, the integration isn’t receiving those messages.
+
+For the exact **data_feedback** payload shape (so the library can parse get_device_msg responses correctly), see [MQTT data_feedback payload](mqtt-data-feedback-payload.md). The integration provides scripts to record and analyse real MQTT traffic: `scripts/capture_mqtt_traffic.py` and `scripts/analyze_mqtt_capture.py`.
+
 ### Only Some Entities Unavailable
 
 **Cause:** Head-specific entities are disabled when the corresponding head type is not installed. This is expected behaviour.

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import (
+    CONF_BROKER_HOST,
     CONF_CLOUD_REFRESH_TOKEN,
     CONF_CLOUD_USERNAME,
     CONF_ROBOT_SERIAL,
@@ -46,18 +48,42 @@ async def async_get_config_entry_diagnostics(
     if not isinstance(raw, dict):
         raw = {}
 
+    # Seconds since we last received any telemetry (for debugging "Last Seen" issues)
+    last_seen_mono = getattr(coordinator, "_last_seen", None)
+    seconds_since_last_telemetry: float | None = None
+    if last_seen_mono is not None:
+        try:
+            seconds_since_last_telemetry = time.monotonic() - last_seen_mono
+        except (TypeError, AttributeError):
+            pass
+
+    # Actual broker the client is connected to (may differ after failover)
+    actual_broker = None
+    try:
+        transport = getattr(client, "_transport", None)
+        if transport is not None:
+            actual_broker = getattr(transport, "_broker", None)
+    except Exception:
+        pass
+
     diagnostics = {
         "config_entry": _redact_config(entry.data),
         "coordinator": {
             "last_update_success": coordinator.last_update_success,
             "update_count": coordinator._update_count,
             "last_seen": coordinator._last_seen,
+            "last_telemetry_received_utc": getattr(
+                coordinator, "_last_telemetry_received_utc", None
+            ),
+            "seconds_since_last_telemetry": seconds_since_last_telemetry,
             "throttle_interval": coordinator._throttle_interval,
         },
         "telemetry": {
             "raw": _redact_telemetry(raw),
         },
         "connection": {
+            "broker_host": entry.data.get(CONF_BROKER_HOST),
+            "actual_broker_host": actual_broker,
             "connected": client.is_connected,
             "controller_acquired": client.controller_acquired,
             "serial_number": _redact_sn(getattr(client, "serial_number", "")),
