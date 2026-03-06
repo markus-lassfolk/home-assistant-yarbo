@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2026.3.63] — 2026-03-06
+
+### Changed
+- **Last Seen / Last Seen Latency** — These diagnostic sensors now write state only when their rounded value actually changes (once per minute for Last Seen, once per 30s for Latency). This reduces recorder and Activity log updates and avoids flooding the logbook.
+
+---
+
 ## [2026.3.62] — 2026-03-06
 
 ### Added
