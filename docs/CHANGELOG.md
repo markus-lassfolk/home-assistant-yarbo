@@ -8,6 +8,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2026.3.61] — 2026-03-06
+
+All changes since 2026.3.40.
+
+### Changed
+- **python-yarbo** — requirement `>=2026.3.60,<2027.0` for correct `data_feedback` get_device_msg handling and Last Seen updates.
+- **Options UI** — clarified labels and descriptions for `poll_acquire_controller` (acquire when polling for telemetry) vs `auto_controller` (acquire before sending commands); added description for auto_controller.
+
+### Added
+- **MQTT capture and analysis** — `scripts/capture_mqtt_traffic.py`, `scripts/analyze_mqtt_capture.py`, [docs/mqtt-data-feedback-payload.md](mqtt-data-feedback-payload.md).
+- **Testing before release** — [docs/testing-before-release.md](testing-before-release.md), `scripts/install_latest_to_hass.sh`.
+
+### Documentation
+- Troubleshooting: link to data_feedback payload doc and capture/analyze scripts (Last Seen).
+- Development: link to Testing before release guide.
+
+---
+
 ## [2026.3.21] — 2026-03-02
 
 ### Fixed
