@@ -15,9 +15,14 @@ from homeassistant.loader import async_get_integration
 from yarbo import YarboLocalClient
 from yarbo.exceptions import YarboConnectionError
 
-# Safety net: disable library-level Sentry auto-init in case an older version of
-# python-yarbo still calls init_error_reporting() at module level on import.
-# HA manages its own error reporting via custom_components/yarbo/error_reporting.py.
+# Disable library-level Sentry auto-init so python-yarbo doesn't start its own
+# error reporting.  HA manages its own via custom_components/yarbo/error_reporting.py.
+try:
+    from yarbo.error_reporting import init_error_reporting as _lib_init_error_reporting
+
+    _lib_init_error_reporting(enabled=False)
+except ImportError:
+    pass  # python-yarbo version without error_reporting — no action needed
 
 # Minimum python-yarbo version required by this integration.
 # Bump this when using new library features (e.g. get_controller(timeout=...)).
