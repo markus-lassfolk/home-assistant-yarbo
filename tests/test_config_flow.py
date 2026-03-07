@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import pytest
-
 from collections.abc import AsyncGenerator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from homeassistant import config_entries
 from homeassistant.components import dhcp
 from homeassistant.core import HomeAssistant
