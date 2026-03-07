@@ -1,0 +1,411 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Verbinden met Yarbo",
+        "description": "Voer het IP-adres in van uw Yarbo-basisstation (Data Center). De integratie maakt verbinding met de lokale MQTT-broker op poort 1883.",
+        "data": {
+          "broker_host": "IP-adres basisstation",
+          "broker_port": "MQTT-poort"
+        }
+      },
+      "manual": {
+        "title": "Voer verbindingsgegevens in",
+        "description": "Er zijn geen Yarbo-apparaten gevonden in het netwerk. Voer het IP-adres van het basisstation en de MQTT-poort handmatig in.",
+        "data": {
+          "broker_host": "IP-adres basisstation",
+          "broker_port": "MQTT-poort"
+        }
+      },
+      "confirm": {
+        "title": "Yarbo gevonden",
+        "description": "**Yarbo {name}** gevonden in uw netwerk op {host}. Klik op Verzenden om deze robot toe te voegen."
+      },
+      "select_endpoint": {
+        "title": "Kies MQTT-eindpunt",
+        "description": "We hebben **{count}** pad(en) gevonden naar uw Yarbo-maaier (volgorde van ontdekking: Primair, dan Secundair). Beide maken verbinding met dezelfde broker. Failover probeert de volgende in deze volgorde wanneer de huidige niet beschikbaar is.",
+        "data": {
+          "selected_endpoint": "Eindpunt"
+        }
+      },
+      "mqtt_test": {
+        "title": "Verbinden met Yarbo",
+        "description": "MQTT-verbinding testen en wachten op telemetrie van uw robot..."
+      },
+      "reconfigure": {
+        "title": "Yarbo herconfigureren",
+        "description": "Werk het IP-adres van uw Yarbo-basisstation bij.",
+        "data": {
+          "broker_host": "IP-adres basisstation",
+          "broker_port": "MQTT-poort"
+        }
+      },
+      "name": {
+        "title": "Geef uw robot een naam",
+        "description": "Kies een naam voor uw Yarbo-robot. Dit wordt gebruikt voor alle entiteitsnamen.",
+        "data": {
+          "robot_name": "Robotnaam"
+        }
+      },
+      "cloud": {
+        "title": "Cloudfuncties (optioneel)",
+        "description": "Maak optioneel verbinding met de Yarbo-cloud voor firmware-updates en apparaatinformatie. Niet vereist voor lokale bediening. Laat leeg om over te slaan.",
+        "data": {
+          "cloud_username": "E-mailadres Yarbo-account",
+          "cloud_password": "Wachtwoord"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Yarbo Cloud herauthentiseren",
+        "description": "Uw Yarbo-cloudsessie voor **{username}** is verlopen. Voer uw wachtwoord in om opnieuw verbinding te maken.",
+        "data": {
+          "cloud_password": "Wachtwoord"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Deze robot is al geconfigureerd.",
+      "cannot_connect": "Kan geen verbinding maken met MQTT-broker op {host}:1883. Is het basisstation ingeschakeld en bereikbaar?",
+      "no_telemetry": "Verbonden maar binnen 10 seconden geen telemetrie van de robot ontvangen. Is de robot ingeschakeld?",
+      "decode_error": "Gegevens ontvangen maar kan deze niet decoderen. Firmware is mogelijk incompatibel.",
+      "not_implemented": "Configuratiestroom nog niet geïmplementeerd.",
+      "wrong_device": "Het gevonden apparaat komt niet overeen met deze Yarbo-robot.",
+      "reconfigure_successful": "Herconfiguratie succesvol voltooid.",
+      "reconfigure_failed": "Herconfiguratie mislukt.",
+      "reauth_successful": "Herauthenticatie succesvol."
+    },
+    "error": {
+      "cannot_connect": "Kan geen verbinding maken",
+      "no_telemetry": "Geen telemetrie ontvangen binnen 30 seconden. Zorg ervoor dat de robot is ingeschakeld en in de buurt van het basisstation is, en probeer het dan opnieuw.",
+      "decode_error": "Decodeerfout",
+      "cloud_auth_failed": "Cloudauthenticatie mislukt — controleer uw e-mailadres en wachtwoord",
+      "cloud_not_available": "Cloudclient niet beschikbaar — update python-yarbo"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Yarbo-opties",
+        "description": "Configureer integratiegedrag. Wijzigingen worden onmiddellijk van kracht (geen herstart vereist).",
+        "data": {
+          "telemetry_throttle": "Interval voor telemetrie-update (1–10 seconden)",
+          "auto_controller": "Controller automatisch verwerven voor opdrachten",
+          "cloud_enabled": "Cloudfuncties inschakelen",
+          "activity_personality": "Leuke activiteitsbeschrijvingen (emoji-modus)",
+          "debug_logging": "Foutopsporing (debug logging) inschakelen",
+          "mqtt_recording": "MQTT-verkeer opnemen voor diagnostiek",
+          "error_reporting": "Anonieme crashrapportage inschakelen (helpt de integratie te verbeteren)"
+        },
+        "data_description": {
+          "telemetry_throttle": "Hoe vaak telemetrie-updates naar Home Assistant worden gepusht. Lagere waarden betekenen frequentere updates maar hogere belasting van de recorder.",
+          "activity_personality": "Indien ingeschakeld, bevat de activiteitssensor leuke emoji-beschrijvingen als extra attributen.",
+          "debug_logging": "Schakelt uitgebreide logboekregistratie in voor alle Yarbo-componenten. Handig voor probleemoplossing.",
+          "mqtt_recording": "Neemt alle MQTT-berichten op in een bestand (max 10 MB). Deel met ontwikkelaars om problemen met uw firmware/koptype te helpen oplossen."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery": { "name": "Batterij" },
+      "activity": {
+        "name": "Activiteit",
+        "state": {
+          "charging": "Opladen",
+          "idle": "Inactief",
+          "working": "Werkt",
+          "paused": "Gepauzeerd",
+          "returning": "Terugkeren naar basisstation",
+          "error": "Fout"
+        }
+      },
+      "head_type": {
+        "name": "Koptype",
+        "state": {
+          "snow_blower": "Sneeuwblazer",
+          "lawn_mower": "Grasmaaier",
+          "lawn_mower_pro": "Grasmaaier Pro",
+          "leaf_blower": "Bladblazer",
+          "smart_cover": "Smart Cover",
+          "trimmer": "Trimmer",
+          "none": "Geen"
+        }
+      },
+      "rtk_status": {
+        "name": "RTK-status",
+        "state": {
+          "invalid": "Geen fix",
+          "gps": "GPS",
+          "dgps": "DGPS",
+          "rtk_float": "RTK Float",
+          "rtk_fixed": "RTK Fixed",
+          "unknown": "Onbekend"
+        }
+      },
+      "heading": { "name": "Richting" },
+      "chute_angle": { "name": "Hoek uitwerpkanaal" },
+      "rain_sensor": { "name": "Regensensor" },
+      "connection": { "name": "Verbinding" },
+      "wifi_network": { "name": "WiFi-netwerk" },
+      "error_code": { "name": "Foutcode" },
+      "head_serial": { "name": "Kopserienummer" },
+      "battery_temp_error": { "name": "Batterijtemperatuurfout" },
+      "base_station_status": { "name": "Status basisstation" },
+      "satellite_count": { "name": "Aantal satellieten" },
+      "gps_fix_quality": { "name": "GPS-fixkwaliteit" },
+      "gps_hdop": { "name": "GPS HDOP" },
+      "gps_altitude": { "name": "GPS-hoogte" },
+      "charging_power": { "name": "Laadvermogen" },
+      "battery_cell_temp_min": { "name": "Min. temp. batterijcel" },
+      "battery_cell_temp_max": { "name": "Max. temp. batterijcel" },
+      "battery_cell_temp_avg": { "name": "Gem. temp. batterijcel" },
+      "odometer": { "name": "Kilometerteller" },
+      "wireless_charge_state": { "name": "Draadloze laadstatus" },
+      "wireless_charge_error": { "name": "Draadloze laadfout" },
+      "odom_confidence": { "name": "Odometrievertrouwen" },
+      "odom_x": { "name": "Odometrie X" },
+      "odom_y": { "name": "Odometrie Y" },
+      "odom_phi": { "name": "Odometrie Phi" },
+      "rtcm_age": { "name": "RTCM-leeftijd" },
+      "rtcm_source_type": { "name": "RTCM-brontype" },
+      "charge_voltage": { "name": "Laadspanning" },
+      "charge_current": { "name": "Laadstroom" },
+      "mqtt_age": { "name": "MQTT-berichtleeftijd" },
+      "heading_dop": { "name": "Koers-DOP" },
+      "heading_status": { "name": "Koersstatus" },
+      "antenna_distance": { "name": "Antenne-afstand" },
+      "chute_steering_info": { "name": "Uitwerpkanaal besturingsinfo" },
+      "nav_sensor_front_right": { "name": "Navigatiesensor rechtsvoor" },
+      "nav_sensor_rear_right": { "name": "Navigatiesensor rechtsachter" },
+      "head_gyro_pitch": { "name": "Kop-gyro pitch" },
+      "head_gyro_roll": { "name": "Kop-gyro roll" },
+      "machine_controller": { "name": "Machinecontroller" },
+      "plan_remaining_time": { "name": "Resterende plantijd" },
+      "route_priority_hg0": { "name": "Routeprioriteit HG0" },
+      "route_priority_wlan0": { "name": "Routeprioriteit WLAN0" },
+      "route_priority_wwan0": { "name": "Routeprioriteit WWAN0" },
+      "ultrasonic_left_front": { "name": "Ultrasoon linksvoor" },
+      "ultrasonic_middle": { "name": "Ultrasoon midden" },
+      "ultrasonic_right_front": { "name": "Ultrasoon rechtsvoor" },
+      "schedule_count": { "name": "Aantal schema's" },
+      "body_current": { "name": "Lichaamstroom" },
+      "head_current": { "name": "Kopstroom" },
+      "speed": { "name": "Snelheid" },
+      "product_code": { "name": "Productcode" },
+      "hub_info": { "name": "Hub-info" },
+      "recharge_point": { "name": "Oplaadpunt" },
+      "wifi_list": { "name": "WiFi-lijst" },
+      "map_backup_count": { "name": "Kaart back-ups" },
+      "clean_area_count": { "name": "Gereinigde gebieden" },
+      "motor_temp": { "name": "Motortemperatuur" },
+      "last_seen": { "name": "Laatst gezien" },
+      "saved_wifi_list": { "name": "Opgeslagen WiFi-netwerken" }
+    },
+    "binary_sensor": {
+      "charging": { "name": "Opladen" },
+      "problem": { "name": "Probleem" },
+      "planning": { "name": "Planning actief" },
+      "planning_active": { "name": "Planning actief" },
+      "returning_to_charge": { "name": "Terugkeren om op te laden" },
+      "going_to_start": { "name": "Naar startpunt" },
+      "follow_mode": { "name": "Volgmodus" },
+      "planning_paused": { "name": "Planning gepauzeerd" },
+      "manual_controller": { "name": "Handmatige controller" },
+      "rain_detected": { "name": "Regen gedetecteerd" },
+      "no_charge_period": { "name": "Niet-ladenperiode" },
+      "online": { "name": "Online" }
+    },
+    "button": {
+      "beep": { "name": "Piep" },
+      "return_to_dock": { "name": "Terugkeren naar basis" },
+      "pause": { "name": "Pauzeren" },
+      "resume": { "name": "Hervatten" },
+      "stop": { "name": "Stop" },
+      "emergency_stop": { "name": "Noodstop" },
+      "emergency_unlock": { "name": "Noodontgrendeling" },
+      "play_sound": { "name": "Geluid afspelen" },
+      "shutdown": { "name": "Uitschakelen" },
+      "restart": { "name": "Herstarten" },
+      "manual_stop": { "name": "Handmatige stop" },
+      "save_charging_point": { "name": "Oplaadpunt opslaan" },
+      "start_hotspot": { "name": "Hotspot starten" },
+      "save_map_backup": { "name": "Kaart back-up opslaan" },
+      "camera_calibration": { "name": "Camera kalibreren" },
+      "check_camera_status": { "name": "Camerastatus controleren" },
+      "firmware_update_now": { "name": "Firmware nu updaten" },
+      "firmware_update_tonight": { "name": "Firmware vannacht updaten" },
+      "firmware_update_later": { "name": "Firmware-update uitstellen" }
+    },
+    "event": {
+      "events": {
+        "name": "Gebeurtenissen",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "job_started": "Taak gestart",
+              "job_completed": "Taak voltooid",
+              "job_paused": "Taak gepauzeerd",
+              "error": "Fout",
+              "head_changed": "Kop veranderd",
+              "low_battery": "Batterij bijna leeg",
+              "controller_lost": "Controller verloren",
+              "docked": "Gedockt"
+            }
+          }
+        }
+      }
+    },
+    "light": {
+      "lights": { "name": "Lichten" },
+      "head_light": { "name": "Koplicht" },
+      "led_head": { "name": "Kop-LED" },
+      "led_left_w": { "name": "Links wit" },
+      "led_right_w": { "name": "Rechts wit" },
+      "led_body_left": { "name": "Lichaam links" },
+      "led_body_right": { "name": "Lichaam rechts" },
+      "led_tail_left": { "name": "Staart links" },
+      "led_tail_right": { "name": "Staart rechts" }
+    },
+    "switch": {
+      "buzzer": { "name": "Zoemer" },
+      "person_detect": { "name": "Persoonsdetectie" },
+      "roller": { "name": "Rol" },
+      "heating_film": { "name": "Verwarmingsfilm" },
+      "follow_mode": { "name": "Volgmodus" },
+      "auto_update": { "name": "Automatische update" },
+      "camera_ota": { "name": "Camera OTA" },
+      "trimmer": { "name": "Trimmer" },
+      "camera": { "name": "Camera" },
+      "laser": { "name": "Laser" },
+      "usb": { "name": "USB" },
+      "ignore_obstacles": { "name": "Obstakels negeren" },
+      "draw_mode": { "name": "Tekenmodus" },
+      "module_lock": { "name": "Modulevergrendeling" },
+      "wire_charging_lock": { "name": "Kabel laadvergrendeling" },
+      "smart_blowing": { "name": "Smart Blowing" },
+      "edge_blowing": { "name": "Edge Blowing" },
+      "motor_protect": { "name": "Motorbescherming" },
+      "mower_head_sensor": { "name": "Maaikopsensor" },
+      "roof_lights": { "name": "Daklichten" },
+      "sound_enable": { "name": "Geluid" },
+      "mower_ngz_edge": { "name": "Maaier no-go zone rand" },
+      "geo_fence": { "name": "Geofence" },
+      "elec_fence": { "name": "Elektrisch hek" },
+      "smart_vision": { "name": "Smart Vision" },
+      "video_record": { "name": "Video Record" },
+      "child_lock": { "name": "Kinderslot" },
+      "bag_record": { "name": "ROS Bag Recording" }
+    },
+    "number": {
+      "chute_velocity": { "name": "Snelheid uitwerpkanaal" },
+      "chute_steering_work": { "name": "Besturing uitwerpkanaal (werk)" },
+      "blade_height": { "name": "Meshoogte" },
+      "blade_speed": { "name": "Messnelheid" },
+      "blower_speed": { "name": "Blazersnelheid" },
+      "volume": { "name": "Volume" },
+      "plan_start_percent": { "name": "Plan startpercentage" },
+      "roller_speed": { "name": "Rolsnelheid" },
+      "battery_charge_min": { "name": "Batterijlading minimum" },
+      "battery_charge_max": { "name": "Batterijlading maximum" }
+    },
+    "select": {
+      "work_plan": { "name": "Werkplan" },
+      "turn_type": { "name": "Draaitype" },
+      "snow_push_direction": { "name": "Sneeuw duwrichting" }
+    },
+    "device_tracker": {
+      "location": { "name": "Locatie" }
+    },
+    "lawn_mower": {
+      "mower": { "name": "Maaier" }
+    },
+    "update": {
+      "firmware": { "name": "Firmware" }
+    }
+  },
+  "issues": {
+    "telemetry_timeout": {
+      "title": "Yarbo-telemetrie niet ontvangen",
+      "description": "Er is al minstens 60 seconden geen telemetrie ontvangen van **{name}**. Controleer of het basisstation is ingeschakeld en verbonden is met het netwerk."
+    },
+    "mqtt_disconnect": {
+      "title": "Yarbo-basisstation onbereikbaar",
+      "description": "Er is al minstens 60 seconden geen telemetrie ontvangen van **{name}**. De robot bevindt zich mogelijk buiten bereik of het basisstation is uitgeschakeld.\n\n**Stappen om op te lossen:**\n1. Controleer of het Yarbo Data Center (basisstation) is ingeschakeld.\n2. Controleer of het basisstation is verbonden met uw lokale netwerk.\n3. Bevestig dat Home Assistant het IP-adres van het basisstation kan bereiken.\n\nDit probleem wordt automatisch opgelost wanneer de telemetrie wordt hervat."
+    },
+    "controller_lost": {
+      "title": "Yarbo-controllersessie verloren",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Controller opnieuw verwerven",
+            "description": "De Yarbo-app of een andere client heeft de controllersessie voor **{name}** overgenomen, waardoor Home Assistant geen opdrachten kan verzenden.\n\nDruk op **Verzenden** om de controllersessie opnieuw te verwerven."
+          }
+        },
+        "abort": {
+          "cannot_connect": "Kon de controllersessie niet opnieuw verwerven. Controleer of het Yarbo-basisstation bereikbaar is en probeer het opnieuw.",
+          "unknown": "Er is een onverwachte fout opgetreden bij het opnieuw verwerven van de controllersessie."
+        }
+      }
+    },
+    "cloud_token_expired": {
+      "title": "Yarbo-cloudsessie verlopen",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Cloud herauthentiseren",
+            "description": "Uw Yarbo-cloudtoken voor **{name}** is verlopen. Druk op **Verzenden** om de herauthenticatie te openen en uw wachtwoord opnieuw in te voeren."
+          }
+        },
+        "abort": {
+          "unknown": "Kon de herauthenticatie niet starten."
+        }
+      }
+    }
+  },
+  "services": {
+    "send_command": {
+      "name": "Ruwe opdracht verzenden",
+      "description": "Publiceer een willekeurige MQTT-opdracht naar de robot (alleen voor ervaren gebruikers)."
+    },
+    "start_plan": {
+      "name": "Werkplan starten",
+      "description": "Start een opgeslagen werkplan via de id."
+    },
+    "pause": {
+      "name": "Pauzeren",
+      "description": "Pauzeer het huidige werkplan van de robot."
+    },
+    "resume": {
+      "name": "Hervatten",
+      "description": "Hervat een eerder gepauzeerd werkplan."
+    },
+    "return_to_dock": {
+      "name": "Terugkeren naar basisstation",
+      "description": "Stuur de robot terug naar zijn laadstation."
+    },
+    "set_lights": {
+      "name": "Lichten instellen",
+      "description": "Stel de helderheid in voor alle 7 LED-kanalen tegelijkertijd."
+    },
+    "set_chute_velocity": {
+      "name": "Snelheid uitwerpkanaal instellen",
+      "description": "Regel de richting en snelheid van het sneeuwuitwerpkanaal (alleen sneeuwblazerkop)."
+    },
+    "manual_drive": {
+      "name": "Handmatig rijden",
+      "description": "Verzend handmatige lineaire/hoek snelheidsopdrachten."
+    },
+    "go_to_waypoint": {
+      "name": "Ga naar waypoint",
+      "description": "Navigeer naar een opgeslagen waypoint-index."
+    },
+    "delete_plan": {
+      "name": "Plan verwijderen",
+      "description": "Verwijder een opgeslagen plan via de id."
+    },
+    "delete_all_plans": {
+      "name": "Alle plannen verwijderen",
+      "description": "Verwijder alle opgeslagen plannen op de robot."
+    }
+  }
+}

@@ -1,0 +1,697 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Anslut till Yarbo",
+        "description": "Ange IP-adressen till din Yarbo basstation (Data Center). Integrationen ansluter till den lokala MQTT-brokern på port 1883.",
+        "data": {
+          "broker_host": "Basstationens IP-adress",
+          "broker_port": "MQTT-port"
+        }
+      },
+      "manual": {
+        "title": "Ange anslutningsuppgifter",
+        "description": "Inga Yarbo-enheter hittades på nätverket. Ange basstationens IP-adress och MQTT-port manuellt.",
+        "data": {
+          "broker_host": "Basstationens IP-adress",
+          "broker_port": "MQTT-port"
+        }
+      },
+      "confirm": {
+        "title": "Yarbo upptäckt",
+        "description": "Hittade **Yarbo {name}** på ditt nätverk vid {host}. Klicka på Skicka för att lägga till denna robot."
+      },
+      "select_endpoint": {
+        "title": "Välj MQTT Endpoint",
+        "description": "Vi hittade **{count}** väg(ar) till din Yarbo gräsklippare (ordning från upptäckt: Primär, sedan Sekundär). Båda ansluter till samma broker. Vid fel kommer nästa i ordningen att testas.",
+        "data": {
+          "selected_endpoint": "Endpoint"
+        }
+      },
+      "mqtt_test": {
+        "title": "Ansluter till Yarbo",
+        "description": "Testar MQTT-anslutningen och väntar på telemetri från din robot..."
+      },
+      "reconfigure": {
+        "title": "Konfigurera om Yarbo",
+        "description": "Uppdatera IP-adressen för din Yarbo basstation.",
+        "data": {
+          "broker_host": "Basstationens IP-adress",
+          "broker_port": "MQTT-port"
+        }
+      },
+      "name": {
+        "title": "Namnge din robot",
+        "description": "Välj ett namn för din Yarbo-robot. Detta kommer att användas för alla enhetsnamn.",
+        "data": {
+          "robot_name": "Robotnamn"
+        }
+      },
+      "cloud": {
+        "title": "Molnfunktioner (Valfritt)",
+        "description": "Anslut frivilligt till Yarbo-molnet för firmware-uppdateringar och enhetsinformation. Krävs inte för lokal styrning. Lämna tomt för att hoppa över.",
+        "data": {
+          "cloud_username": "Yarbo-konto E-post",
+          "cloud_password": "Lösenord"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Autentisera Yarbo-molnet på nytt",
+        "description": "Din Yarbo molnsession för **{username}** har löpt ut. Ange ditt lösenord för att återansluta.",
+        "data": {
+          "cloud_password": "Lösenord"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Denna robot är redan konfigurerad.",
+      "cannot_connect": "Kan inte ansluta till MQTT-brokern på {host}:1883. Är basstationen påslagen och nåbar?",
+      "no_telemetry": "Ansluten men ingen robottelemetri mottagen inom 10 sekunder. Är roboten påslagen?",
+      "decode_error": "Mottog data men kan inte avkoda den. Firmware kan vara inkompatibel.",
+      "not_implemented": "Konfigurationsflödet är ännu inte implementerat.",
+      "wrong_device": "Den upptäckta enheten matchar inte denna Yarbo-robot.",
+      "reconfigure_successful": "Omkonfigurationen slutfördes framgångsrikt.",
+      "reconfigure_failed": "Omkonfigurationen misslyckades.",
+      "reauth_successful": "Om-autentisering lyckades."
+    },
+    "error": {
+      "cannot_connect": "Kan inte ansluta",
+      "no_telemetry": "Ingen telemetri mottagen inom 30 sekunder. Se till att roboten är påslagen och nära basstationen, försök sedan igen.",
+      "decode_error": "Avkodningsfel",
+      "cloud_auth_failed": "Molnautentisering misslyckades — kontrollera din e-post och ditt lösenord",
+      "cloud_not_available": "Molnklient inte tillgänglig — uppdatera python-yarbo"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Yarbo Alternativ",
+        "description": "Konfigurera integrationens beteende. Ändringar träder i kraft omedelbart (ingen omstart krävs).",
+        "data": {
+          "telemetry_throttle": "Telemetriuppdateringsintervall (1–10 sekunder)",
+          "auto_controller": "Hämta automatiskt controller innan kommandon",
+          "cloud_enabled": "Aktivera molnfunktioner",
+          "activity_personality": "Roliga aktivitetsbeskrivningar (emoji-läge)",
+          "debug_logging": "Aktivera debug-loggning",
+          "mqtt_recording": "Spela in MQTT-trafik för diagnostik",
+          "error_reporting": "Aktivera anonym kraschrapportering (hjälper till att förbättra integrationen)"
+        },
+        "data_description": {
+          "telemetry_throttle": "Hur ofta telemetriuppdateringar skickas till Home Assistant. Lägre värden innebär tätare uppdateringar men högre belastning på recorder.",
+          "activity_personality": "När aktiverat inkluderar aktivitetssensorn roliga emoji-beskrivningar som extra attribut.",
+          "debug_logging": "Aktiverar utförlig loggning för alla Yarbo-komponenter. Användbart för felsökning.",
+          "mqtt_recording": "Spelar in alla MQTT-meddelanden till en fil (max 10 MB). Dela med utvecklare för att hjälpa till att felsöka problem med din firmware/huvudtyp."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery": {
+        "name": "Batteri"
+      },
+      "activity": {
+        "name": "Aktivitet",
+        "state": {
+          "charging": "Laddar",
+          "idle": "Vilar",
+          "working": "Arbetar",
+          "paused": "Pausad",
+          "returning": "Återvänder till docka",
+          "error": "Fel"
+        }
+      },
+      "head_type": {
+        "name": "Huvudtyp",
+        "state": {
+          "snow_blower": "Snöslunga",
+          "lawn_mower": "Gräsklippare",
+          "lawn_mower_pro": "Gräsklippare Pro",
+          "leaf_blower": "Lövblåsare",
+          "smart_cover": "Smart Cover",
+          "trimmer": "Trimmer",
+          "none": "Ingen"
+        }
+      },
+      "rtk_status": {
+        "name": "RTK Status",
+        "state": {
+          "invalid": "Ingen Fix",
+          "gps": "GPS",
+          "dgps": "DGPS",
+          "rtk_float": "RTK Float",
+          "rtk_fixed": "RTK Fixed",
+          "unknown": "Okänd"
+        }
+      },
+      "heading": {
+        "name": "Riktning"
+      },
+      "chute_angle": {
+        "name": "Utkastvinkel"
+      },
+      "rain_sensor": {
+        "name": "Regnsensor"
+      },
+      "connection": {
+        "name": "Anslutning"
+      },
+      "wifi_network": {
+        "name": "WiFi Nätverk"
+      },
+      "error_code": {
+        "name": "Felkod"
+      },
+      "head_serial": {
+        "name": "Huvudserie"
+      },
+      "battery_temp_error": {
+        "name": "Batteritemperaturfel"
+      },
+      "base_station_status": {
+        "name": "Basstation Status"
+      },
+      "satellite_count": {
+        "name": "Satellitantal"
+      },
+      "gps_fix_quality": {
+        "name": "GPS Fix Kvalitet"
+      },
+      "gps_hdop": {
+        "name": "GPS HDOP"
+      },
+      "gps_altitude": {
+        "name": "GPS Höjd"
+      },
+      "charging_power": {
+        "name": "Laddningseffekt"
+      },
+      "battery_cell_temp_min": {
+        "name": "Battericell Temp Min"
+      },
+      "battery_cell_temp_max": {
+        "name": "Battericell Temp Max"
+      },
+      "battery_cell_temp_avg": {
+        "name": "Battericell Temp Medel"
+      },
+      "odometer": {
+        "name": "Vägmätare"
+      },
+      "wireless_charge_state": {
+        "name": "Trådlös Laddning Status"
+      },
+      "wireless_charge_error": {
+        "name": "Trådlös Laddning Fel"
+      },
+      "odom_confidence": {
+        "name": "Odometri Säkerhet"
+      },
+      "odom_x": {
+        "name": "Odometri X"
+      },
+      "odom_y": {
+        "name": "Odometri Y"
+      },
+      "odom_phi": {
+        "name": "Odometri Phi"
+      },
+      "rtcm_age": {
+        "name": "RTCM Ålder"
+      },
+      "rtcm_source_type": {
+        "name": "RTCM Källtyp"
+      },
+      "charge_voltage": {
+        "name": "Laddningsspänning"
+      },
+      "charge_current": {
+        "name": "Laddningsström"
+      },
+      "mqtt_age": {
+        "name": "MQTT Meddelandeålder"
+      },
+      "heading_dop": {
+        "name": "Heading DOP"
+      },
+      "heading_status": {
+        "name": "Heading Status"
+      },
+      "antenna_distance": {
+        "name": "Antennavstånd"
+      },
+      "chute_steering_info": {
+        "name": "Utkaststyrning Info"
+      },
+      "nav_sensor_front_right": {
+        "name": "Navsensor Fram Höger"
+      },
+      "nav_sensor_rear_right": {
+        "name": "Navsensor Bak Höger"
+      },
+      "head_gyro_pitch": {
+        "name": "Huvudgyro Pitch"
+      },
+      "head_gyro_roll": {
+        "name": "Huvudgyro Roll"
+      },
+      "machine_controller": {
+        "name": "Maskinkontroll"
+      },
+      "plan_remaining_time": {
+        "name": "Plan Återstående Tid"
+      },
+      "route_priority_hg0": {
+        "name": "Ruttprioritet HG0"
+      },
+      "route_priority_wlan0": {
+        "name": "Ruttprioritet WLAN0"
+      },
+      "route_priority_wwan0": {
+        "name": "Ruttprioritet WWAN0"
+      },
+      "ultrasonic_left_front": {
+        "name": "Ultraljud Vänster Fram"
+      },
+      "ultrasonic_middle": {
+        "name": "Ultraljud Mitten"
+      },
+      "ultrasonic_right_front": {
+        "name": "Ultraljud Höger Fram"
+      },
+      "schedule_count": {
+        "name": "Schema Antal"
+      },
+      "body_current": {
+        "name": "Kropp Ström"
+      },
+      "head_current": {
+        "name": "Huvud Ström"
+      },
+      "speed": {
+        "name": "Hastighet"
+      },
+      "product_code": {
+        "name": "Produktkod"
+      },
+      "hub_info": {
+        "name": "Hub Info"
+      },
+      "recharge_point": {
+        "name": "Laddpunkt"
+      },
+      "wifi_list": {
+        "name": "WiFi Lista"
+      },
+      "map_backup_count": {
+        "name": "Kartbackup Antal"
+      },
+      "clean_area_count": {
+        "name": "Ren Area Antal"
+      },
+      "motor_temp": {
+        "name": "Motortemp"
+      },
+      "last_seen": {
+        "name": "Senast Sedd"
+      },
+      "saved_wifi_list": {
+        "name": "Sparade WiFi Nätverk"
+      }
+    },
+    "binary_sensor": {
+      "charging": {
+        "name": "Laddar"
+      },
+      "problem": {
+        "name": "Problem"
+      },
+      "planning": {
+        "name": "Planering Aktiv"
+      },
+      "planning_active": {
+        "name": "Planering Aktiv"
+      },
+      "returning_to_charge": {
+        "name": "Återvänder För Laddning"
+      },
+      "going_to_start": {
+        "name": "Går Till Start"
+      },
+      "follow_mode": {
+        "name": "Följläge"
+      },
+      "planning_paused": {
+        "name": "Planering Pausad"
+      },
+      "manual_controller": {
+        "name": "Manuell Kontroll"
+      },
+      "rain_detected": {
+        "name": "Regn Detekterat"
+      },
+      "no_charge_period": {
+        "name": "Ingen-Laddning Period"
+      },
+      "online": {
+        "name": "Online"
+      }
+    },
+    "button": {
+      "beep": {
+        "name": "Pip"
+      },
+      "return_to_dock": {
+        "name": "Återvänd till Docka"
+      },
+      "pause": {
+        "name": "Pausa"
+      },
+      "resume": {
+        "name": "Återuppta"
+      },
+      "stop": {
+        "name": "Stoppa"
+      },
+      "emergency_stop": {
+        "name": "Nödstopp"
+      },
+      "emergency_unlock": {
+        "name": "Nödupplåsning"
+      },
+      "play_sound": {
+        "name": "Spela Ljud"
+      },
+      "shutdown": {
+        "name": "Stäng av"
+      },
+      "restart": {
+        "name": "Starta om"
+      },
+      "manual_stop": {
+        "name": "Manuellt Stopp"
+      },
+      "save_charging_point": {
+        "name": "Spara Laddpunkt"
+      },
+      "start_hotspot": {
+        "name": "Starta Hotspot"
+      },
+      "save_map_backup": {
+        "name": "Spara Kartbackup"
+      },
+      "camera_calibration": {
+        "name": "Kalibrera Kamera"
+      },
+      "check_camera_status": {
+        "name": "Kontrollera Kamerastatus"
+      },
+      "firmware_update_now": {
+        "name": "Uppdatera Firmware Nu"
+      },
+      "firmware_update_tonight": {
+        "name": "Uppdatera Firmware Ikväll"
+      },
+      "firmware_update_later": {
+        "name": "Skjut upp Firmware Uppdatering"
+      }
+    },
+    "event": {
+      "events": {
+        "name": "Händelser",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "job_started": "Jobb startat",
+              "job_completed": "Jobb slutfört",
+              "job_paused": "Jobb pausat",
+              "error": "Fel",
+              "head_changed": "Huvud bytt",
+              "low_battery": "Lågt batteri",
+              "controller_lost": "Kontroll förlorad",
+              "docked": "Dockad"
+            }
+          }
+        }
+      }
+    },
+    "light": {
+      "lights": {
+        "name": "Belysning"
+      },
+      "head_light": {
+        "name": "Huvudmonterad Lampa"
+      },
+      "led_head": {
+        "name": "Huvudlampa"
+      },
+      "led_left_w": {
+        "name": "Vänster Vit"
+      },
+      "led_right_w": {
+        "name": "Höger Vit"
+      },
+      "led_body_left": {
+        "name": "Kropp Vänster"
+      },
+      "led_body_right": {
+        "name": "Kropp Höger"
+      },
+      "led_tail_left": {
+        "name": "Svans Vänster"
+      },
+      "led_tail_right": {
+        "name": "Svans Höger"
+      }
+    },
+    "switch": {
+      "buzzer": {
+        "name": "Buzzer"
+      },
+      "person_detect": {
+        "name": "Persondetektering"
+      },
+      "roller": {
+        "name": "Vält"
+      },
+      "heating_film": {
+        "name": "Värmefilm"
+      },
+      "follow_mode": {
+        "name": "Följläge"
+      },
+      "auto_update": {
+        "name": "Autouppdatering"
+      },
+      "camera_ota": {
+        "name": "Kamera OTA"
+      },
+      "trimmer": {
+        "name": "Trimmer"
+      },
+      "camera": {
+        "name": "Kamera"
+      },
+      "laser": {
+        "name": "Laser"
+      },
+      "usb": {
+        "name": "USB"
+      },
+      "ignore_obstacles": {
+        "name": "Ignorera Hinder"
+      },
+      "draw_mode": {
+        "name": "Ritläge"
+      },
+      "module_lock": {
+        "name": "Modullås"
+      },
+      "wire_charging_lock": {
+        "name": "Trådladdningslås"
+      },
+      "smart_blowing": {
+        "name": "Smart Blåsning"
+      },
+      "edge_blowing": {
+        "name": "Kantblåsning"
+      },
+      "motor_protect": {
+        "name": "Motorskydd"
+      },
+      "mower_head_sensor": {
+        "name": "Klipphuvud Sensor"
+      },
+      "roof_lights": {
+        "name": "Taklampor"
+      },
+      "sound_enable": {
+        "name": "Ljud"
+      },
+      "mower_ngz_edge": {
+        "name": "Klippare No-Go Zonkant"
+      },
+      "geo_fence": {
+        "name": "Geofence"
+      },
+      "elec_fence": {
+        "name": "Elektriskt Stängsel"
+      },
+      "smart_vision": {
+        "name": "Smart Vision"
+      },
+      "video_record": {
+        "name": "Videoinspelning"
+      },
+      "child_lock": {
+        "name": "Barnlås"
+      },
+      "bag_record": {
+        "name": "ROS Bag Inspelning"
+      }
+    },
+    "number": {
+      "chute_velocity": {
+        "name": "Utkasthastighet"
+      },
+      "chute_steering_work": {
+        "name": "Utkaststyrning (Arbete)"
+      },
+      "blade_height": {
+        "name": "Bladhöjd"
+      },
+      "blade_speed": {
+        "name": "Bladhastighet"
+      },
+      "blower_speed": {
+        "name": "Blåshastighet"
+      },
+      "volume": {
+        "name": "Volym"
+      },
+      "plan_start_percent": {
+        "name": "Plan Start Procent"
+      },
+      "roller_speed": {
+        "name": "Välthastighet"
+      },
+      "battery_charge_min": {
+        "name": "Batteriladdning Minimum"
+      },
+      "battery_charge_max": {
+        "name": "Batteriladdning Maximum"
+      }
+    },
+    "select": {
+      "work_plan": {
+        "name": "Arbetsplan"
+      },
+      "turn_type": {
+        "name": "Vändningstyp"
+      },
+      "snow_push_direction": {
+        "name": "Snöskjutningsriktning"
+      }
+    },
+    "device_tracker": {
+      "location": {
+        "name": "Plats"
+      }
+    },
+    "lawn_mower": {
+      "mower": {
+        "name": "Gräsklippare"
+      }
+    },
+    "update": {
+      "firmware": {
+        "name": "Firmware"
+      }
+    }
+  },
+  "issues": {
+    "telemetry_timeout": {
+      "title": "Yarbo telemetri mottas inte",
+      "description": "Ingen telemetri har mottagits från **{name}** på minst 60 sekunder. Kontrollera att basstationen är påslagen och ansluten till nätverket."
+    },
+    "mqtt_disconnect": {
+      "title": "Yarbo basstation onåbar",
+      "description": "Ingen telemetri har mottagits från **{name}** på minst 60 sekunder. Roboten kan vara utom räckvidd eller så kan basstationen vara avstängd.\n\n**Steg för att lösa:**\n1. Kontrollera att Yarbo Data Center (basstationen) är påslagen.\n2. Verifiera att basstationen är ansluten till ditt lokala nätverk.\n3. Bekräfta att Home Assistant kan nå basstationens IP-adress.\n\nDetta problem kommer att lösas automatiskt när telemetrin återupptas."
+    },
+    "controller_lost": {
+      "title": "Yarbo kontrollsession förlorad",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Återfå kontrollen",
+            "description": "Yarbo-appen eller en annan klient har tagit över kontrollsessionen för **{name}**, vilket hindrar Home Assistant från att skicka kommandon.\n\nTryck på **Skicka** för att återfå kontrollsessionen."
+          }
+        },
+        "abort": {
+          "cannot_connect": "Kunde inte återfå kontrollsessionen. Kontrollera att Yarbo basstationen är nåbar och försök igen.",
+          "unknown": "Ett oväntat fel inträffade vid försök att återfå kontrollsessionen."
+        }
+      }
+    },
+    "cloud_token_expired": {
+      "title": "Yarbo molnsession har löpt ut",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Autentisera moln på nytt",
+            "description": "Din Yarbo molntoken för **{name}** har löpt ut. Tryck på **Skicka** för att öppna om-autentiseringsflödet och ange ditt lösenord igen."
+          }
+        },
+        "abort": {
+          "unknown": "Kunde inte starta om-autentiseringsflödet."
+        }
+      }
+    }
+  },
+  "services": {
+    "send_command": {
+      "name": "Skicka rå-kommando",
+      "description": "Publicera ett godtyckligt MQTT-kommando till roboten (endast för avancerade användare)."
+    },
+    "start_plan": {
+      "name": "Starta arbetsplan",
+      "description": "Starta en sparad arbetsplan via dess ID."
+    },
+    "pause": {
+      "name": "Pausa",
+      "description": "Pausa robotens nuvarande arbetsplan."
+    },
+    "resume": {
+      "name": "Återuppta",
+      "description": "Återuppta en tidigare pausad arbetsplan."
+    },
+    "return_to_dock": {
+      "name": "Återvänd till docka",
+      "description": "Skicka tillbaka roboten till dess laddningsdocka."
+    },
+    "set_lights": {
+      "name": "Ställ in belysning",
+      "description": "Ställ in ljusstyrka för alla 7 LED-kanaler samtidigt."
+    },
+    "set_chute_velocity": {
+      "name": "Ställ in utkasthastighet",
+      "description": "Kontrollera snöutkastets riktning och hastighet (endast snöslungehuvud)."
+    },
+    "manual_drive": {
+      "name": "Manuell körning",
+      "description": "Skicka manuella linjära/vinkelhastighetskommandon."
+    },
+    "go_to_waypoint": {
+      "name": "Gå till waypoint",
+      "description": "Navigera till ett sparat waypoint-index."
+    },
+    "delete_plan": {
+      "name": "Ta bort plan",
+      "description": "Ta bort en sparad plan via ID."
+    },
+    "delete_all_plans": {
+      "name": "Ta bort alla planer",
+      "description": "Ta bort alla sparade planer på roboten."
+    }
+  }
+}
