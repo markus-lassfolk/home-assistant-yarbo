@@ -13,7 +13,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.loader import async_get_integration
 
 from yarbo import YarboLocalClient
-from yarbo.error_reporting import init_error_reporting as _lib_init_error_reporting
+from .error_reporting import init_error_reporting as _lib_init_error_reporting
 from yarbo.exceptions import YarboConnectionError
 
 # Safety net: disable library-level Sentry auto-init in case an older version of
