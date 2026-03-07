@@ -498,7 +498,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
     async def read_all_plans(self, timeout: float = 5.0) -> list[PlanSummary]:
         """Read all plan summaries from the robot."""
-        # ❓ No response while idle — may need active state; coordinator retries when robot becomes "working"
+        # ❓ No response while idle — may need active state;
+        # coordinator retries when robot becomes "working"
         response = await self._request_data_feedback("read_all_plan", {}, timeout)
         data = response.get("data") if isinstance(response, dict) else None
         plans = data if isinstance(data, list) else []
@@ -1117,7 +1118,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     if (
                         get_activity_state(telemetry) == "working"
                         and not self._plan_summaries
-                        and (now - self._last_plan_fetch_attempt) >= self._plan_fetch_retry_cooldown_sec
+                        and (now - self._last_plan_fetch_attempt)
+                        >= self._plan_fetch_retry_cooldown_sec
                     ):
                         self._last_plan_fetch_attempt = now
                         self.hass.async_create_task(self._fetch_plans_when_active())

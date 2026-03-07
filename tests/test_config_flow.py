@@ -6,6 +6,7 @@ from collections.abc import AsyncGenerator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from homeassistant import config_entries
 from homeassistant.components import dhcp
 from homeassistant.core import HomeAssistant
@@ -288,6 +289,7 @@ class TestDhcpDiscoveryFlow:
     Flow: dhcp → confirm → mqtt_test → name → create_entry (cloud skipped for beta)
     """
 
+    @pytest.mark.allow_net_connect
     async def test_dhcp_discovery_shows_confirm(
         self, hass: HomeAssistant, enable_custom_integrations: None
     ) -> None:
@@ -297,10 +299,16 @@ class TestDhcpDiscoveryFlow:
             macaddress=MOCK_BROKER_MAC,
             hostname="yarbo-dc",
         )
-        with patch.object(
-            YarboConfigFlow,
-            "_probe_robot_identity",
-            return_value=(MOCK_ROBOT_SERIAL, "MyYarbo"),
+        with (
+            patch.object(
+                YarboConfigFlow,
+                "_probe_robot_identity",
+                return_value=(MOCK_ROBOT_SERIAL, "MyYarbo"),
+            ),
+            patch(
+                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                return_value=[],
+            ),
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN,
@@ -310,6 +318,7 @@ class TestDhcpDiscoveryFlow:
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "confirm"
 
+    @pytest.mark.allow_net_connect
     async def test_dhcp_confirm_then_mqtt_test_and_create_entry(
         self, hass: HomeAssistant, enable_custom_integrations: None
     ) -> None:
@@ -332,6 +341,10 @@ class TestDhcpDiscoveryFlow:
                 YarboConfigFlow,
                 "_probe_robot_identity",
                 return_value=(MOCK_ROBOT_SERIAL, "MyYarbo"),
+            ),
+            patch(
+                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                return_value=[],
             ),
             patch(
                 "custom_components.yarbo.async_setup_entry",

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import SOURCE_DHCP, ConfigEntry
 from homeassistant.const import __version__
 from homeassistant.core import HomeAssistant
@@ -12,19 +13,22 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.loader import async_get_integration
 
 from yarbo import YarboLocalClient
-from yarbo.error_reporting import init_error_reporting as _lib_init_error_reporting
 from yarbo.exceptions import YarboConnectionError
 
-# Safety net: disable library-level Sentry auto-init in case an older version of
-# python-yarbo still calls init_error_reporting() at module level on import.
-# HA manages its own error reporting via custom_components/yarbo/error_reporting.py.
-_lib_init_error_reporting(enabled=False)
+# Disable library-level Sentry auto-init so python-yarbo doesn't start its own
+# error reporting.  HA manages its own via custom_components/yarbo/error_reporting.py.
+try:
+    from yarbo.error_reporting import init_error_reporting as _lib_init_error_reporting
+
+    _lib_init_error_reporting(enabled=False)
+except ImportError:
+    pass  # python-yarbo version without error_reporting — no action needed
 
 # Minimum python-yarbo version required by this integration.
 # Bump this when using new library features (e.g. get_controller(timeout=...)).
 MIN_LIB_VERSION = "2026.3.20"
 
-from .const import (
+from .const import (  # noqa: E402
     CONF_ALTERNATE_BROKER_HOST,
     CONF_BROKER_ENDPOINTS,
     CONF_BROKER_HOST,
@@ -37,9 +41,12 @@ from .const import (
     OPT_ERROR_REPORTING,
     PLATFORMS,
 )
-from .coordinator import YarboDataCoordinator
-from .error_reporting import async_init_error_reporting
-from .services import async_register_services, async_unregister_services
+
+CONFIG_SCHEMA = cv.empty_config_schema(DOMAIN)
+
+from .coordinator import YarboDataCoordinator  # noqa: E402
+from .error_reporting import async_init_error_reporting  # noqa: E402
+from .services import async_register_services, async_unregister_services  # noqa: E402
 
 _LOGGER = logging.getLogger(__name__)
 
