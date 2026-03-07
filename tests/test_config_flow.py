@@ -300,10 +300,16 @@ class TestDhcpDiscoveryFlow:
             macaddress=MOCK_BROKER_MAC,
             hostname="yarbo-dc",
         )
-        with patch.object(
-            YarboConfigFlow,
-            "_probe_robot_identity",
-            return_value=(MOCK_ROBOT_SERIAL, "MyYarbo"),
+        with (
+            patch.object(
+                YarboConfigFlow,
+                "_probe_robot_identity",
+                return_value=(MOCK_ROBOT_SERIAL, "MyYarbo"),
+            ),
+            patch(
+                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                return_value=[],
+            ),
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN,
@@ -336,6 +342,10 @@ class TestDhcpDiscoveryFlow:
                 YarboConfigFlow,
                 "_probe_robot_identity",
                 return_value=(MOCK_ROBOT_SERIAL, "MyYarbo"),
+            ),
+            patch(
+                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                return_value=[],
             ),
             patch(
                 "custom_components.yarbo.async_setup_entry",
