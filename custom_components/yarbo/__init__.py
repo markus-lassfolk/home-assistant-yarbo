@@ -18,7 +18,7 @@ from yarbo.exceptions import YarboConnectionError
 # Disable library-level Sentry auto-init so python-yarbo doesn't start its own
 # error reporting.  HA manages its own via custom_components/yarbo/error_reporting.py.
 try:
-    from .error_reporting import init_error_reporting as _lib_init_error_reporting
+    from yarbo.error_reporting import init_error_reporting as _lib_init_error_reporting
 
     _lib_init_error_reporting(enabled=False)
 except ImportError:
