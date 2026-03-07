@@ -1,0 +1,697 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Koble til Yarbo",
+        "description": "Skriv inn IP-adressen til Yarbo-basestasjonen din (Data Center). Integrasjonen vil koble til den lokale MQTT-brokeren på port 1883.",
+        "data": {
+          "broker_host": "Basestasjonens IP-adresse",
+          "broker_port": "MQTT-port"
+        }
+      },
+      "manual": {
+        "title": "Skriv inn tilkoblingsdetaljer",
+        "description": "Ingen Yarbo-enheter ble funnet på nettverket. Skriv inn basestasjonens IP-adresse og MQTT-port manuelt.",
+        "data": {
+          "broker_host": "Basestasjonens IP-adresse",
+          "broker_port": "MQTT-port"
+        }
+      },
+      "confirm": {
+        "title": "Yarbo funnet",
+        "description": "Fant **Yarbo {name}** på nettverket ditt på {host}. Klikk på Send for å legge til denne roboten."
+      },
+      "select_endpoint": {
+        "title": "Velg MQTT-endepunkt",
+        "description": "Vi fant **{count}** vei(er) til Yarbo-klipperen din (rekkefølge fra oppdagelse: Primær, deretter Sekundær). Begge kobler til samme broker. Failover vil prøve neste i denne rekkefølgen når den nåværende ikke er tilgjengelig.",
+        "data": {
+          "selected_endpoint": "Endepunkt"
+        }
+      },
+      "mqtt_test": {
+        "title": "Kobler til Yarbo",
+        "description": "Tester MQTT-tilkobling og venter på telemetri fra roboten din..."
+      },
+      "reconfigure": {
+        "title": "Rekonfigurer Yarbo",
+        "description": "Oppdater IP-adressen til Yarbo-basestasjonen din.",
+        "data": {
+          "broker_host": "Basestasjonens IP-adresse",
+          "broker_port": "MQTT-port"
+        }
+      },
+      "name": {
+        "title": "Navngi roboten din",
+        "description": "Velg et navn på Yarbo-roboten din. Dette vil bli brukt til alle enhetsnavn.",
+        "data": {
+          "robot_name": "Robotnavn"
+        }
+      },
+      "cloud": {
+        "title": "Skyfunksjoner (valgfritt)",
+        "description": "Koble eventuelt til Yarbo-skyen for fastvareoppdateringer og enhetsinformasjon. Ikke nødvendig for lokal kontroll. La stå tomt for å hoppe over.",
+        "data": {
+          "cloud_username": "Yarbo-konto e-post",
+          "cloud_password": "Passord"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Autentiser Yarbo Cloud på nytt",
+        "description": "Yarbo-skyøkten din for **{username}** er utløpt. Skriv inn passordet ditt for å koble til på nytt.",
+        "data": {
+          "cloud_password": "Passord"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Denne roboten er allerede konfigurert.",
+      "cannot_connect": "Kan ikke koble til MQTT-broker på {host}:1883. Er basestasjonen slått på og tilgjengelig?",
+      "no_telemetry": "Tilkoblet, men mottok ingen robot-telemetri innen 10 sekunder. Er roboten slått på?",
+      "decode_error": "Mottok data, men kan ikke dekode dem. Fastvaren kan være inkompatibel.",
+      "not_implemented": "Konfigurasjonsflyt er ennå ikke implementert.",
+      "wrong_device": "Den oppdagede enheten samsvarer ikke med denne Yarbo-roboten.",
+      "reconfigure_successful": "Rekonfigurasjon vellykket.",
+      "reconfigure_failed": "Rekonfigurasjon mislyktes.",
+      "reauth_successful": "Ny autentisering vellykket."
+    },
+    "error": {
+      "cannot_connect": "Kan ikke koble til",
+      "no_telemetry": "Ingen telemetri mottatt innen 30 sekunder. Sørg for at roboten er slått på og nær basestasjonen, og prøv igjen.",
+      "decode_error": "Dekodingsfeil",
+      "cloud_auth_failed": "Skyautentisering mislyktes — sjekk e-posten og passordet ditt",
+      "cloud_not_available": "Skyklient er ikke tilgjengelig — oppdater python-yarbo"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Yarbo alternativer",
+        "description": "Konfigurer integrasjonens oppførsel. Endringer trer i kraft umiddelbart (krever ingen omstart).",
+        "data": {
+          "telemetry_throttle": "Telemetri oppdateringsintervall (1–10 sekunder)",
+          "auto_controller": "Skaff kontroller automatisk før kommandoer",
+          "cloud_enabled": "Aktiver skyfunksjoner",
+          "activity_personality": "Morsomme aktivitetsbeskrivelser (emoji-modus)",
+          "debug_logging": "Aktiver feilsøkingslogging",
+          "mqtt_recording": "Ta opp MQTT-trafikk for diagnostikk",
+          "error_reporting": "Aktiver anonym krasjrapportering (hjelper med å forbedre integrasjonen)"
+        },
+        "data_description": {
+          "telemetry_throttle": "Hvor ofte telemetrioppdateringer sendes til Home Assistant. Lavere verdier betyr hyppigere oppdateringer, men høyere belastning på opptakeren.",
+          "activity_personality": "Når aktivert, inkluderer aktivitetssensoren morsomme emoji-beskrivelser som ekstra attributter.",
+          "debug_logging": "Aktiverer detaljert logging for alle Yarbo-komponenter. Nyttig for feilsøking.",
+          "mqtt_recording": "Tar opp alle MQTT-meldinger til en fil (maks 10 MB). Del dette med utviklere for å hjelpe med å feilsøke problemer med fastvaren/hodetypen din."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery": {
+        "name": "Batteri"
+      },
+      "activity": {
+        "name": "Aktivitet",
+        "state": {
+          "charging": "Lader",
+          "idle": "Inaktiv",
+          "working": "Jobber",
+          "paused": "Satt på pause",
+          "returning": "Returnerer til dokk",
+          "error": "Feil"
+        }
+      },
+      "head_type": {
+        "name": "Hodetype",
+        "state": {
+          "snow_blower": "Snøfreser",
+          "lawn_mower": "Gressklipper",
+          "lawn_mower_pro": "Gressklipper Pro",
+          "leaf_blower": "Løvblåser",
+          "smart_cover": "Intelligent deksel",
+          "trimmer": "Trimmer",
+          "none": "Ingen"
+        }
+      },
+      "rtk_status": {
+        "name": "RTK-status",
+        "state": {
+          "invalid": "Ingen fiks",
+          "gps": "GPS",
+          "dgps": "DGPS",
+          "rtk_float": "RTK float",
+          "rtk_fixed": "RTK fixed",
+          "unknown": "Ukjent"
+        }
+      },
+      "heading": {
+        "name": "Kurs"
+      },
+      "chute_angle": {
+        "name": "Utkastervinkel"
+      },
+      "rain_sensor": {
+        "name": "Regnsensor"
+      },
+      "connection": {
+        "name": "Tilkobling"
+      },
+      "wifi_network": {
+        "name": "WiFi-nettverk"
+      },
+      "error_code": {
+        "name": "Feilkode"
+      },
+      "head_serial": {
+        "name": "Hodeserienummer"
+      },
+      "battery_temp_error": {
+        "name": "Batteritemperaturfeil"
+      },
+      "base_station_status": {
+        "name": "Basestasjonstatus"
+      },
+      "satellite_count": {
+        "name": "Antall satellitter"
+      },
+      "gps_fix_quality": {
+        "name": "GPS-fikskvalitet"
+      },
+      "gps_hdop": {
+        "name": "GPS HDOP"
+      },
+      "gps_altitude": {
+        "name": "GPS-høyde"
+      },
+      "charging_power": {
+        "name": "Ladeeffekt"
+      },
+      "battery_cell_temp_min": {
+        "name": "Battericelle temp min"
+      },
+      "battery_cell_temp_max": {
+        "name": "Battericelle temp maks"
+      },
+      "battery_cell_temp_avg": {
+        "name": "Battericelle temp gjennomsnitt"
+      },
+      "odometer": {
+        "name": "Kilometerteller"
+      },
+      "wireless_charge_state": {
+        "name": "Trådløs ladestatus"
+      },
+      "wireless_charge_error": {
+        "name": "Trådløs ladefeil"
+      },
+      "odom_confidence": {
+        "name": "Odometri-konfidens"
+      },
+      "odom_x": {
+        "name": "Odometri X"
+      },
+      "odom_y": {
+        "name": "Odometri Y"
+      },
+      "odom_phi": {
+        "name": "Odometri phi"
+      },
+      "rtcm_age": {
+        "name": "RTCM-alder"
+      },
+      "rtcm_source_type": {
+        "name": "RTCM-kildetype"
+      },
+      "charge_voltage": {
+        "name": "Ladespenning"
+      },
+      "charge_current": {
+        "name": "Ladestrøm"
+      },
+      "mqtt_age": {
+        "name": "MQTT-meldingsalder"
+      },
+      "heading_dop": {
+        "name": "Kurs-DOP"
+      },
+      "heading_status": {
+        "name": "Heading-status"
+      },
+      "antenna_distance": {
+        "name": "Avstand til antenne"
+      },
+      "chute_steering_info": {
+        "name": "Styring av utkaster Info"
+      },
+      "nav_sensor_front_right": {
+        "name": "Navigasjonssensor foran høyre"
+      },
+      "nav_sensor_rear_right": {
+        "name": "Navigasjonssensor bak høyre"
+      },
+      "head_gyro_pitch": {
+        "name": "Hode gyro pitch"
+      },
+      "head_gyro_roll": {
+        "name": "Hode gyro roll"
+      },
+      "machine_controller": {
+        "name": "Maskinkontroller"
+      },
+      "plan_remaining_time": {
+        "name": "Gjenstående plantid"
+      },
+      "route_priority_hg0": {
+        "name": "Ruteprioritet HG0"
+      },
+      "route_priority_wlan0": {
+        "name": "Ruteprioritet WLAN0"
+      },
+      "route_priority_wwan0": {
+        "name": "Ruteprioritet WWAN0"
+      },
+      "ultrasonic_left_front": {
+        "name": "Ultralyd foran venstre"
+      },
+      "ultrasonic_middle": {
+        "name": "Ultralyd midten"
+      },
+      "ultrasonic_right_front": {
+        "name": "Ultralyd foran høyre"
+      },
+      "schedule_count": {
+        "name": "Antall tidsplaner"
+      },
+      "body_current": {
+        "name": "Kroppsstrøm"
+      },
+      "head_current": {
+        "name": "Hodestrøm"
+      },
+      "speed": {
+        "name": "Hastighet"
+      },
+      "product_code": {
+        "name": "Produktkode"
+      },
+      "hub_info": {
+        "name": "Hub-informasjon"
+      },
+      "recharge_point": {
+        "name": "Ladepunkt"
+      },
+      "wifi_list": {
+        "name": "WiFi-liste"
+      },
+      "map_backup_count": {
+        "name": "Antall kart-sikkerhetskopier"
+      },
+      "clean_area_count": {
+        "name": "Antall rensede områder"
+      },
+      "motor_temp": {
+        "name": "Motortemperatur"
+      },
+      "last_seen": {
+        "name": "Sist sett"
+      },
+      "saved_wifi_list": {
+        "name": "Lagrede WiFi-nettverk"
+      }
+    },
+    "binary_sensor": {
+      "charging": {
+        "name": "Lader"
+      },
+      "problem": {
+        "name": "Problem"
+      },
+      "planning": {
+        "name": "Planlegging aktiv"
+      },
+      "planning_active": {
+        "name": "Planlegging aktiv"
+      },
+      "returning_to_charge": {
+        "name": "Returnerer for å lade"
+      },
+      "going_to_start": {
+        "name": "Går til start"
+      },
+      "follow_mode": {
+        "name": "Følgemodus"
+      },
+      "planning_paused": {
+        "name": "Planlegging pauset"
+      },
+      "manual_controller": {
+        "name": "Manuell kontroller"
+      },
+      "rain_detected": {
+        "name": "Regn oppdaget"
+      },
+      "no_charge_period": {
+        "name": "Ingen ladeperiode"
+      },
+      "online": {
+        "name": "Online"
+      }
+    },
+    "button": {
+      "beep": {
+        "name": "Pip"
+      },
+      "return_to_dock": {
+        "name": "Returner til dokk"
+      },
+      "pause": {
+        "name": "Pause"
+      },
+      "resume": {
+        "name": "Gjenoppta"
+      },
+      "stop": {
+        "name": "Stopp"
+      },
+      "emergency_stop": {
+        "name": "Nødstopp"
+      },
+      "emergency_unlock": {
+        "name": "Nødopplåsing"
+      },
+      "play_sound": {
+        "name": "Spill lyd"
+      },
+      "shutdown": {
+        "name": "Slå av"
+      },
+      "restart": {
+        "name": "Start på nytt"
+      },
+      "manual_stop": {
+        "name": "Manuell stopp"
+      },
+      "save_charging_point": {
+        "name": "Lagre ladepunkt"
+      },
+      "start_hotspot": {
+        "name": "Start hotspot"
+      },
+      "save_map_backup": {
+        "name": "Lagre kart-sikkerhetskopi"
+      },
+      "camera_calibration": {
+        "name": "Kalibrer kamera"
+      },
+      "check_camera_status": {
+        "name": "Sjekk kamerastatus"
+      },
+      "firmware_update_now": {
+        "name": "Oppdater fastvare nå"
+      },
+      "firmware_update_tonight": {
+        "name": "Oppdater fastvare i natt"
+      },
+      "firmware_update_later": {
+        "name": "Utsett fastvareoppdatering"
+      }
+    },
+    "event": {
+      "events": {
+        "name": "Hendelser",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "job_started": "Jobb startet",
+              "job_completed": "Jobb fullført",
+              "job_paused": "Jobb pauset",
+              "error": "Feil",
+              "head_changed": "Hode endret",
+              "low_battery": "Lavt batteri",
+              "controller_lost": "Kontroller mistet",
+              "docked": "I dokk"
+            }
+          }
+        }
+      }
+    },
+    "light": {
+      "lights": {
+        "name": "Lys"
+      },
+      "head_light": {
+        "name": "Hodelys"
+      },
+      "led_head": {
+        "name": "Hode-LED"
+      },
+      "led_left_w": {
+        "name": "Venstre hvit"
+      },
+      "led_right_w": {
+        "name": "Høyre hvit"
+      },
+      "led_body_left": {
+        "name": "Kropp venstre"
+      },
+      "led_body_right": {
+        "name": "Kropp høyre"
+      },
+      "led_tail_left": {
+        "name": "Hale venstre"
+      },
+      "led_tail_right": {
+        "name": "Hale høyre"
+      }
+    },
+    "switch": {
+      "buzzer": {
+        "name": "Summer"
+      },
+      "person_detect": {
+        "name": "Persondeteksjon"
+      },
+      "roller": {
+        "name": "Rulle"
+      },
+      "heating_film": {
+        "name": "Varmefilm"
+      },
+      "follow_mode": {
+        "name": "Følgemodus"
+      },
+      "auto_update": {
+        "name": "Automatisk oppdatering"
+      },
+      "camera_ota": {
+        "name": "Kamera OTA"
+      },
+      "trimmer": {
+        "name": "Trimmer"
+      },
+      "camera": {
+        "name": "Kamera"
+      },
+      "laser": {
+        "name": "Laser"
+      },
+      "usb": {
+        "name": "USB"
+      },
+      "ignore_obstacles": {
+        "name": "Ignorer hindringer"
+      },
+      "draw_mode": {
+        "name": "Tegnemodus"
+      },
+      "module_lock": {
+        "name": "Modullås"
+      },
+      "wire_charging_lock": {
+        "name": "Kabel-ladelås"
+      },
+      "smart_blowing": {
+        "name": "Intelligent blåsing"
+      },
+      "edge_blowing": {
+        "name": "Kantblåsing"
+      },
+      "motor_protect": {
+        "name": "Motorbeskyttelse"
+      },
+      "mower_head_sensor": {
+        "name": "Klipperhodesensor"
+      },
+      "roof_lights": {
+        "name": "Taklys"
+      },
+      "sound_enable": {
+        "name": "Lyd"
+      },
+      "mower_ngz_edge": {
+        "name": "Gressklipper forbudssonekant"
+      },
+      "geo_fence": {
+        "name": "Geofence"
+      },
+      "elec_fence": {
+        "name": "Elektrisk gjerde"
+      },
+      "smart_vision": {
+        "name": "Intelligent deteksjon"
+      },
+      "video_record": {
+        "name": "Videoopptak"
+      },
+      "child_lock": {
+        "name": "Barnesikring"
+      },
+      "bag_record": {
+        "name": "ROS bag recording"
+      }
+    },
+    "number": {
+      "chute_velocity": {
+        "name": "Utkasterhastighet"
+      },
+      "chute_steering_work": {
+        "name": "Styring av utkaster (Arbeid)"
+      },
+      "blade_height": {
+        "name": "Klippehøyde"
+      },
+      "blade_speed": {
+        "name": "Knivhastighet"
+      },
+      "blower_speed": {
+        "name": "Blåserhastighet"
+      },
+      "volume": {
+        "name": "Volum"
+      },
+      "plan_start_percent": {
+        "name": "Plan start Prosent"
+      },
+      "roller_speed": {
+        "name": "Rullehastighet"
+      },
+      "battery_charge_min": {
+        "name": "Batterilading minimum"
+      },
+      "battery_charge_max": {
+        "name": "Batterilading maksimum"
+      }
+    },
+    "select": {
+      "work_plan": {
+        "name": "Arbeidsplan"
+      },
+      "turn_type": {
+        "name": "Svingtype"
+      },
+      "snow_push_direction": {
+        "name": "Snøskyveretning"
+      }
+    },
+    "device_tracker": {
+      "location": {
+        "name": "Plassering"
+      }
+    },
+    "lawn_mower": {
+      "mower": {
+        "name": "Gressklipper"
+      }
+    },
+    "update": {
+      "firmware": {
+        "name": "Fastvare"
+      }
+    }
+  },
+  "issues": {
+    "telemetry_timeout": {
+      "title": "Yarbo telemetri ikke mottatt",
+      "description": "Ingen telemetri har blitt mottatt fra **{name}** på minst 60 sekunder. Sjekk at basestasjonen er slått på og koblet til nettverket."
+    },
+    "mqtt_disconnect": {
+      "title": "Yarbo-basestasjon utilgjengelig",
+      "description": "Ingen telemetri har blitt mottatt fra **{name}** på minst 60 sekunder. Roboten kan være utenfor rekkevidde eller basestasjonen kan være slått av.\n\n**Trinn for å løse:**\n1. Sjekk at Yarbo Data Center (basestasjon) er slått på.\n2. Bekreft at basestasjonen er koblet til ditt lokale nettverk.\n3. Bekreft at Home Assistant kan nå basestasjonens IP-adresse.\n\nDette problemet løses automatisk når telemetri gjenopptas."
+    },
+    "controller_lost": {
+      "title": "Yarbo-kontrollerøkt mistet",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Skaff kontroller på nytt",
+            "description": "Yarbo-appen eller en annen klient har tatt kontrollerøkten for **{name}**, noe som forhindrer Home Assistant i å sende kommandoer.\n\nTrykk på **Send** for å skaffe kontrollerøkten på nytt."
+          }
+        },
+        "abort": {
+          "cannot_connect": "Kunne ikke skaffe kontrollerøkten på nytt. Sjekk at Yarbo-basestasjonen er tilgjengelig og prøv igjen.",
+          "unknown": "En uventet feil oppstod under gjenskaffing av kontrollerøkten."
+        }
+      }
+    },
+    "cloud_token_expired": {
+      "title": "Yarbo skyøkt er utløpt",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Autentiser sky på nytt",
+            "description": "Yarbo-skytokenet ditt for **{name}** har utløpt. Trykk på **Send** for å åpne re-autentiseringsflyten og skrive inn passordet ditt igjen."
+          }
+        },
+        "abort": {
+          "unknown": "Kunne ikke starte re-autentiseringsflyten."
+        }
+      }
+    }
+  },
+  "services": {
+    "send_command": {
+      "name": "Send råkommando",
+      "description": "Publiser en vilkårlig MQTT-kommando til roboten (kun for avanserte brukere)."
+    },
+    "start_plan": {
+      "name": "Start arbeidsplan",
+      "description": "Start en lagret arbeidsplan via ID."
+    },
+    "pause": {
+      "name": "Pause",
+      "description": "Sett robotens nåværende arbeidsplan på pause."
+    },
+    "resume": {
+      "name": "Gjenoppta",
+      "description": "Gjenoppta en tidligere pauset arbeidsplan."
+    },
+    "return_to_dock": {
+      "name": "Returner til dokk",
+      "description": "Send roboten tilbake til ladestasjonen."
+    },
+    "set_lights": {
+      "name": "Still inn lys",
+      "description": "Still inn lysstyrke for alle 7 LED-kanaler samtidig."
+    },
+    "set_chute_velocity": {
+      "name": "Still inn utkasterhastighet",
+      "description": "Kontroller retning og hastighet på snøutkaster (kun for snøfreserhode)."
+    },
+    "manual_drive": {
+      "name": "Manuell kjøring",
+      "description": "Send manuelle lineære/vinkelhastighetskommandoer."
+    },
+    "go_to_waypoint": {
+      "name": "Gå til veipunkt",
+      "description": "Naviger til en lagret veipunktindeks."
+    },
+    "delete_plan": {
+      "name": "Slett plan",
+      "description": "Slett en lagret plan via ID."
+    },
+    "delete_all_plans": {
+      "name": "Slett alle planer",
+      "description": "Slett alle lagrede planer på roboten."
+    }
+  }
+}
