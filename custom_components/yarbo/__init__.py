@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import SOURCE_DHCP, ConfigEntry
 from homeassistant.const import __version__
 from homeassistant.core import HomeAssistant
@@ -24,7 +25,7 @@ _lib_init_error_reporting(enabled=False)
 # Bump this when using new library features (e.g. get_controller(timeout=...)).
 MIN_LIB_VERSION = "2026.3.20"
 
-from .const import (
+from .const import (  # noqa: E402
     CONF_ALTERNATE_BROKER_HOST,
     CONF_BROKER_ENDPOINTS,
     CONF_BROKER_HOST,
@@ -37,9 +38,12 @@ from .const import (
     OPT_ERROR_REPORTING,
     PLATFORMS,
 )
-from .coordinator import YarboDataCoordinator
-from .error_reporting import async_init_error_reporting
-from .services import async_register_services, async_unregister_services
+
+CONFIG_SCHEMA = cv.empty_config_schema(DOMAIN)
+
+from .coordinator import YarboDataCoordinator  # noqa: E402
+from .error_reporting import async_init_error_reporting  # noqa: E402
+from .services import async_register_services, async_unregister_services  # noqa: E402
 
 _LOGGER = logging.getLogger(__name__)
 

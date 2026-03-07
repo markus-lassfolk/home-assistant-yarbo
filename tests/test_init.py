@@ -78,13 +78,14 @@ class TestMultipleRobots:
         pass
 
 
-def test_get_controller_accepts_timeout():
+def test_get_controller_accepts_timeout() -> None:
     """Regression: HA calls get_controller(timeout=5.0). GlitchTip #30/#32.
 
     Since conftest stubs yarbo, we verify via importlib.metadata that the
     installed version meets the minimum, AND check the stub has the method.
     """
     import importlib.metadata
+
     from packaging.version import Version
 
     installed = importlib.metadata.version("python-yarbo")
@@ -109,13 +110,14 @@ def test_get_controller_accepts_timeout():
                 if "timeout" in kw_names:
                     return  # Found a call with timeout= — test passes
     # If we get here, no call with timeout= was found (unexpected)
-    assert False, "No get_controller(timeout=...) call found in integration code"
+    raise AssertionError("No get_controller(timeout=...) call found in integration code")
 
 
-def test_min_lib_version_constant():
+def test_min_lib_version_constant() -> None:
     """Ensure MIN_LIB_VERSION is set and the installed library meets it."""
-    from packaging.version import Version
     import importlib.metadata
+
+    from packaging.version import Version
 
     from custom_components.yarbo import MIN_LIB_VERSION
 

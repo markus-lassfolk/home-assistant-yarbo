@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 from .const import (
     DEFAULT_BROKER_PORT,
@@ -140,13 +141,13 @@ def _sync_yarbo_probe(host: str, port: int, timeout: float = 5.0) -> _YarboProbe
     result = _YarboProbeResult()
     got_telemetry = threading.Event()
 
-    def on_connect(client, userdata, flags, rc, props=None):  # noqa: ARG001
+    def on_connect(client: Any, userdata: Any, flags: Any, rc: Any, props: Any = None) -> None:
         rc_val = getattr(rc, "value", rc)
         if rc_val == 0:
             client.subscribe("snowbot/+/device/DeviceMSG")
             client.subscribe("snowbot/+/device/heart_beat")
 
-    def on_message(client, userdata, msg):  # noqa: ARG001
+    def on_message(client: Any, userdata: Any, msg: Any) -> None:
         parts = msg.topic.split("/")
         if len(parts) >= 2 and parts[0] == "snowbot" and parts[1]:
             result.serial = parts[1]
@@ -165,7 +166,7 @@ def _sync_yarbo_probe(host: str, port: int, timeout: float = 5.0) -> _YarboProbe
                     or payload.get("robotName")
                     or payload.get("snowbotName")
                 )
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         if result.serial:
             got_telemetry.set()
@@ -180,16 +181,16 @@ def _sync_yarbo_probe(host: str, port: int, timeout: float = 5.0) -> _YarboProbe
         client.connect(host, port, keepalive=10)
         client.loop_start()
         got_telemetry.wait(timeout=timeout)
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
     finally:
         try:
             client.loop_stop()
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         try:
             client.disconnect()
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
 
     return result
