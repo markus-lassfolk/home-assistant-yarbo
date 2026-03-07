@@ -34,7 +34,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install python-yarbo from git
-        run: pip install git+https://github.com/markus-lassfolk/python-yarbo.git@develop
+        run: pip install git+https://github.com/markus-lassfolk/python-yarbo.git@main
       - name: Install dependencies
         run: |
           pip install ruff mypy
@@ -58,7 +58,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install python-yarbo from git
-        run: pip install git+https://github.com/markus-lassfolk/python-yarbo.git@develop
+        run: pip install git+https://github.com/markus-lassfolk/python-yarbo.git@main
       - name: Install dependencies
         run: pip install -r requirements_test.txt
       - name: Run tests
