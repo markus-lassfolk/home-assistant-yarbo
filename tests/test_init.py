@@ -90,8 +90,7 @@ def test_get_controller_accepts_timeout() -> None:
 
     installed = importlib.metadata.version("python-yarbo")
     assert Version(installed) >= Version("2026.3.12"), (
-        f"python-yarbo {installed} too old; get_controller(timeout=...) "
-        "requires >= 2026.3.12"
+        f"python-yarbo {installed} too old; get_controller(timeout=...) requires >= 2026.3.12"
     )
 
     # Also verify the integration code actually calls with timeout=

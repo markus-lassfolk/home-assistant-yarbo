@@ -104,10 +104,7 @@ def _frame_is_yarbo(frame: dict) -> bool:
     if not module:
         return False
     # Module names: custom_components.yarbo.*, yarbo.*
-    if (
-        module.startswith("custom_components.yarbo")
-        or module.startswith("yarbo.")
-    ):
+    if module.startswith("custom_components.yarbo") or module.startswith("yarbo."):
         return True
     # File paths: .../custom_components/yarbo/... or .../yarbo/...
     norm = module.replace("\\", "/")
@@ -159,6 +156,4 @@ async def async_init_error_reporting(
     tags: dict[str, str] | None = None,
 ) -> None:
     """Initialize error reporting in the executor to avoid blocking the event loop."""
-    await hass.async_add_executor_job(
-        init_error_reporting, dsn, environment, enabled, tags
-    )
+    await hass.async_add_executor_job(init_error_reporting, dsn, environment, enabled, tags)

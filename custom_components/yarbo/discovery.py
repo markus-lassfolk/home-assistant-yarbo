@@ -162,9 +162,7 @@ def _sync_yarbo_probe(host: str, port: int, timeout: float = 5.0) -> _YarboProbe
             payload = _json.loads(raw)
             if not result.name:
                 result.name = (
-                    payload.get("name")
-                    or payload.get("robotName")
-                    or payload.get("snowbotName")
+                    payload.get("name") or payload.get("robotName") or payload.get("snowbotName")
                 )
         except Exception:
             pass
@@ -246,9 +244,7 @@ async def _discover_from_arp(port: int = DEFAULT_BROKER_PORT) -> list[YarboEndpo
         async with semaphore:
             return await _probe_mqtt(ip, port)
 
-    tcp_results = await asyncio.gather(
-        *[_limited_tcp_probe(ip) for ip, _mac in neighbours]
-    )
+    tcp_results = await asyncio.gather(*[_limited_tcp_probe(ip) for ip, _mac in neighbours])
 
     mqtt_hosts: list[tuple[str, str]] = []
     for (ip, mac), is_open in zip(neighbours, tcp_results, strict=True):
@@ -290,9 +286,7 @@ async def _discover_from_arp(port: int = DEFAULT_BROKER_PORT) -> list[YarboEndpo
                 )
             )
         else:
-            _LOGGER.debug(
-                "ARP discovery: %s has MQTT but no Yarbo SN — skipping", ip
-            )
+            _LOGGER.debug("ARP discovery: %s has MQTT but no Yarbo SN — skipping", ip)
 
     return endpoints
 
