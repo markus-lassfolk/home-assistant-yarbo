@@ -139,8 +139,8 @@
           "invalid": "Brak poprawki",
           "gps": "GPS",
           "dgps": "DGPS",
-          "rtk_float": "RTK Float",
-          "rtk_fixed": "RTK Fixed",
+          "rtk_float": "RTK float",
+          "rtk_fixed": "RTK fixed",
           "unknown": "Nieznany"
         }
       },
@@ -214,7 +214,7 @@
         "name": "Odometria Y"
       },
       "odom_phi": {
-        "name": "Odometria Phi"
+        "name": "Odometria phi"
       },
       "rtcm_age": {
         "name": "Wiek RTCM"
@@ -395,7 +395,7 @@
         "name": "Zapisz punkt ładowania"
       },
       "start_hotspot": {
-        "name": "Uruchom Hotspot"
+        "name": "Uruchom hotspot"
       },
       "save_map_backup": {
         "name": "Zapisz kopię mapy"
@@ -538,7 +538,7 @@
         "name": "Ogrodzenie elektryczne"
       },
       "smart_vision": {
-        "name": "Inteligentna wizja"
+        "name": "Inteligentne wykrywanie"
       },
       "video_record": {
         "name": "Nagrywanie wideo"
@@ -547,7 +547,7 @@
         "name": "Blokada rodzicielska"
       },
       "bag_record": {
-        "name": "ROS Bag Recording"
+        "name": "ROS bag recording"
       }
     },
     "number": {

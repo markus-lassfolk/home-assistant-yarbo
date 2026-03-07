@@ -22,7 +22,7 @@
         "description": "Hittade **Yarbo {name}** på ditt nätverk vid {host}. Klicka på Skicka för att lägga till denna robot."
       },
       "select_endpoint": {
-        "title": "Välj MQTT Endpoint",
+        "title": "Välj MQTT endpoint",
         "description": "Vi hittade **{count}** väg(ar) till din Yarbo gräsklippare (ordning från upptäckt: Primär, sedan Sekundär). Båda ansluter till samma broker. Vid fel kommer nästa i ordningen att testas.",
         "data": {
           "selected_endpoint": "Endpoint"
@@ -48,10 +48,10 @@
         }
       },
       "cloud": {
-        "title": "Molnfunktioner (Valfritt)",
+        "title": "Molnfunktioner (valfritt)",
         "description": "Anslut frivilligt till Yarbo-molnet för firmware-uppdateringar och enhetsinformation. Krävs inte för lokal styrning. Lämna tomt för att hoppa över.",
         "data": {
-          "cloud_username": "Yarbo-konto E-post",
+          "cloud_username": "Yarbo-konto e-post",
           "cloud_password": "Lösenord"
         }
       },
@@ -85,7 +85,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Yarbo Alternativ",
+        "title": "Yarbo alternativ",
         "description": "Konfigurera integrationens beteende. Ändringar träder i kraft omedelbart (ingen omstart krävs).",
         "data": {
           "telemetry_throttle": "Telemetriuppdateringsintervall (1–10 sekunder)",
@@ -128,19 +128,19 @@
           "lawn_mower": "Gräsklippare",
           "lawn_mower_pro": "Gräsklippare Pro",
           "leaf_blower": "Lövblåsare",
-          "smart_cover": "Smart kåpa",
+          "smart_cover": "Intelligent kåpa",
           "trimmer": "Trimmer",
           "none": "Ingen"
         }
       },
       "rtk_status": {
-        "name": "RTK Status",
+        "name": "RTK status",
         "state": {
-          "invalid": "Ingen Fix",
+          "invalid": "Ingen fix",
           "gps": "GPS",
           "dgps": "DGPS",
-          "rtk_float": "RTK Float",
-          "rtk_fixed": "RTK Fixed",
+          "rtk_float": "RTK float",
+          "rtk_fixed": "RTK fixed",
           "unknown": "Okänd"
         }
       },
@@ -157,7 +157,7 @@
         "name": "Anslutning"
       },
       "wifi_network": {
-        "name": "WiFi Nätverk"
+        "name": "WiFi nätverk"
       },
       "error_code": {
         "name": "Felkod"
@@ -169,43 +169,43 @@
         "name": "Batteritemperaturfel"
       },
       "base_station_status": {
-        "name": "Basstation Status"
+        "name": "Basstation status"
       },
       "satellite_count": {
         "name": "Satellitantal"
       },
       "gps_fix_quality": {
-        "name": "GPS Fix Kvalitet"
+        "name": "GPS fix kvalitet"
       },
       "gps_hdop": {
         "name": "GPS HDOP"
       },
       "gps_altitude": {
-        "name": "GPS Höjd"
+        "name": "GPS höjd"
       },
       "charging_power": {
         "name": "Laddningseffekt"
       },
       "battery_cell_temp_min": {
-        "name": "Battericell Temp Min"
+        "name": "Battericell temp min"
       },
       "battery_cell_temp_max": {
-        "name": "Battericell Temp Max"
+        "name": "Battericell temp max"
       },
       "battery_cell_temp_avg": {
-        "name": "Battericell Temp Medel"
+        "name": "Battericell temp medel"
       },
       "odometer": {
         "name": "Vägmätare"
       },
       "wireless_charge_state": {
-        "name": "Trådlös Laddning Status"
+        "name": "Trådlös laddning status"
       },
       "wireless_charge_error": {
-        "name": "Trådlös Laddning Fel"
+        "name": "Trådlös laddning fel"
       },
       "odom_confidence": {
-        "name": "Odometri Säkerhet"
+        "name": "Odometri säkerhet"
       },
       "odom_x": {
         "name": "Odometri X"
@@ -214,13 +214,13 @@
         "name": "Odometri Y"
       },
       "odom_phi": {
-        "name": "Odometri Phi"
+        "name": "Odometri phi"
       },
       "rtcm_age": {
-        "name": "RTCM Ålder"
+        "name": "RTCM ålder"
       },
       "rtcm_source_type": {
-        "name": "RTCM Källtyp"
+        "name": "RTCM källtyp"
       },
       "charge_voltage": {
         "name": "Laddningsspänning"
@@ -229,7 +229,7 @@
         "name": "Laddningsström"
       },
       "mqtt_age": {
-        "name": "MQTT Meddelandeålder"
+        "name": "MQTT meddelandeålder"
       },
       "heading_dop": {
         "name": "Kurs-DOP"
@@ -241,25 +241,25 @@
         "name": "Antennavstånd"
       },
       "chute_steering_info": {
-        "name": "Utkaststyrning Info"
+        "name": "Utkaststyrning info"
       },
       "nav_sensor_front_right": {
-        "name": "Navsensor Fram Höger"
+        "name": "Navsensor fram höger"
       },
       "nav_sensor_rear_right": {
-        "name": "Navsensor Bak Höger"
+        "name": "Navsensor bak höger"
       },
       "head_gyro_pitch": {
-        "name": "Huvudgyro Pitch"
+        "name": "Huvudgyro pitch"
       },
       "head_gyro_roll": {
-        "name": "Huvudgyro Roll"
+        "name": "Huvudgyro roll"
       },
       "machine_controller": {
         "name": "Maskinkontroll"
       },
       "plan_remaining_time": {
-        "name": "Plan Återstående Tid"
+        "name": "Plan återstående tid"
       },
       "route_priority_hg0": {
         "name": "Ruttprioritet HG0"
@@ -271,22 +271,22 @@
         "name": "Ruttprioritet WWAN0"
       },
       "ultrasonic_left_front": {
-        "name": "Ultraljud Vänster Fram"
+        "name": "Ultraljud vänster fram"
       },
       "ultrasonic_middle": {
-        "name": "Ultraljud Mitten"
+        "name": "Ultraljud mitten"
       },
       "ultrasonic_right_front": {
-        "name": "Ultraljud Höger Fram"
+        "name": "Ultraljud höger fram"
       },
       "schedule_count": {
-        "name": "Schema Antal"
+        "name": "Schema antal"
       },
       "body_current": {
-        "name": "Kropp Ström"
+        "name": "Kropp ström"
       },
       "head_current": {
-        "name": "Huvud Ström"
+        "name": "Huvud ström"
       },
       "speed": {
         "name": "Hastighet"
@@ -301,22 +301,22 @@
         "name": "Laddpunkt"
       },
       "wifi_list": {
-        "name": "WiFi Lista"
+        "name": "WiFi lista"
       },
       "map_backup_count": {
-        "name": "Kartbackup Antal"
+        "name": "Kartbackup antal"
       },
       "clean_area_count": {
-        "name": "Ren Area Antal"
+        "name": "Ren area antal"
       },
       "motor_temp": {
         "name": "Motortemp"
       },
       "last_seen": {
-        "name": "Senast Sedd"
+        "name": "Senast sedd"
       },
       "saved_wifi_list": {
-        "name": "Sparade WiFi Nätverk"
+        "name": "Sparade WiFi nätverk"
       }
     },
     "binary_sensor": {
@@ -327,31 +327,31 @@
         "name": "Problem"
       },
       "planning": {
-        "name": "Planering Aktiv"
+        "name": "Planering aktiv"
       },
       "planning_active": {
-        "name": "Planering Aktiv"
+        "name": "Planering aktiv"
       },
       "returning_to_charge": {
-        "name": "Återvänder För Laddning"
+        "name": "Återvänder för laddning"
       },
       "going_to_start": {
-        "name": "Går Till Start"
+        "name": "Går till start"
       },
       "follow_mode": {
         "name": "Följläge"
       },
       "planning_paused": {
-        "name": "Planering Pausad"
+        "name": "Planering pausad"
       },
       "manual_controller": {
-        "name": "Manuell Kontroll"
+        "name": "Manuell kontroll"
       },
       "rain_detected": {
-        "name": "Regn Detekterat"
+        "name": "Regn detekterat"
       },
       "no_charge_period": {
-        "name": "Ingen-Laddning Period"
+        "name": "Ingen-Laddning period"
       },
       "online": {
         "name": "Online"
@@ -380,7 +380,7 @@
         "name": "Nödupplåsning"
       },
       "play_sound": {
-        "name": "Spela Ljud"
+        "name": "Spela ljud"
       },
       "shutdown": {
         "name": "Stäng av"
@@ -389,22 +389,22 @@
         "name": "Starta om"
       },
       "manual_stop": {
-        "name": "Manuellt Stopp"
+        "name": "Manuellt stopp"
       },
       "save_charging_point": {
-        "name": "Spara Laddpunkt"
+        "name": "Spara laddpunkt"
       },
       "start_hotspot": {
-        "name": "Starta Hotspot"
+        "name": "Starta hotspot"
       },
       "save_map_backup": {
-        "name": "Spara Kartbackup"
+        "name": "Spara kartbackup"
       },
       "camera_calibration": {
-        "name": "Kalibrera Kamera"
+        "name": "Kalibrera kamera"
       },
       "check_camera_status": {
-        "name": "Kontrollera Kamerastatus"
+        "name": "Kontrollera kamerastatus"
       },
       "firmware_update_now": {
         "name": "Uppdatera fast programvara nu"
@@ -440,28 +440,28 @@
         "name": "Belysning"
       },
       "head_light": {
-        "name": "Huvudmonterad Lampa"
+        "name": "Huvudmonterad lampa"
       },
       "led_head": {
         "name": "Huvudlampa"
       },
       "led_left_w": {
-        "name": "Vänster Vit"
+        "name": "Vänster vit"
       },
       "led_right_w": {
-        "name": "Höger Vit"
+        "name": "Höger vit"
       },
       "led_body_left": {
-        "name": "Kropp Vänster"
+        "name": "Kropp vänster"
       },
       "led_body_right": {
-        "name": "Kropp Höger"
+        "name": "Kropp höger"
       },
       "led_tail_left": {
-        "name": "Svans Vänster"
+        "name": "Svans vänster"
       },
       "led_tail_right": {
-        "name": "Svans Höger"
+        "name": "Svans höger"
       }
     },
     "switch": {
@@ -499,7 +499,7 @@
         "name": "USB"
       },
       "ignore_obstacles": {
-        "name": "Ignorera Hinder"
+        "name": "Ignorera hinder"
       },
       "draw_mode": {
         "name": "Ritläge"
@@ -511,7 +511,7 @@
         "name": "Trådladdningslås"
       },
       "smart_blowing": {
-        "name": "Smart Blåsning"
+        "name": "Intelligent blåsning"
       },
       "edge_blowing": {
         "name": "Kantblåsning"
@@ -520,7 +520,7 @@
         "name": "Motorskydd"
       },
       "mower_head_sensor": {
-        "name": "Klipphuvud Sensor"
+        "name": "Klipphuvud sensor"
       },
       "roof_lights": {
         "name": "Taklampor"
@@ -529,16 +529,16 @@
         "name": "Ljud"
       },
       "mower_ngz_edge": {
-        "name": "Klippare No-Go Zonkant"
+        "name": "Klippare no-go zonkant"
       },
       "geo_fence": {
         "name": "Geofence"
       },
       "elec_fence": {
-        "name": "Elektriskt Stängsel"
+        "name": "Elektriskt stängsel"
       },
       "smart_vision": {
-        "name": "Smart syn"
+        "name": "Intelligent detektering"
       },
       "video_record": {
         "name": "Videoinspelning"
@@ -547,7 +547,7 @@
         "name": "Barnlås"
       },
       "bag_record": {
-        "name": "ROS Bag Inspelning"
+        "name": "ROS bag inspelning"
       }
     },
     "number": {
@@ -555,7 +555,7 @@
         "name": "Utkasthastighet"
       },
       "chute_steering_work": {
-        "name": "Utkaststyrning (Arbete)"
+        "name": "Utkaststyrning (arbete)"
       },
       "blade_height": {
         "name": "Bladhöjd"
@@ -570,16 +570,16 @@
         "name": "Volym"
       },
       "plan_start_percent": {
-        "name": "Plan Start Procent"
+        "name": "Plan start Procent"
       },
       "roller_speed": {
         "name": "Välthastighet"
       },
       "battery_charge_min": {
-        "name": "Batteriladdning Minimum"
+        "name": "Batteriladdning minimum"
       },
       "battery_charge_max": {
-        "name": "Batteriladdning Maximum"
+        "name": "Batteriladdning maximum"
       }
     },
     "select": {

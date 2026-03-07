@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Se connecter à Yarbo",
-        "description": "Saisissez l'adresse IP de votre station de base Yarbo (Data Center). L'intégration se connectera au broker MQTT local sur le port 1883.",
+        "description": "Saisis l'adresse IP de ta station de base Yarbo (Data Center). L'intégration se connectera au broker MQTT local sur le port 1883.",
         "data": {
           "broker_host": "Adresse IP de la station de base",
           "broker_port": "Port MQTT"
@@ -11,53 +11,53 @@
       },
       "manual": {
         "title": "Entrer les détails de connexion",
-        "description": "Aucun appareil Yarbo n'a été trouvé sur le réseau. Entrez l'adresse IP de la station de base et le port MQTT manuellement.",
+        "description": "Aucun appareil Yarbo n'a été trouvé sur le réseau. Entre l'adresse IP de la station de base et le port MQTT manuellement.",
         "data": {
           "broker_host": "Adresse IP de la station de base",
           "broker_port": "Port MQTT"
         }
       },
       "confirm": {
-        "title": "Yarbo Découvert",
-        "description": "Trouvé **Yarbo {name}** sur votre réseau à {host}. Cliquez sur Soumettre pour ajouter ce robot."
+        "title": "Yarbo découvert",
+        "description": "Trouvé **Yarbo {name}** sur ton réseau à {host}. Clique sur Soumettre pour ajouter ce robot."
       },
       "select_endpoint": {
         "title": "Choisir le point de terminaison MQTT",
-        "description": "Nous avons trouvé **{count}** chemin(s) vers votre tondeuse Yarbo (ordre de découverte : Primaire, puis Secondaire). Les deux se connectent au même broker. En cas d'échec, le suivant dans cet ordre sera essayé.",
+        "description": "Nous avons trouvé **{count}** chemin(s) vers ta tondeuse Yarbo (ordre de découverte : primaire, puis secondaire). Les deux se connectent au même broker. En cas d'échec, le suivant dans cet ordre sera essayé.",
         "data": {
           "selected_endpoint": "Point de terminaison"
         }
       },
       "mqtt_test": {
         "title": "Connexion à Yarbo",
-        "description": "Test de la connexion MQTT et attente de la télémétrie de votre robot..."
+        "description": "Test de la connexion MQTT et attente de la télémétrie de ton robot..."
       },
       "reconfigure": {
         "title": "Reconfigurer Yarbo",
-        "description": "Mettez à jour l'adresse IP de votre station de base Yarbo.",
+        "description": "Mets à jour l'adresse IP de ta station de base Yarbo.",
         "data": {
           "broker_host": "Adresse IP de la station de base",
           "broker_port": "Port MQTT"
         }
       },
       "name": {
-        "title": "Nommez votre robot",
-        "description": "Choisissez un nom pour votre robot Yarbo. Cela sera utilisé pour tous les noms d'entités.",
+        "title": "Nomme ton robot",
+        "description": "Choisis un nom pour ton robot Yarbo. Cela sera utilisé pour tous les noms d'entités.",
         "data": {
-          "robot_name": "Nom du Robot"
+          "robot_name": "Nom du robot"
         }
       },
       "cloud": {
-        "title": "Fonctionnalités Cloud (Facultatif)",
-        "description": "Connectez-vous éventuellement au cloud Yarbo pour les mises à jour du firmware et les infos sur l'appareil. Non requis pour le contrôle local. Laissez vide pour ignorer.",
+        "title": "Fonctionnalités cloud (facultatif)",
+        "description": "Connecte-toi éventuellement au cloud Yarbo pour les mises à jour du firmware et les infos sur l'appareil. Non requis pour le contrôle local. Laisse vide pour ignorer.",
         "data": {
-          "cloud_username": "Email du compte Yarbo",
+          "cloud_username": "E-mail du compte Yarbo",
           "cloud_password": "Mot de passe"
         }
       },
       "reauth_confirm": {
-        "title": "Ré-authentifier le cloud Yarbo",
-        "description": "Votre session cloud Yarbo pour **{username}** a expiré. Entrez votre mot de passe pour vous reconnecter.",
+        "title": "Réauthentifier le cloud Yarbo",
+        "description": "Ta session cloud Yarbo pour **{username}** a expiré. Entre ton mot de passe pour te reconnecter.",
         "data": {
           "cloud_password": "Mot de passe"
         }
@@ -65,8 +65,8 @@
     },
     "abort": {
       "already_configured": "Ce robot est déjà configuré.",
-      "cannot_connect": "Impossible de se connecter au broker MQTT à l'adresse {host}:1883. La station de base est-elle allumée et accessible ?",
-      "no_telemetry": "Connecté mais aucune télémétrie reçue du robot dans les 10 secondes. Le robot est-il allumé ?",
+      "cannot_connect": "Impossible de se connecter au broker MQTT à l'adresse {host}:1883. La station de base est-elle allumée et accessible ?",
+      "no_telemetry": "Connecté mais aucune télémétrie reçue du robot dans les 10 secondes. Le robot est-il allumé ?",
       "decode_error": "Données reçues mais impossible de les décoder. Le firmware peut être incompatible.",
       "not_implemented": "Flux de configuration non encore implémenté.",
       "wrong_device": "L'appareil découvert ne correspond pas à ce robot Yarbo.",
@@ -76,9 +76,9 @@
     },
     "error": {
       "cannot_connect": "Impossible de se connecter",
-      "no_telemetry": "Aucune télémétrie reçue dans les 30 secondes. Assurez-vous que le robot est allumé et près de la station de base, puis réessayez.",
+      "no_telemetry": "Aucune télémétrie reçue dans les 30 secondes. Assure-toi que le robot est allumé et près de la station de base, puis réessaie.",
       "decode_error": "Erreur de décodage",
-      "cloud_auth_failed": "L'authentification cloud a échoué — vérifiez votre email et votre mot de passe",
+      "cloud_auth_failed": "L'authentification cloud a échoué — vérifie ton e-mail et ton mot de passe",
       "cloud_not_available": "Client cloud non disponible — mettez à jour python-yarbo"
     }
   },
@@ -86,7 +86,7 @@
     "step": {
       "init": {
         "title": "Options Yarbo",
-        "description": "Configurez le comportement de l'intégration. Les modifications prennent effet immédiatement (aucun redémarrage requis).",
+        "description": "Configure le comportement de l'intégration. Les modifications prennent effet immédiatement (aucun redémarrage requis).",
         "data": {
           "telemetry_throttle": "Intervalle de mise à jour de la télémétrie (1–10 secondes)",
           "auto_controller": "Acquérir automatiquement le contrôleur avant les commandes",
@@ -100,7 +100,7 @@
           "telemetry_throttle": "À quelle fréquence les mises à jour de la télémétrie sont envoyées à Home Assistant. Des valeurs plus basses signifient des mises à jour plus fréquentes mais une charge plus élevée sur le recorder.",
           "activity_personality": "Lorsqu'il est activé, le capteur d'activité inclut des descriptions amusantes avec des émojis en tant qu'attributs supplémentaires.",
           "debug_logging": "Active la journalisation détaillée pour tous les composants Yarbo. Utile pour le dépannage.",
-          "mqtt_recording": "Enregistre tous les messages MQTT dans un fichier (max 10 Mo). Partagez avec les développeurs pour aider à résoudre les problèmes avec votre firmware/type de tête."
+          "mqtt_recording": "Enregistre tous les messages MQTT dans un fichier (max 10 Mo). Partage avec les développeurs pour aider à résoudre les problèmes avec ton firmware/type de tête."
         }
       }
     }
@@ -139,8 +139,8 @@
           "invalid": "Aucune position",
           "gps": "GPS",
           "dgps": "DGPS",
-          "rtk_float": "RTK Float",
-          "rtk_fixed": "RTK Fixed",
+          "rtk_float": "RTK float",
+          "rtk_fixed": "RTK fixed",
           "unknown": "Inconnu"
         }
       },
@@ -166,7 +166,7 @@
         "name": "Série de la Tête"
       },
       "battery_temp_error": {
-        "name": "Erreur Temp Batterie"
+        "name": "Erreur temp batterie"
       },
       "base_station_status": {
         "name": "Statut Station de Base"
@@ -175,7 +175,7 @@
         "name": "Nombre de Satellites"
       },
       "gps_fix_quality": {
-        "name": "Qualité Position GPS"
+        "name": "Qualité position GPS"
       },
       "gps_hdop": {
         "name": "GPS HDOP"
@@ -187,25 +187,25 @@
         "name": "Puissance de Charge"
       },
       "battery_cell_temp_min": {
-        "name": "Temp Min Cellule Batterie"
+        "name": "Temp min cellule batterie"
       },
       "battery_cell_temp_max": {
-        "name": "Temp Max Cellule Batterie"
+        "name": "Temp max cellule batterie"
       },
       "battery_cell_temp_avg": {
-        "name": "Temp Moy Cellule Batterie"
+        "name": "Temp moy cellule batterie"
       },
       "odometer": {
         "name": "Odomètre"
       },
       "wireless_charge_state": {
-        "name": "État Charge Sans Fil"
+        "name": "État charge sans fil"
       },
       "wireless_charge_error": {
-        "name": "Erreur Charge Sans Fil"
+        "name": "Erreur charge sans fil"
       },
       "odom_confidence": {
-        "name": "Confiance Odométrie"
+        "name": "Confiance odométrie"
       },
       "odom_x": {
         "name": "Odométrie X"
@@ -214,13 +214,13 @@
         "name": "Odométrie Y"
       },
       "odom_phi": {
-        "name": "Odométrie Phi"
+        "name": "Odométrie phi"
       },
       "rtcm_age": {
         "name": "Âge RTCM"
       },
       "rtcm_source_type": {
-        "name": "Type Source RTCM"
+        "name": "Type source RTCM"
       },
       "charge_voltage": {
         "name": "Tension de Charge"
@@ -229,64 +229,64 @@
         "name": "Courant de Charge"
       },
       "mqtt_age": {
-        "name": "Âge Message MQTT"
+        "name": "Âge message MQTT"
       },
       "heading_dop": {
         "name": "DOP du cap"
       },
       "heading_status": {
-        "name": "Statut Cap"
+        "name": "Statut cap"
       },
       "antenna_distance": {
-        "name": "Distance Antenne"
+        "name": "Distance antenne"
       },
       "chute_steering_info": {
-        "name": "Info Direction Goulotte"
+        "name": "Info direction goulotte"
       },
       "nav_sensor_front_right": {
-        "name": "Capteur Nav Avant Droit"
+        "name": "Capteur nav avant droit"
       },
       "nav_sensor_rear_right": {
-        "name": "Capteur Nav Arrière Droit"
+        "name": "Capteur nav arrière droit"
       },
       "head_gyro_pitch": {
-        "name": "Gyro Tête Tangage"
+        "name": "Gyro tête tangage"
       },
       "head_gyro_roll": {
-        "name": "Gyro Tête Roulis"
+        "name": "Gyro tête roulis"
       },
       "machine_controller": {
-        "name": "Contrôleur Machine"
+        "name": "Contrôleur machine"
       },
       "plan_remaining_time": {
         "name": "Temps Restant du Plan"
       },
       "route_priority_hg0": {
-        "name": "Priorité Route HG0"
+        "name": "Priorité route HG0"
       },
       "route_priority_wlan0": {
-        "name": "Priorité Route WLAN0"
+        "name": "Priorité route WLAN0"
       },
       "route_priority_wwan0": {
-        "name": "Priorité Route WWAN0"
+        "name": "Priorité route WWAN0"
       },
       "ultrasonic_left_front": {
-        "name": "Ultrason Avant Gauche"
+        "name": "Ultrason avant gauche"
       },
       "ultrasonic_middle": {
-        "name": "Ultrason Milieu"
+        "name": "Ultrason milieu"
       },
       "ultrasonic_right_front": {
-        "name": "Ultrason Avant Droit"
+        "name": "Ultrason avant droit"
       },
       "schedule_count": {
         "name": "Nombre de Programmations"
       },
       "body_current": {
-        "name": "Courant Corps"
+        "name": "Courant corps"
       },
       "head_current": {
-        "name": "Courant Tête"
+        "name": "Courant tête"
       },
       "speed": {
         "name": "Vitesse"
@@ -304,19 +304,19 @@
         "name": "Liste WiFi"
       },
       "map_backup_count": {
-        "name": "Nombre Sauvegardes Carte"
+        "name": "Nombre sauvegardes carte"
       },
       "clean_area_count": {
-        "name": "Nombre Zones Nettoyées"
+        "name": "Nombre zones nettoyées"
       },
       "motor_temp": {
-        "name": "Temp Moteur"
+        "name": "Temp moteur"
       },
       "last_seen": {
-        "name": "Dernière Vue"
+        "name": "Dernière vue"
       },
       "saved_wifi_list": {
-        "name": "Réseaux WiFi Enregistrés"
+        "name": "Réseaux WiFi enregistrés"
       }
     },
     "binary_sensor": {
@@ -327,10 +327,10 @@
         "name": "Problème"
       },
       "planning": {
-        "name": "Planification Active"
+        "name": "Planification active"
       },
       "planning_active": {
-        "name": "Planification Active"
+        "name": "Planification active"
       },
       "returning_to_charge": {
         "name": "Retour pour Charge"
@@ -339,22 +339,22 @@
         "name": "Aller au Départ"
       },
       "follow_mode": {
-        "name": "Mode Suivi"
+        "name": "Mode suivi"
       },
       "planning_paused": {
         "name": "Planification en Pause"
       },
       "manual_controller": {
-        "name": "Contrôleur Manuel"
+        "name": "Contrôleur manuel"
       },
       "rain_detected": {
-        "name": "Pluie Détectée"
+        "name": "Pluie détectée"
       },
       "no_charge_period": {
-        "name": "Période Sans Charge"
+        "name": "Période sans charge"
       },
       "online": {
-        "name": "En Ligne"
+        "name": "En ligne"
       }
     },
     "button": {
@@ -389,7 +389,7 @@
         "name": "Redémarrer"
       },
       "manual_stop": {
-        "name": "Arrêt Manuel"
+        "name": "Arrêt manuel"
       },
       "save_charging_point": {
         "name": "Enregistrer Point de Charge"
@@ -398,13 +398,13 @@
         "name": "Démarrer Point d'Accès"
       },
       "save_map_backup": {
-        "name": "Enregistrer Sauvegarde Carte"
+        "name": "Enregistrer sauvegarde carte"
       },
       "camera_calibration": {
         "name": "Calibrer la Caméra"
       },
       "check_camera_status": {
-        "name": "Vérifier Statut Caméra"
+        "name": "Vérifier statut caméra"
       },
       "firmware_update_now": {
         "name": "Mettre à Jour Firmware Maintenant"
@@ -446,22 +446,22 @@
         "name": "Lumière de Tête"
       },
       "led_left_w": {
-        "name": "Blanc Gauche"
+        "name": "Blanc gauche"
       },
       "led_right_w": {
-        "name": "Blanc Droit"
+        "name": "Blanc droit"
       },
       "led_body_left": {
-        "name": "Corps Gauche"
+        "name": "Corps gauche"
       },
       "led_body_right": {
-        "name": "Corps Droit"
+        "name": "Corps droit"
       },
       "led_tail_left": {
-        "name": "Queue Gauche"
+        "name": "Queue gauche"
       },
       "led_tail_right": {
-        "name": "Queue Droite"
+        "name": "Queue droite"
       }
     },
     "switch": {
@@ -475,10 +475,10 @@
         "name": "Rouleau"
       },
       "heating_film": {
-        "name": "Film Chauffant"
+        "name": "Film chauffant"
       },
       "follow_mode": {
-        "name": "Mode Suivi"
+        "name": "Mode suivi"
       },
       "auto_update": {
         "name": "Mise à Jour Automatique"
@@ -502,7 +502,7 @@
         "name": "Ignorer les Obstacles"
       },
       "draw_mode": {
-        "name": "Mode Dessin"
+        "name": "Mode dessin"
       },
       "module_lock": {
         "name": "Verrouillage de Module"
@@ -511,13 +511,13 @@
         "name": "Verrouillage de Charge Filaire"
       },
       "smart_blowing": {
-        "name": "Soufflage Intelligent"
+        "name": "Soufflage intelligent"
       },
       "edge_blowing": {
-        "name": "Soufflage de Bord"
+        "name": "Soufflage de bord"
       },
       "motor_protect": {
-        "name": "Protection Moteur"
+        "name": "Protection moteur"
       },
       "mower_head_sensor": {
         "name": "Capteur de Tête Tondeuse"
@@ -529,25 +529,25 @@
         "name": "Son"
       },
       "mower_ngz_edge": {
-        "name": "Bordure Zone Interdite Tondeuse"
+        "name": "Bordure zone interdite tondeuse"
       },
       "geo_fence": {
         "name": "Géoclôture"
       },
       "elec_fence": {
-        "name": "Clôture Électrique"
+        "name": "Clôture électrique"
       },
       "smart_vision": {
-        "name": "Vision Intelligente"
+        "name": "Détection intelligente"
       },
       "video_record": {
-        "name": "Enregistrement Vidéo"
+        "name": "Enregistrement vidéo"
       },
       "child_lock": {
-        "name": "Sécurité Enfant"
+        "name": "Sécurité enfant"
       },
       "bag_record": {
-        "name": "Enregistrement ROS Bag"
+        "name": "Enregistrement ROS bag"
       }
     },
     "number": {
@@ -576,10 +576,10 @@
         "name": "Vitesse de Rouleau"
       },
       "battery_charge_min": {
-        "name": "Charge Minimum Batterie"
+        "name": "Charge minimum batterie"
       },
       "battery_charge_max": {
-        "name": "Charge Maximum Batterie"
+        "name": "Charge maximum batterie"
       }
     },
     "select": {
@@ -616,7 +616,7 @@
     },
     "mqtt_disconnect": {
       "title": "Station de base Yarbo inaccessible",
-      "description": "Aucune télémétrie n'a été reçue de **{name}** pendant au moins 60 secondes. Le robot peut être hors de portée ou la station de base peut être éteinte.\n\n**Étapes pour résoudre :**\n1. Vérifiez que le Yarbo Data Center (station de base) est allumé.\n2. Vérifiez que la station de base est connectée à votre réseau local.\n3. Confirmez que Home Assistant peut atteindre l'adresse IP de la station de base.\n\nCe problème se résoudra automatiquement à la reprise de la télémétrie."
+      "description": "Aucune télémétrie n'a été reçue de **{name}** pendant au moins 60 secondes. Le robot peut être hors de portée ou la station de base peut être éteinte.\n\n**Étapes pour résoudre :**\n1. Vérifie que le Yarbo Data Center (station de base) est allumé.\n2. Vérifie que la station de base est connectée à ton réseau local.\n3. Confirme que Home Assistant peut atteindre l'adresse IP de la station de base.\n\nCe problème se résoudra automatiquement à la reprise de la télémétrie."
     },
     "controller_lost": {
       "title": "Session de contrôleur Yarbo perdue",
@@ -639,7 +639,7 @@
         "step": {
           "confirm": {
             "title": "Ré-authentifier le cloud",
-            "description": "Votre jeton cloud Yarbo pour **{name}** a expiré. Appuyez sur **Soumettre** pour ouvrir le flux de ré-authentification et entrez à nouveau votre mot de passe."
+            "description": "Ton jeton cloud Yarbo pour **{name}** a expiré. Appuie sur **Soumettre** pour ouvrir le flux de réauthentification et entre à nouveau ton mot de passe."
           }
         },
         "abort": {

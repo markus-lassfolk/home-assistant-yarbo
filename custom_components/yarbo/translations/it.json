@@ -5,7 +5,7 @@
         "title": "Connetti a Yarbo",
         "description": "Inserisci l'indirizzo IP della tua stazione base Yarbo (Data Center). L'integrazione si connetterà al broker MQTT locale sulla porta 1883.",
         "data": {
-          "broker_host": "Indirizzo IP Stazione Base",
+          "broker_host": "Indirizzo IP stazione base",
           "broker_port": "Porta MQTT"
         }
       },
@@ -13,16 +13,16 @@
         "title": "Inserisci i dettagli di connessione",
         "description": "Nessun dispositivo Yarbo trovato sulla rete. Inserisci manualmente l'indirizzo IP della stazione base e la porta MQTT.",
         "data": {
-          "broker_host": "Indirizzo IP Stazione Base",
+          "broker_host": "Indirizzo IP stazione base",
           "broker_port": "Porta MQTT"
         }
       },
       "confirm": {
-        "title": "Yarbo Trovato",
+        "title": "Yarbo trovato",
         "description": "Trovato **Yarbo {name}** sulla tua rete a {host}. Clicca su Invia per aggiungere questo robot."
       },
       "select_endpoint": {
-        "title": "Scegli Endpoint MQTT",
+        "title": "Scegli endpoint MQTT",
         "description": "Abbiamo trovato **{count}** percorso/i per il tuo robot Yarbo (ordine dalla scoperta: Primario, poi Secondario). Entrambi si connettono allo stesso broker. Il failover proverà il successivo in questo ordine quando l'attuale non è disponibile.",
         "data": {
           "selected_endpoint": "Endpoint"
@@ -36,7 +36,7 @@
         "title": "Riconfigurare Yarbo",
         "description": "Aggiorna l'indirizzo IP della tua stazione base Yarbo.",
         "data": {
-          "broker_host": "Indirizzo IP Stazione Base",
+          "broker_host": "Indirizzo IP stazione base",
           "broker_port": "Porta MQTT"
         }
       },
@@ -44,14 +44,14 @@
         "title": "Dai un nome al tuo Robot",
         "description": "Scegli un nome per il tuo robot Yarbo. Questo verrà utilizzato per tutti i nomi delle entità.",
         "data": {
-          "robot_name": "Nome Robot"
+          "robot_name": "Nome robot"
         }
       },
       "cloud": {
-        "title": "Funzionalità Cloud (Opzionale)",
+        "title": "Funzionalità Cloud (opzionale)",
         "description": "Connettiti facoltativamente al cloud Yarbo per gli aggiornamenti del firmware e le info sul dispositivo. Non richiesto per il controllo locale. Lascia vuoto per saltare.",
         "data": {
-          "cloud_username": "Email Account Yarbo",
+          "cloud_username": "Email account Yarbo",
           "cloud_password": "Password"
         }
       },
@@ -128,7 +128,7 @@
           "lawn_mower": "Rasaerba",
           "lawn_mower_pro": "Rasaerba Pro",
           "leaf_blower": "Soffiatore",
-          "smart_cover": "Copertura Smart",
+          "smart_cover": "Copertura intelligente",
           "trimmer": "Decespugliatore",
           "none": "Nessuna"
         }
@@ -136,11 +136,11 @@
       "rtk_status": {
         "name": "Stato RTK",
         "state": {
-          "invalid": "Nessun Fix",
+          "invalid": "Nessun fix",
           "gps": "GPS",
           "dgps": "DGPS",
-          "rtk_float": "RTK Float",
-          "rtk_fixed": "RTK Fixed",
+          "rtk_float": "RTK float",
+          "rtk_fixed": "RTK fixed",
           "unknown": "Sconosciuto"
         }
       },
@@ -151,7 +151,7 @@
         "name": "Angolo di lancio"
       },
       "rain_sensor": {
-        "name": "Sensore Pioggia"
+        "name": "Sensore pioggia"
       },
       "connection": {
         "name": "Connessione"
@@ -160,22 +160,22 @@
         "name": "Rete WiFi"
       },
       "error_code": {
-        "name": "Codice Errore"
+        "name": "Codice errore"
       },
       "head_serial": {
-        "name": "Seriale Testa"
+        "name": "Seriale testa"
       },
       "battery_temp_error": {
-        "name": "Errore Temp Batteria"
+        "name": "Errore temp batteria"
       },
       "base_station_status": {
-        "name": "Stato Stazione Base"
+        "name": "Stato stazione base"
       },
       "satellite_count": {
-        "name": "Numero Satelliti"
+        "name": "Numero satelliti"
       },
       "gps_fix_quality": {
-        "name": "Qualità Fix GPS"
+        "name": "Qualità fix GPS"
       },
       "gps_hdop": {
         "name": "GPS HDOP"
@@ -187,25 +187,25 @@
         "name": "Potenza di Ricarica"
       },
       "battery_cell_temp_min": {
-        "name": "Temp Min Cella Batteria"
+        "name": "Temp min cella batteria"
       },
       "battery_cell_temp_max": {
-        "name": "Temp Max Cella Batteria"
+        "name": "Temp max cella batteria"
       },
       "battery_cell_temp_avg": {
-        "name": "Temp Media Cella Batteria"
+        "name": "Temp media cella batteria"
       },
       "odometer": {
         "name": "Odometro"
       },
       "wireless_charge_state": {
-        "name": "Stato Ricarica Wireless"
+        "name": "Stato ricarica wireless"
       },
       "wireless_charge_error": {
-        "name": "Errore Ricarica Wireless"
+        "name": "Errore ricarica wireless"
       },
       "odom_confidence": {
-        "name": "Affidabilità Odometria"
+        "name": "Affidabilità odometria"
       },
       "odom_x": {
         "name": "Odometria X"
@@ -214,13 +214,13 @@
         "name": "Odometria Y"
       },
       "odom_phi": {
-        "name": "Odometria Phi"
+        "name": "Odometria phi"
       },
       "rtcm_age": {
         "name": "Età RTCM"
       },
       "rtcm_source_type": {
-        "name": "Tipo Fonte RTCM"
+        "name": "Tipo fonte RTCM"
       },
       "charge_voltage": {
         "name": "Tensione di Ricarica"
@@ -229,64 +229,64 @@
         "name": "Corrente di Ricarica"
       },
       "mqtt_age": {
-        "name": "Età Messaggio MQTT"
+        "name": "Età messaggio MQTT"
       },
       "heading_dop": {
-        "name": "DOP della rotta"
+        "name": "DOP della direzione"
       },
       "heading_status": {
-        "name": "Stato Heading"
+        "name": "Stato heading"
       },
       "antenna_distance": {
-        "name": "Distanza Antenna"
+        "name": "Distanza antenna"
       },
       "chute_steering_info": {
-        "name": "Info Sterzo Camino"
+        "name": "Info sterzo camino"
       },
       "nav_sensor_front_right": {
-        "name": "Sensore Navigazione Anteriore Destro"
+        "name": "Sensore navigazione anteriore destro"
       },
       "nav_sensor_rear_right": {
-        "name": "Sensore Navigazione Posteriore Destro"
+        "name": "Sensore navigazione posteriore destro"
       },
       "head_gyro_pitch": {
-        "name": "Pitch Giroscopio Testa"
+        "name": "Pitch giroscopio testa"
       },
       "head_gyro_roll": {
-        "name": "Roll Giroscopio Testa"
+        "name": "Roll giroscopio testa"
       },
       "machine_controller": {
-        "name": "Controller Macchina"
+        "name": "Controller macchina"
       },
       "plan_remaining_time": {
-        "name": "Tempo Rimanente Piano"
+        "name": "Tempo rimanente piano"
       },
       "route_priority_hg0": {
-        "name": "Priorità Percorso HG0"
+        "name": "Priorità percorso HG0"
       },
       "route_priority_wlan0": {
-        "name": "Priorità Percorso WLAN0"
+        "name": "Priorità percorso WLAN0"
       },
       "route_priority_wwan0": {
-        "name": "Priorità Percorso WWAN0"
+        "name": "Priorità percorso WWAN0"
       },
       "ultrasonic_left_front": {
-        "name": "Ultrasuoni Anteriore Sinistro"
+        "name": "Ultrasuoni anteriore sinistro"
       },
       "ultrasonic_middle": {
-        "name": "Ultrasuoni Centrale"
+        "name": "Ultrasuoni centrale"
       },
       "ultrasonic_right_front": {
-        "name": "Ultrasuoni Anteriore Destro"
+        "name": "Ultrasuoni anteriore destro"
       },
       "schedule_count": {
         "name": "Numero Programmazioni"
       },
       "body_current": {
-        "name": "Corrente Corpo"
+        "name": "Corrente corpo"
       },
       "head_current": {
-        "name": "Corrente Testa"
+        "name": "Corrente testa"
       },
       "speed": {
         "name": "Velocità"
@@ -295,42 +295,42 @@
         "name": "Codice Prodotto"
       },
       "hub_info": {
-        "name": "Info Hub"
+        "name": "Info hub"
       },
       "recharge_point": {
-        "name": "Punto Ricarica"
+        "name": "Punto ricarica"
       },
       "wifi_list": {
         "name": "Lista WiFi"
       },
       "map_backup_count": {
-        "name": "Numero Backup Mappe"
+        "name": "Numero backup mappe"
       },
       "clean_area_count": {
-        "name": "Aree Pulite"
+        "name": "Aree pulite"
       },
       "motor_temp": {
-        "name": "Temperatura Motore"
+        "name": "Temperatura motore"
       },
       "last_seen": {
-        "name": "Visto Ultima Volta"
+        "name": "Visto ultima volta"
       },
       "saved_wifi_list": {
-        "name": "Reti WiFi Salvate"
+        "name": "Reti WiFi salvate"
       }
     },
     "binary_sensor": {
       "charging": {
-        "name": "In Ricarica"
+        "name": "In ricarica"
       },
       "problem": {
         "name": "Problema"
       },
       "planning": {
-        "name": "Pianificazione Attiva"
+        "name": "Pianificazione attiva"
       },
       "planning_active": {
-        "name": "Pianificazione Attiva"
+        "name": "Pianificazione attiva"
       },
       "returning_to_charge": {
         "name": "Ritorno per Ricarica"
@@ -339,19 +339,19 @@
         "name": "Verso la Partenza"
       },
       "follow_mode": {
-        "name": "Modalità Segui"
+        "name": "Modalità segui"
       },
       "planning_paused": {
-        "name": "Pianificazione In Pausa"
+        "name": "Pianificazione in pausa"
       },
       "manual_controller": {
-        "name": "Controller Manuale"
+        "name": "Controller manuale"
       },
       "rain_detected": {
-        "name": "Pioggia Rilevata"
+        "name": "Pioggia rilevata"
       },
       "no_charge_period": {
-        "name": "Periodo Senza Ricarica"
+        "name": "Periodo senza ricarica"
       },
       "online": {
         "name": "Online"
@@ -374,13 +374,13 @@
         "name": "Stop"
       },
       "emergency_stop": {
-        "name": "Stop Emergenza"
+        "name": "Stop emergenza"
       },
       "emergency_unlock": {
-        "name": "Sblocco Emergenza"
+        "name": "Sblocco emergenza"
       },
       "play_sound": {
-        "name": "Riproduci Suono"
+        "name": "Riproduci suono"
       },
       "shutdown": {
         "name": "Spegni"
@@ -389,31 +389,31 @@
         "name": "Riavvia"
       },
       "manual_stop": {
-        "name": "Stop Manuale"
+        "name": "Stop manuale"
       },
       "save_charging_point": {
-        "name": "Salva Punto Ricarica"
+        "name": "Salva punto ricarica"
       },
       "start_hotspot": {
-        "name": "Avvia Hotspot"
+        "name": "Avvia hotspot"
       },
       "save_map_backup": {
-        "name": "Salva Backup Mappa"
+        "name": "Salva backup mappa"
       },
       "camera_calibration": {
-        "name": "Calibra Fotocamera"
+        "name": "Calibra fotocamera"
       },
       "check_camera_status": {
-        "name": "Controlla Stato Fotocamera"
+        "name": "Controlla stato fotocamera"
       },
       "firmware_update_now": {
-        "name": "Aggiorna Firmware Ora"
+        "name": "Aggiorna firmware ora"
       },
       "firmware_update_tonight": {
-        "name": "Aggiorna Firmware Stanotte"
+        "name": "Aggiorna firmware stanotte"
       },
       "firmware_update_later": {
-        "name": "Posticipa Aggiornamento Firmware"
+        "name": "Posticipa aggiornamento firmware"
       }
     },
     "event": {
@@ -440,28 +440,28 @@
         "name": "Luci"
       },
       "head_light": {
-        "name": "Luce Testa"
+        "name": "Luce testa"
       },
       "led_head": {
-        "name": "LED Testa"
+        "name": "LED testa"
       },
       "led_left_w": {
-        "name": "Bianco Sinistro"
+        "name": "Bianco sinistro"
       },
       "led_right_w": {
-        "name": "Bianco Destro"
+        "name": "Bianco destro"
       },
       "led_body_left": {
-        "name": "Corpo Sinistro"
+        "name": "Corpo sinistro"
       },
       "led_body_right": {
-        "name": "Corpo Destro"
+        "name": "Corpo destro"
       },
       "led_tail_left": {
-        "name": "Coda Sinistra"
+        "name": "Coda sinistra"
       },
       "led_tail_right": {
-        "name": "Coda Destra"
+        "name": "Coda destra"
       }
     },
     "switch": {
@@ -469,19 +469,19 @@
         "name": "Cicalino"
       },
       "person_detect": {
-        "name": "Rilevamento Persone"
+        "name": "Rilevamento persone"
       },
       "roller": {
         "name": "Rullo"
       },
       "heating_film": {
-        "name": "Pellicola Riscaldante"
+        "name": "Pellicola riscaldante"
       },
       "follow_mode": {
-        "name": "Modalità Segui"
+        "name": "Modalità segui"
       },
       "auto_update": {
-        "name": "Aggiornamento Automatico"
+        "name": "Aggiornamento automatico"
       },
       "camera_ota": {
         "name": "Fotocamera OTA"
@@ -499,16 +499,16 @@
         "name": "USB"
       },
       "ignore_obstacles": {
-        "name": "Ignora Ostacoli"
+        "name": "Ignora ostacoli"
       },
       "draw_mode": {
-        "name": "Modalità Disegno"
+        "name": "Modalità disegno"
       },
       "module_lock": {
-        "name": "Blocco Modulo"
+        "name": "Blocco modulo"
       },
       "wire_charging_lock": {
-        "name": "Blocco Ricarica Cavo"
+        "name": "Blocco ricarica cavo"
       },
       "smart_blowing": {
         "name": "Soffiaggio intelligente"
@@ -517,69 +517,69 @@
         "name": "Soffiaggio dei bordi"
       },
       "motor_protect": {
-        "name": "Protezione Motore"
+        "name": "Protezione motore"
       },
       "mower_head_sensor": {
-        "name": "Sensore Testa Rasaerba"
+        "name": "Sensore testa rasaerba"
       },
       "roof_lights": {
-        "name": "Luci Tetto"
+        "name": "Luci tetto"
       },
       "sound_enable": {
         "name": "Suono"
       },
       "mower_ngz_edge": {
-        "name": "Bordo No-Go Zone Rasaerba"
+        "name": "Bordo no-go zone rasaerba"
       },
       "geo_fence": {
         "name": "Geofence"
       },
       "elec_fence": {
-        "name": "Recinzione Elettrica"
+        "name": "Recinzione elettrica"
       },
       "smart_vision": {
-        "name": "Visione intelligente"
+        "name": "Rilevamento intelligente"
       },
       "video_record": {
-        "name": "Registrazione Video"
+        "name": "Registrazione video"
       },
       "child_lock": {
-        "name": "Sicurezza Bambini"
+        "name": "Sicurezza bambini"
       },
       "bag_record": {
-        "name": "ROS Bag Recording"
+        "name": "ROS bag recording"
       }
     },
     "number": {
       "chute_velocity": {
-        "name": "Velocità Camino"
+        "name": "Velocità camino"
       },
       "chute_steering_work": {
-        "name": "Sterzo Camino (Lavoro)"
+        "name": "Sterzo camino (lavoro)"
       },
       "blade_height": {
-        "name": "Altezza Lama"
+        "name": "Altezza lama"
       },
       "blade_speed": {
-        "name": "Velocità Lama"
+        "name": "Velocità lama"
       },
       "blower_speed": {
-        "name": "Velocità Soffiatore"
+        "name": "Velocità soffiatore"
       },
       "volume": {
         "name": "Volume"
       },
       "plan_start_percent": {
-        "name": "Percentuale Inizio Piano"
+        "name": "Percentuale inizio piano"
       },
       "roller_speed": {
-        "name": "Velocità Rullo"
+        "name": "Velocità rullo"
       },
       "battery_charge_min": {
-        "name": "Carica Batteria Minima"
+        "name": "Carica batteria minima"
       },
       "battery_charge_max": {
-        "name": "Carica Batteria Massima"
+        "name": "Carica batteria massima"
       }
     },
     "select": {
@@ -590,7 +590,7 @@
         "name": "Tipo di Curva"
       },
       "snow_push_direction": {
-        "name": "Direzione Spinta Neve"
+        "name": "Direzione spinta neve"
       }
     },
     "device_tracker": {

@@ -18,11 +18,11 @@
         }
       },
       "confirm": {
-        "title": "Yarbo Descubierto",
+        "title": "Yarbo descubierto",
         "description": "Se encontró **Yarbo {name}** en tu red en {host}. Haz clic en Enviar para agregar este robot."
       },
       "select_endpoint": {
-        "title": "Elegir Endpoint MQTT",
+        "title": "Elegir endpoint MQTT",
         "description": "Encontramos **{count}** ruta(s) a tu cortacésped Yarbo (orden de descubrimiento: Primario, luego Secundario). Ambos se conectan al mismo broker. En caso de fallo, se intentará el siguiente en este orden cuando el actual no esté disponible.",
         "data": {
           "selected_endpoint": "Endpoint"
@@ -136,11 +136,11 @@
       "rtk_status": {
         "name": "Estado RTK",
         "state": {
-          "invalid": "Sin Fijación",
+          "invalid": "Sin fijación",
           "gps": "GPS",
           "dgps": "DGPS",
-          "rtk_float": "RTK Float",
-          "rtk_fixed": "RTK Fixed",
+          "rtk_float": "RTK float",
+          "rtk_fixed": "RTK fixed",
           "unknown": "Desconocido"
         }
       },
@@ -214,7 +214,7 @@
         "name": "Odometría Y"
       },
       "odom_phi": {
-        "name": "Odometría Phi"
+        "name": "Odometría phi"
       },
       "rtcm_age": {
         "name": "Edad RTCM"
@@ -271,13 +271,13 @@
         "name": "Prioridad de Ruta WWAN0"
       },
       "ultrasonic_left_front": {
-        "name": "Ultrasónico Delantero Izquierdo"
+        "name": "Ultrasónico delantero izquierdo"
       },
       "ultrasonic_middle": {
-        "name": "Ultrasónico Medio"
+        "name": "Ultrasónico medio"
       },
       "ultrasonic_right_front": {
-        "name": "Ultrasónico Delantero Derecho"
+        "name": "Ultrasónico delantero derecho"
       },
       "schedule_count": {
         "name": "Conteo de Programación"
@@ -316,7 +316,7 @@
         "name": "Visto por Última Vez"
       },
       "saved_wifi_list": {
-        "name": "Redes WiFi Guardadas"
+        "name": "Redes WiFi guardadas"
       }
     },
     "binary_sensor": {
@@ -327,10 +327,10 @@
         "name": "Problema"
       },
       "planning": {
-        "name": "Planificación Activa"
+        "name": "Planificación activa"
       },
       "planning_active": {
-        "name": "Planificación Activa"
+        "name": "Planificación activa"
       },
       "returning_to_charge": {
         "name": "Regresando para Cargar"
@@ -342,19 +342,19 @@
         "name": "Modo de Seguimiento"
       },
       "planning_paused": {
-        "name": "Planificación Pausada"
+        "name": "Planificación pausada"
       },
       "manual_controller": {
-        "name": "Controlador Manual"
+        "name": "Controlador manual"
       },
       "rain_detected": {
-        "name": "Lluvia Detectada"
+        "name": "Lluvia detectada"
       },
       "no_charge_period": {
-        "name": "Período Sin Carga"
+        "name": "Período sin carga"
       },
       "online": {
-        "name": "En Línea"
+        "name": "En línea"
       }
     },
     "button": {
@@ -380,7 +380,7 @@
         "name": "Desbloqueo de Emergencia"
       },
       "play_sound": {
-        "name": "Reproducir Sonido"
+        "name": "Reproducir sonido"
       },
       "shutdown": {
         "name": "Apagar"
@@ -389,28 +389,28 @@
         "name": "Reiniciar"
       },
       "manual_stop": {
-        "name": "Parada Manual"
+        "name": "Parada manual"
       },
       "save_charging_point": {
         "name": "Guardar Punto de Carga"
       },
       "start_hotspot": {
-        "name": "Iniciar Hotspot"
+        "name": "Iniciar hotspot"
       },
       "save_map_backup": {
         "name": "Guardar Copia de Seguridad del Mapa"
       },
       "camera_calibration": {
-        "name": "Calibrar Cámara"
+        "name": "Calibrar cámara"
       },
       "check_camera_status": {
         "name": "Verificar Estado de la Cámara"
       },
       "firmware_update_now": {
-        "name": "Actualizar Firmware Ahora"
+        "name": "Actualizar firmware ahora"
       },
       "firmware_update_tonight": {
-        "name": "Actualizar Firmware Esta Noche"
+        "name": "Actualizar firmware esta noche"
       },
       "firmware_update_later": {
         "name": "Posponer Actualización de Firmware"
@@ -446,22 +446,22 @@
         "name": "Luz del Cabezal"
       },
       "led_left_w": {
-        "name": "Blanco Izquierdo"
+        "name": "Blanco izquierdo"
       },
       "led_right_w": {
-        "name": "Blanco Derecho"
+        "name": "Blanco derecho"
       },
       "led_body_left": {
-        "name": "Cuerpo Izquierdo"
+        "name": "Cuerpo izquierdo"
       },
       "led_body_right": {
-        "name": "Cuerpo Derecho"
+        "name": "Cuerpo derecho"
       },
       "led_tail_left": {
-        "name": "Cola Izquierda"
+        "name": "Cola izquierda"
       },
       "led_tail_right": {
-        "name": "Cola Derecha"
+        "name": "Cola derecha"
       }
     },
     "switch": {
@@ -475,13 +475,13 @@
         "name": "Rodillo"
       },
       "heating_film": {
-        "name": "Película Calefactora"
+        "name": "Película calefactora"
       },
       "follow_mode": {
         "name": "Modo de Seguimiento"
       },
       "auto_update": {
-        "name": "Actualización Automática"
+        "name": "Actualización automática"
       },
       "camera_ota": {
         "name": "Cámara OTA"
@@ -499,7 +499,7 @@
         "name": "USB"
       },
       "ignore_obstacles": {
-        "name": "Ignorar Obstáculos"
+        "name": "Ignorar obstáculos"
       },
       "draw_mode": {
         "name": "Modo de Dibujo"
@@ -511,10 +511,10 @@
         "name": "Bloqueo de Carga por Cable"
       },
       "smart_blowing": {
-        "name": "Soplado Inteligente"
+        "name": "Soplado inteligente"
       },
       "edge_blowing": {
-        "name": "Soplado de Bordes"
+        "name": "Soplado de bordes"
       },
       "motor_protect": {
         "name": "Protección de Motor"
@@ -535,16 +535,16 @@
         "name": "Geocerca"
       },
       "elec_fence": {
-        "name": "Cerca Eléctrica"
+        "name": "Cerca eléctrica"
       },
       "smart_vision": {
-        "name": "Visión Inteligente"
+        "name": "Detección inteligente"
       },
       "video_record": {
         "name": "Grabación de Video"
       },
       "child_lock": {
-        "name": "Bloqueo Infantil"
+        "name": "Bloqueo infantil"
       },
       "bag_record": {
         "name": "Grabación de ROS Bag"

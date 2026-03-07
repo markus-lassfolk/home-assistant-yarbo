@@ -48,10 +48,10 @@
         }
       },
       "cloud": {
-        "title": "Skyfunksjoner (Valgfritt)",
+        "title": "Skyfunksjoner (valgfritt)",
         "description": "Koble eventuelt til Yarbo-skyen for fastvareoppdateringer og enhetsinformasjon. Ikke nødvendig for lokal kontroll. La stå tomt for å hoppe over.",
         "data": {
-          "cloud_username": "Yarbo-konto E-post",
+          "cloud_username": "Yarbo-konto e-post",
           "cloud_password": "Passord"
         }
       },
@@ -85,7 +85,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Yarbo Alternativer",
+        "title": "Yarbo alternativer",
         "description": "Konfigurer integrasjonens oppførsel. Endringer trer i kraft umiddelbart (krever ingen omstart).",
         "data": {
           "telemetry_throttle": "Telemetri oppdateringsintervall (1–10 sekunder)",
@@ -128,7 +128,7 @@
           "lawn_mower": "Gressklipper",
           "lawn_mower_pro": "Gressklipper Pro",
           "leaf_blower": "Løvblåser",
-          "smart_cover": "Smartdeksel",
+          "smart_cover": "Intelligent deksel",
           "trimmer": "Trimmer",
           "none": "Ingen"
         }
@@ -139,8 +139,8 @@
           "invalid": "Ingen fiks",
           "gps": "GPS",
           "dgps": "DGPS",
-          "rtk_float": "RTK Float",
-          "rtk_fixed": "RTK Fixed",
+          "rtk_float": "RTK float",
+          "rtk_fixed": "RTK fixed",
           "unknown": "Ukjent"
         }
       },
@@ -187,13 +187,13 @@
         "name": "Ladeeffekt"
       },
       "battery_cell_temp_min": {
-        "name": "Battericelle Temp Min"
+        "name": "Battericelle temp min"
       },
       "battery_cell_temp_max": {
-        "name": "Battericelle Temp Maks"
+        "name": "Battericelle temp maks"
       },
       "battery_cell_temp_avg": {
-        "name": "Battericelle Temp Gjennomsnitt"
+        "name": "Battericelle temp gjennomsnitt"
       },
       "odometer": {
         "name": "Kilometerteller"
@@ -214,7 +214,7 @@
         "name": "Odometri Y"
       },
       "odom_phi": {
-        "name": "Odometri Phi"
+        "name": "Odometri phi"
       },
       "rtcm_age": {
         "name": "RTCM-alder"
@@ -250,10 +250,10 @@
         "name": "Navigasjonssensor bak høyre"
       },
       "head_gyro_pitch": {
-        "name": "Hode Gyro Pitch"
+        "name": "Hode gyro pitch"
       },
       "head_gyro_roll": {
-        "name": "Hode Gyro Roll"
+        "name": "Hode gyro roll"
       },
       "machine_controller": {
         "name": "Maskinkontroller"
@@ -327,31 +327,31 @@
         "name": "Problem"
       },
       "planning": {
-        "name": "Planlegging Aktiv"
+        "name": "Planlegging aktiv"
       },
       "planning_active": {
-        "name": "Planlegging Aktiv"
+        "name": "Planlegging aktiv"
       },
       "returning_to_charge": {
-        "name": "Returnerer For Å Lade"
+        "name": "Returnerer for Å lade"
       },
       "going_to_start": {
-        "name": "Går Til Start"
+        "name": "Går til start"
       },
       "follow_mode": {
         "name": "Følgemodus"
       },
       "planning_paused": {
-        "name": "Planlegging Pauset"
+        "name": "Planlegging pauset"
       },
       "manual_controller": {
-        "name": "Manuell Kontroller"
+        "name": "Manuell kontroller"
       },
       "rain_detected": {
-        "name": "Regn Oppdaget"
+        "name": "Regn oppdaget"
       },
       "no_charge_period": {
-        "name": "Ingen Ladeperiode"
+        "name": "Ingen ladeperiode"
       },
       "online": {
         "name": "Online"
@@ -446,22 +446,22 @@
         "name": "Hode-LED"
       },
       "led_left_w": {
-        "name": "Venstre Hvit"
+        "name": "Venstre hvit"
       },
       "led_right_w": {
-        "name": "Høyre Hvit"
+        "name": "Høyre hvit"
       },
       "led_body_left": {
-        "name": "Kropp Venstre"
+        "name": "Kropp venstre"
       },
       "led_body_right": {
-        "name": "Kropp Høyre"
+        "name": "Kropp høyre"
       },
       "led_tail_left": {
-        "name": "Hale Venstre"
+        "name": "Hale venstre"
       },
       "led_tail_right": {
-        "name": "Hale Høyre"
+        "name": "Hale høyre"
       }
     },
     "switch": {
@@ -511,7 +511,7 @@
         "name": "Kabel-ladelås"
       },
       "smart_blowing": {
-        "name": "Smartblåsing"
+        "name": "Intelligent blåsing"
       },
       "edge_blowing": {
         "name": "Kantblåsing"
@@ -538,7 +538,7 @@
         "name": "Elektrisk gjerde"
       },
       "smart_vision": {
-        "name": "Smart visjon"
+        "name": "Intelligent deteksjon"
       },
       "video_record": {
         "name": "Videoopptak"
@@ -547,7 +547,7 @@
         "name": "Barnesikring"
       },
       "bag_record": {
-        "name": "ROS Bag Recording"
+        "name": "ROS bag recording"
       }
     },
     "number": {
@@ -570,16 +570,16 @@
         "name": "Volum"
       },
       "plan_start_percent": {
-        "name": "Plan Start Prosent"
+        "name": "Plan start Prosent"
       },
       "roller_speed": {
         "name": "Rullehastighet"
       },
       "battery_charge_min": {
-        "name": "Batterilading Minimum"
+        "name": "Batterilading minimum"
       },
       "battery_charge_max": {
-        "name": "Batterilading Maksimum"
+        "name": "Batterilading maksimum"
       }
     },
     "select": {

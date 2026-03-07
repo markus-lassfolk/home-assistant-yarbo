@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Verbinden met Yarbo",
-        "description": "Voer het IP-adres in van uw Yarbo-basisstation (Data Center). De integratie maakt verbinding met de lokale MQTT-broker op poort 1883.",
+        "description": "Voer het IP-adres in van je Yarbo-basisstation (Data Center). De integratie maakt verbinding met de lokale MQTT-broker op poort 1883.",
         "data": {
           "broker_host": "IP-adres basisstation",
           "broker_port": "MQTT-poort"
@@ -19,30 +19,30 @@
       },
       "confirm": {
         "title": "Yarbo gevonden",
-        "description": "**Yarbo {name}** gevonden in uw netwerk op {host}. Klik op Verzenden om deze robot toe te voegen."
+        "description": "**Yarbo {name}** gevonden in je netwerk op {host}. Klik op Verzenden om deze robot toe te voegen."
       },
       "select_endpoint": {
         "title": "Kies MQTT-eindpunt",
-        "description": "We hebben **{count}** pad(en) gevonden naar uw Yarbo-maaier (volgorde van ontdekking: Primair, dan Secundair). Beide maken verbinding met dezelfde broker. Failover probeert de volgende in deze volgorde wanneer de huidige niet beschikbaar is.",
+        "description": "We hebben **{count}** pad(en) gevonden naar je Yarbo-maaier (volgorde van ontdekking: primair, dan secundair). Beide maken verbinding met dezelfde broker. Failover probeert de volgende in deze volgorde wanneer de huidige niet beschikbaar is.",
         "data": {
           "selected_endpoint": "Eindpunt"
         }
       },
       "mqtt_test": {
         "title": "Verbinden met Yarbo",
-        "description": "MQTT-verbinding testen en wachten op telemetrie van uw robot..."
+        "description": "MQTT-verbinding testen en wachten op telemetrie van je robot..."
       },
       "reconfigure": {
         "title": "Yarbo herconfigureren",
-        "description": "Werk het IP-adres van uw Yarbo-basisstation bij.",
+        "description": "Werk het IP-adres van je Yarbo-basisstation bij.",
         "data": {
           "broker_host": "IP-adres basisstation",
           "broker_port": "MQTT-poort"
         }
       },
       "name": {
-        "title": "Geef uw robot een naam",
-        "description": "Kies een naam voor uw Yarbo-robot. Dit wordt gebruikt voor alle entiteitsnamen.",
+        "title": "Geef je robot een naam",
+        "description": "Kies een naam voor je Yarbo-robot. Dit wordt gebruikt voor alle entiteitsnamen.",
         "data": {
           "robot_name": "Robotnaam"
         }
@@ -57,7 +57,7 @@
       },
       "reauth_confirm": {
         "title": "Yarbo Cloud herauthentiseren",
-        "description": "Uw Yarbo-cloudsessie voor **{username}** is verlopen. Voer uw wachtwoord in om opnieuw verbinding te maken.",
+        "description": "Je Yarbo-cloudsessie voor **{username}** is verlopen. Voer je wachtwoord in om opnieuw verbinding te maken.",
         "data": {
           "cloud_password": "Wachtwoord"
         }
@@ -78,7 +78,7 @@
       "cannot_connect": "Kan geen verbinding maken",
       "no_telemetry": "Geen telemetrie ontvangen binnen 30 seconden. Zorg ervoor dat de robot is ingeschakeld en in de buurt van het basisstation is, en probeer het dan opnieuw.",
       "decode_error": "Decodeerfout",
-      "cloud_auth_failed": "Cloudauthenticatie mislukt — controleer uw e-mailadres en wachtwoord",
+      "cloud_auth_failed": "Cloudauthenticatie mislukt — controleer je e-mailadres en wachtwoord",
       "cloud_not_available": "Cloudclient niet beschikbaar — update python-yarbo"
     }
   },
@@ -100,7 +100,7 @@
           "telemetry_throttle": "Hoe vaak telemetrie-updates naar Home Assistant worden gepusht. Lagere waarden betekenen frequentere updates maar hogere belasting van de recorder.",
           "activity_personality": "Indien ingeschakeld, bevat de activiteitssensor leuke emoji-beschrijvingen als extra attributen.",
           "debug_logging": "Schakelt uitgebreide logboekregistratie in voor alle Yarbo-componenten. Handig voor probleemoplossing.",
-          "mqtt_recording": "Neemt alle MQTT-berichten op in een bestand (max 10 MB). Deel met ontwikkelaars om problemen met uw firmware/koptype te helpen oplossen."
+          "mqtt_recording": "Neemt alle MQTT-berichten op in een bestand (max 10 MB). Deel met ontwikkelaars om problemen met je firmware/koptype te helpen oplossen."
         }
       }
     }
@@ -139,8 +139,8 @@
           "invalid": "Geen fix",
           "gps": "GPS",
           "dgps": "DGPS",
-          "rtk_float": "RTK Float",
-          "rtk_fixed": "RTK Fixed",
+          "rtk_float": "RTK float",
+          "rtk_fixed": "RTK fixed",
           "unknown": "Onbekend"
         }
       },
@@ -214,7 +214,7 @@
         "name": "Odometrie Y"
       },
       "odom_phi": {
-        "name": "Odometrie Phi"
+        "name": "Odometrie phi"
       },
       "rtcm_age": {
         "name": "RTCM-leeftijd"
@@ -538,7 +538,7 @@
         "name": "Elektrisch hek"
       },
       "smart_vision": {
-        "name": "Slimme visie"
+        "name": "Slimme detectie"
       },
       "video_record": {
         "name": "Video-opname"
@@ -547,7 +547,7 @@
         "name": "Kinderslot"
       },
       "bag_record": {
-        "name": "ROS Bag Recording"
+        "name": "ROS bag recording"
       }
     },
     "number": {
@@ -616,7 +616,7 @@
     },
     "mqtt_disconnect": {
       "title": "Yarbo-basisstation onbereikbaar",
-      "description": "Er is al minstens 60 seconden geen telemetrie ontvangen van **{name}**. De robot bevindt zich mogelijk buiten bereik of het basisstation is uitgeschakeld.\n\n**Stappen om op te lossen:**\n1. Controleer of het Yarbo Data Center (basisstation) is ingeschakeld.\n2. Controleer of het basisstation is verbonden met uw lokale netwerk.\n3. Bevestig dat Home Assistant het IP-adres van het basisstation kan bereiken.\n\nDit probleem wordt automatisch opgelost wanneer de telemetrie wordt hervat."
+      "description": "Er is al minstens 60 seconden geen telemetrie ontvangen van **{name}**. De robot bevindt zich mogelijk buiten bereik of het basisstation is uitgeschakeld.\n\n**Stappen om op te lossen:**\n1. Controleer of het Yarbo Data Center (basisstation) is ingeschakeld.\n2. Controleer of het basisstation is verbonden met je lokale netwerk.\n3. Bevestig dat Home Assistant het IP-adres van het basisstation kan bereiken.\n\nDit probleem wordt automatisch opgelost wanneer de telemetrie wordt hervat."
     },
     "controller_lost": {
       "title": "Yarbo-controllersessie verloren",
@@ -639,7 +639,7 @@
         "step": {
           "confirm": {
             "title": "Cloud herauthentiseren",
-            "description": "Uw Yarbo-cloudtoken voor **{name}** is verlopen. Druk op **Verzenden** om de herauthenticatie te openen en uw wachtwoord opnieuw in te voeren."
+            "description": "Je Yarbo-cloudtoken voor **{name}** is verlopen. Druk op **Verzenden** om de herauthenticatie te openen en je wachtwoord opnieuw in te voeren."
           }
         },
         "abort": {

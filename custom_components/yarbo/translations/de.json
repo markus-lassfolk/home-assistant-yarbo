@@ -232,7 +232,7 @@
         "name": "MQTT-Nachrichtenalter"
       },
       "heading_dop": {
-        "name": "Kurs-DOP"
+        "name": "Richtungs-DOP"
       },
       "heading_status": {
         "name": "Kursstatus"
@@ -538,7 +538,7 @@
         "name": "Elektrischer Zaun"
       },
       "smart_vision": {
-        "name": "Intelligente Vision"
+        "name": "Intelligente Erkennung"
       },
       "video_record": {
         "name": "Videoaufzeichnung"
