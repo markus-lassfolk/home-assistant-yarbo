@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from collections.abc import AsyncGenerator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -288,6 +290,7 @@ class TestDhcpDiscoveryFlow:
     Flow: dhcp → confirm → mqtt_test → name → create_entry (cloud skipped for beta)
     """
 
+    @pytest.mark.allow_net_connect
     async def test_dhcp_discovery_shows_confirm(
         self, hass: HomeAssistant, enable_custom_integrations: None
     ) -> None:
@@ -310,6 +313,7 @@ class TestDhcpDiscoveryFlow:
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "confirm"
 
+    @pytest.mark.allow_net_connect
     async def test_dhcp_confirm_then_mqtt_test_and_create_entry(
         self, hass: HomeAssistant, enable_custom_integrations: None
     ) -> None:
