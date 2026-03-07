@@ -8,6 +8,7 @@ import json
 import logging
 import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,8 @@ from .const import (
     DEFAULT_BROKER_PORT,
     DEFAULT_DEBUG_LOGGING,
     DEFAULT_MQTT_RECORDING,
+    DEFAULT_POLL_ACQUIRE_CONTROLLER,
+    DEFAULT_POLL_INTERVAL,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
     ENDPOINT_TYPE_DC,
@@ -40,6 +43,8 @@ from .const import (
     MQTT_RECORDING_MAX_SIZE_BYTES,
     OPT_DEBUG_LOGGING,
     OPT_MQTT_RECORDING,
+    OPT_POLL_ACQUIRE_CONTROLLER,
+    OPT_POLL_INTERVAL,
     OPT_TELEMETRY_THROTTLE,
     TELEMETRY_RETRY_DELAY_SECONDS,
     get_activity_state,
@@ -201,7 +206,15 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._throttle_interval: float = entry.options.get(
             OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE
         )
+        self._poll_interval: int = entry.options.get(
+            OPT_POLL_INTERVAL, DEFAULT_POLL_INTERVAL
+        )
+        self._poll_acquire_controller: bool = entry.options.get(
+            OPT_POLL_ACQUIRE_CONTROLLER, DEFAULT_POLL_ACQUIRE_CONTROLLER
+        )
         self._update_count: int = 0
+        # Wall-clock time (UTC ISO) when we last received any telemetry (for diagnostics)
+        self._last_telemetry_received_utc: str | None = None
 
         # Debug logging toggle
         self._debug_logging: bool = entry.options.get(OPT_DEBUG_LOGGING, DEFAULT_DEBUG_LOGGING)
@@ -263,6 +276,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         self._map_backups: list[Any] = []
         self._clean_areas: list[Any] = []
         self._motor_temp_c: float | None = None
+        self._logged_high_listeners = False
 
     def update_options(self, options: dict[str, Any]) -> None:
         """Apply updated config entry options without requiring a full reload.
@@ -272,8 +286,18 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
 
         Currently applies:
         - telemetry_throttle: debounce interval for pushing updates to HA
+        - poll_interval: interval for python-yarbo get_device_msg polling (when supported)
         """
         self._throttle_interval = options.get(OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE)
+        new_poll = options.get(OPT_POLL_INTERVAL, DEFAULT_POLL_INTERVAL)
+        new_acquire = options.get(OPT_POLL_ACQUIRE_CONTROLLER, DEFAULT_POLL_ACQUIRE_CONTROLLER)
+        poll_changed = new_poll != self._poll_interval or new_acquire != self._poll_acquire_controller
+        self._poll_interval = new_poll
+        self._poll_acquire_controller = new_acquire
+        if poll_changed and hasattr(self.client, "start_polling") and hasattr(
+            self.client, "stop_polling"
+        ):
+            self.hass.async_create_task(self._async_apply_poll_interval())
 
         # Debug logging
         new_debug = options.get(OPT_DEBUG_LOGGING, DEFAULT_DEBUG_LOGGING)
@@ -291,8 +315,9 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 self.hass.async_create_task(self._async_stop_recorder())
 
         _LOGGER.debug(
-            "Yarbo options updated — throttle=%.1fs, debug=%s, recording=%s",
+            "Yarbo options updated — throttle=%.1fs, poll_interval=%ds, debug=%s, recording=%s",
             self._throttle_interval,
+            self._poll_interval,
             self._debug_logging,
             self._recorder.enabled,
         )
@@ -1039,6 +1064,19 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             self._watchdog_task = asyncio.create_task(self._heartbeat_watchdog())
         if self._diagnostic_task is None:
             self._diagnostic_task = asyncio.create_task(self._diagnostic_polling_loop())
+        # Use python-yarbo telemetry polling (get_device_msg keepalive when app is closed).
+        # Library: optional get_controller before each poll (poll_acquire_controller);
+        # 1s interval when robot is active. See python-yarbo #79 and 539526b.
+        if hasattr(self.client, "start_polling"):
+            try:
+                await self._start_polling_with_options()
+                _LOGGER.info(
+                    "Telemetry polling started (interval=%ds when idle, acquire_controller=%s)",
+                    self._poll_interval,
+                    self._poll_acquire_controller,
+                )
+            except (ValueError, Exception) as err:
+                _LOGGER.debug("Could not start telemetry polling (non-fatal): %s", err)
 
     def _apply_debug_logging(self, enabled: bool) -> None:
         """Toggle debug logging for all yarbo components."""
@@ -1078,6 +1116,13 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     async def _telemetry_loop(self) -> None:
         """Listen to python-yarbo telemetry stream and push updates.
 
+        watch_telemetry() yields from both DeviceMSG (streamed when app is connected)
+        and data_feedback (responses to get_device_msg from polling or other clients).
+        We treat both as activity: every yielded telemetry updates _last_seen and
+        sensor state, so "last seen" and entities stay current whether the robot
+        is streaming DeviceMSG or we receive telemetry via data_feedback (e.g.
+        our own polling or another script sending get_device_msg).
+
         Runs continuously until cancelled.
         Retries automatically after TELEMETRY_RETRY_DELAY_SECONDS on connection error.
         """
@@ -1085,7 +1130,20 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             try:
                 async for telemetry in self.client.watch_telemetry():
                     now = time.monotonic()
+                    # Log at INFO when we receive after a long gap (helps debug "Last Seen" issues)
+                    gap = (now - self._last_seen) if self._last_seen is not None else None
+                    if gap is None:
+                        _LOGGER.info("Telemetry received (first time)")
+                    elif gap > 55:
+                        _LOGGER.info(
+                            "Telemetry received (first in %.0fs)",
+                            gap,
+                        )
                     self._last_seen = now
+                    self._last_telemetry_received_utc = datetime.now(UTC).isoformat()
+                    _LOGGER.debug(
+                        "Telemetry received, last_seen updated (polling or data_feedback)"
+                    )
                     # Cancel previous offline timer and schedule a new one
                     if self._online_timer_cancel is not None:
                         self._online_timer_cancel()
@@ -1095,6 +1153,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         self.hass, HEARTBEAT_TIMEOUT_SECONDS + 5, self._force_online_reeval
                     )
                     if now - self._last_update < self._throttle_interval:
+                        # Still notify listeners so Last Seen sensor (and others) refresh
+                        self.async_set_updated_data(self.data)
                         continue
                     # Record raw telemetry for diagnostics
                     if self._recorder.enabled:
@@ -1108,7 +1168,29 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                             _LOGGER.debug("MQTT recorder error (non-fatal): %s", rec_err)
                     self._last_update = now
                     self._update_count += 1
+                    if _LOGGER.isEnabledFor(logging.DEBUG):
+                        t0 = time.monotonic()
                     self.async_set_updated_data(telemetry)
+                    if _LOGGER.isEnabledFor(logging.DEBUG):
+                        elapsed = time.monotonic() - t0
+                        if elapsed > 0.1:
+                            _LOGGER.debug(
+                                "async_set_updated_data took %.3fs (listeners=%s)",
+                                elapsed,
+                                len(getattr(self, "_listeners", [])),
+                            )
+                    if not self._logged_high_listeners:
+                        try:
+                            n = len(getattr(self, "_listeners", []))
+                            if n > 40:
+                                self._logged_high_listeners = True
+                                _LOGGER.info(
+                                    "Yarbo has %d entities (listeners). If HA is slow, try raising "
+                                    "telemetry update interval in integration options (e.g. 2–5s).",
+                                    n,
+                                )
+                        except Exception:
+                            pass
                     if self._issue_active:
                         async_delete_mqtt_disconnect_issue(self.hass, self._entry.entry_id)
                         self._issue_active = False
@@ -1184,6 +1266,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         except Exception as ctrl_err:
                             _LOGGER.warning("Failover controller acquisition failed: %s", ctrl_err)
                         _LOGGER.info("Failover to %s succeeded", next_host)
+                        if hasattr(self.client, "start_polling"):
+                            try:
+                                await self._start_polling_with_options()
+                            except Exception as poll_err:
+                                _LOGGER.debug("Start polling after failover (non-fatal): %s", poll_err)
                         await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
                         continue
                     except Exception as connect_err:
@@ -1241,11 +1328,53 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         In normal operation, core telemetry arrives via _telemetry_loop() using
         async_set_updated_data(). This method only runs once at startup to provide
         initial data before the push stream is established.
+        Uses poll_acquire_controller option (python-yarbo get_status(acquire_controller=...)).
         """
         try:
-            return await self.client.get_status(timeout=5.0)
+            try:
+                result = await self.client.get_status(
+                    timeout=5.0, acquire_controller=self._poll_acquire_controller
+                )
+            except TypeError:
+                result = await self.client.get_status(timeout=5.0)
+            if result is None:
+                raise UpdateFailed("get_status timed out (no telemetry received)")
+            return result
         except YarboConnectionError as err:
             raise UpdateFailed(f"Cannot connect to Yarbo: {err}") from err
+
+    async def _start_polling_with_options(self) -> None:
+        """Call client.start_polling with current interval and acquire_controller.
+
+        Uses acquire_controller kwarg when supported (python-yarbo 539526b).
+        """
+        try:
+            await self.client.start_polling(
+                interval_seconds=float(self._poll_interval),
+                acquire_controller=self._poll_acquire_controller,
+            )
+        except TypeError:
+            await self.client.start_polling(interval_seconds=float(self._poll_interval))
+
+    async def _async_apply_poll_interval(self) -> None:
+        """Restart library telemetry polling with current poll_interval and acquire_controller.
+
+        Called when the user changes poll interval or poll_acquire_controller in options.
+        """
+        if not hasattr(self.client, "stop_polling") or not hasattr(
+            self.client, "start_polling"
+        ):
+            return
+        try:
+            await self.client.stop_polling()
+            await self._start_polling_with_options()
+            _LOGGER.info(
+                "Telemetry polling updated (interval=%ds, acquire_controller=%s)",
+                self._poll_interval,
+                self._poll_acquire_controller,
+            )
+        except Exception as err:
+            _LOGGER.debug("Could not apply poll options (non-fatal): %s", err)
 
     async def _diagnostic_polling_loop(self) -> None:
         """Periodically poll diagnostic data without overwriting push-stream telemetry.
@@ -1279,6 +1408,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                             await method(timeout=1.0, skip_lock=True)
                         except Exception as err:
                             _LOGGER.debug("Diagnostic request failed (non-fatal): %s", err)
+                        await asyncio.sleep(0.3)
                     self.async_update_listeners()
             except asyncio.CancelledError:
                 _LOGGER.debug("Diagnostic polling loop cancelled")
@@ -1309,6 +1439,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             with contextlib.suppress(asyncio.CancelledError):
                 await self._diagnostic_task
             self._diagnostic_task = None
+        if hasattr(self.client, "stop_polling"):
+            try:
+                await self.client.stop_polling()
+            except Exception as err:
+                _LOGGER.debug("Stop polling (non-fatal): %s", err)
         if self._online_timer_cancel is not None:
             self._online_timer_cancel()
             self._online_timer_cancel = None

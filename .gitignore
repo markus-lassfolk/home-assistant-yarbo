@@ -6,13 +6,16 @@ __pycache__/
 .Python
 build/
 dist/
+dist_wheels/
 *.egg-info/
 *.egg
 .eggs/
 .env
 .venv
+.venv-capture/
 env/
 venv/
+config/
 
 # Home Assistant
 .storage/
@@ -28,6 +31,7 @@ Thumbs.db
 
 # Testing
 .pytest_cache/
+.ruff_cache/
 htmlcov/
 .coverage
 coverage.xml

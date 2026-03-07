@@ -8,6 +8,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2026.3.63] — 2026-03-06
+
+### Changed
+- **Last Seen / Last Seen Latency** — These diagnostic sensors now write state only when their rounded value actually changes (once per minute for Last Seen, once per 30s for Latency). This reduces recorder and Activity log updates and avoids flooding the logbook.
+
+---
+
+## [2026.3.62] — 2026-03-06
+
+### Added
+- **Performance diagnostics** — coordinator diagnostics now include `listener_count` and `poll_interval` to help diagnose "HA hangs" or high load when there are many entities.
+- **Performance troubleshooting** — new section in [Troubleshooting](troubleshooting.md): "HA hangs or runs out of resources when Yarbo is enabled" (what to collect, what to try, how to report).
+- **Debug timing** — when debug logging is on, log when `async_set_updated_data` takes >0.1s (listener count in message).
+- **Performance test** — `tests/test_coordinator_performance.py` (diagnostics include listener_count and poll_interval).
+
+### Changed
+- **Diagnostic polling** — 0.3s delay between each diagnostic request (every 300s) to avoid blocking the event loop and reduce burst load on the robot.
+- **Options** — improved description for `poll_acquire_controller` (when app is closed, what "acquire controller" means, when to leave off).
+
+### Fixed
+- One-time INFO when entity count >40 suggesting to raise telemetry update interval if HA is slow.
+
+---
+
+## [2026.3.61] — 2026-03-06
+
+All changes since 2026.3.40.
+
+### Changed
+- **python-yarbo** — requirement `>=2026.3.60,<2027.0` for correct `data_feedback` get_device_msg handling and Last Seen updates.
+- **Options UI** — clarified labels and descriptions for `poll_acquire_controller` (acquire when polling for telemetry) vs `auto_controller` (acquire before sending commands); added description for auto_controller.
+
+### Added
+- **MQTT capture and analysis** — `scripts/capture_mqtt_traffic.py`, `scripts/analyze_mqtt_capture.py`, [docs/mqtt-data-feedback-payload.md](mqtt-data-feedback-payload.md).
+- **Testing before release** — [docs/testing-before-release.md](testing-before-release.md), `scripts/install_latest_to_hass.sh`.
+
+### Documentation
+- Troubleshooting: link to data_feedback payload doc and capture/analyze scripts (Last Seen).
+- Development: link to Testing before release guide.
+
+---
+
 ## [2026.3.21] — 2026-03-02
 
 ### Fixed

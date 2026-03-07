@@ -57,6 +57,12 @@ ln -s $(pwd)/custom_components/yarbo ~/.homeassistant/custom_components/yarbo
 
 Or use the [Home Assistant Dev Container](https://developers.home-assistant.io/docs/development_environment/) setup.
 
+**Testing before release:** To manually deploy the **latest** integration and **latest** python-yarbo (e.g. from local repos) and verify behaviour with script-driven and HASS-only polling, use the install script and the verification steps in [Testing before release](testing-before-release.md):
+
+```bash
+./scripts/install_latest_to_hass.sh /path/to/ha/config /path/to/python-yarbo
+```
+
 ---
 
 ## Project Structure

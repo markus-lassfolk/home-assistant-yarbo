@@ -22,7 +22,7 @@ _lib_init_error_reporting(enabled=False)
 
 # Minimum python-yarbo version required by this integration.
 # Bump this when using new library features (e.g. get_controller(timeout=...)).
-MIN_LIB_VERSION = "2026.3.40"
+MIN_LIB_VERSION = "2026.3.60"
 
 from .const import (
     CONF_ALTERNATE_BROKER_HOST,
@@ -216,6 +216,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     client = YarboLocalClient(
         broker=entry.data[CONF_BROKER_HOST],
         port=entry.data[CONF_BROKER_PORT],
+        sn=entry.data.get(CONF_ROBOT_SERIAL, ""),
     )
 
     try:

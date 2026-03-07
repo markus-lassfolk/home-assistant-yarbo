@@ -92,6 +92,8 @@ from .const import (  # noqa: E402
     DEFAULT_DEBUG_LOGGING,
     DEFAULT_ERROR_REPORTING,
     DEFAULT_MQTT_RECORDING,
+    DEFAULT_POLL_ACQUIRE_CONTROLLER,
+    DEFAULT_POLL_INTERVAL,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
     ENDPOINT_TYPE_ROVER,
@@ -101,7 +103,11 @@ from .const import (  # noqa: E402
     OPT_DEBUG_LOGGING,
     OPT_ERROR_REPORTING,
     OPT_MQTT_RECORDING,
+    OPT_POLL_ACQUIRE_CONTROLLER,
+    OPT_POLL_INTERVAL,
     OPT_TELEMETRY_THROTTLE,
+    POLL_INTERVAL_MAX,
+    POLL_INTERVAL_MIN,
 )
 from .discovery import YarboEndpoint, async_discover_endpoints  # noqa: E402
 from .repairs import async_delete_cloud_token_expired_issue  # noqa: E402
@@ -759,6 +765,18 @@ class YarboOptionsFlow(OptionsFlow):
                         OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE
                     ),
                 ): vol.All(vol.Coerce(float), vol.Range(min=1.0, max=10.0)),
+                vol.Optional(
+                    OPT_POLL_INTERVAL,
+                    default=self._config_entry.options.get(
+                        OPT_POLL_INTERVAL, DEFAULT_POLL_INTERVAL
+                    ),
+                ): vol.All(vol.Coerce(int), vol.Range(min=POLL_INTERVAL_MIN, max=POLL_INTERVAL_MAX)),
+                vol.Optional(
+                    OPT_POLL_ACQUIRE_CONTROLLER,
+                    default=self._config_entry.options.get(
+                        OPT_POLL_ACQUIRE_CONTROLLER, DEFAULT_POLL_ACQUIRE_CONTROLLER
+                    ),
+                ): bool,
                 vol.Optional(
                     OPT_AUTO_CONTROLLER,
                     default=self._config_entry.options.get(

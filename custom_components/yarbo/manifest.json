@@ -17,8 +17,8 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/markus-lassfolk/home-assistant-yarbo/issues",
   "requirements": [
-    "python-yarbo>=2026.3.40,<2027.0",
+    "python-yarbo>=2026.3.60,<2027.0",
     "sentry-sdk>=1.0.0"
   ],
-  "version": "2026.3.40"
+  "version": "2026.3.63"
 }
