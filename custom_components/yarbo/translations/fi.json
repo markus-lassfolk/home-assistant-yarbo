@@ -315,6 +315,9 @@
       "last_seen": {
         "name": "Viimeksi nähty"
       },
+      "last_seen_latency": {
+        "name": "Viimeksi nähty"
+      },
       "saved_wifi_list": {
         "name": "Tallennetut WiFi-verkot"
       }
