@@ -79,7 +79,7 @@
       "no_telemetry": "Aucune télémétrie reçue dans les 30 secondes. Assure-toi que le robot est allumé et près de la station de base, puis réessaie.",
       "decode_error": "Erreur de décodage",
       "cloud_auth_failed": "L'authentification cloud a échoué — vérifie ton e-mail et ton mot de passe",
-      "cloud_not_available": "Client cloud non disponible — mettez à jour python-yarbo"
+      "cloud_not_available": "Client cloud non disponible — mets à jour python-yarbo"
     }
   },
   "options": {
@@ -395,7 +395,7 @@
         "name": "Enregistrer Point de Charge"
       },
       "start_hotspot": {
-        "name": "Démarrer Point d'Accès"
+        "name": "Démarrer point d'accès"
       },
       "save_map_backup": {
         "name": "Enregistrer sauvegarde carte"
@@ -612,7 +612,7 @@
   "issues": {
     "telemetry_timeout": {
       "title": "Télémétrie Yarbo non reçue",
-      "description": "Aucune télémétrie n'a été reçue de **{name}** pendant au moins 60 secondes. Vérifiez que la station de base est allumée et connectée au réseau."
+      "description": "Aucune télémétrie n'a été reçue de **{name}** pendant au moins 60 secondes. Vérifie que la station de base est allumée et connectée au réseau."
     },
     "mqtt_disconnect": {
       "title": "Station de base Yarbo inaccessible",
@@ -624,11 +624,11 @@
         "step": {
           "confirm": {
             "title": "Réacquérir le contrôleur",
-            "description": "L'application Yarbo ou un autre client a pris la session de contrôleur pour **{name}**, empêchant Home Assistant d'envoyer des commandes.\n\nAppuyez sur **Soumettre** pour réacquérir la session de contrôleur."
+            "description": "L'application Yarbo ou un autre client a pris la session de contrôleur pour **{name}**, empêchant Home Assistant d'envoyer des commandes.\n\nAppuie sur **Soumettre** pour réacquérir la session de contrôleur."
           }
         },
         "abort": {
-          "cannot_connect": "Impossible de réacquérir la session de contrôleur. Vérifiez que la station de base Yarbo est accessible et réessayez.",
+          "cannot_connect": "Impossible de réacquérir la session de contrôleur. Vérifie que la station de base Yarbo est accessible et réessaie.",
           "unknown": "Une erreur inattendue s'est produite lors de la réacquisition de la session du contrôleur."
         }
       }
@@ -651,11 +651,11 @@
   "services": {
     "send_command": {
       "name": "Envoyer une commande brute",
-      "description": "Publiez une commande MQTT arbitraire vers le robot (utilisateurs avancés uniquement)."
+      "description": "Publie une commande MQTT arbitraire vers le robot (utilisateurs avancés uniquement)."
     },
     "start_plan": {
       "name": "Démarrer le plan de travail",
-      "description": "Démarrez un plan de travail enregistré par son ID."
+      "description": "Démarre un plan de travail enregistré par son ID."
     },
     "pause": {
       "name": "Pause",
