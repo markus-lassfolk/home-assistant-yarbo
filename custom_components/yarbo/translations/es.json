@@ -127,8 +127,8 @@
           "snow_blower": "Quitanieves",
           "lawn_mower": "Cortacésped",
           "lawn_mower_pro": "Cortacésped Pro",
-          "leaf_blower": "Soplador de Hojas",
-          "smart_cover": "Smart Cover",
+          "leaf_blower": "Soplador de hojas",
+          "smart_cover": "Cubierta inteligente",
           "trimmer": "Trimmer",
           "none": "Ninguno"
         }
@@ -232,7 +232,7 @@
         "name": "Edad del Mensaje MQTT"
       },
       "heading_dop": {
-        "name": "Heading DOP"
+        "name": "DOP de rumbo"
       },
       "heading_status": {
         "name": "Estado de Rumbo"

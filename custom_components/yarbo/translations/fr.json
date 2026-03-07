@@ -23,7 +23,7 @@
       },
       "select_endpoint": {
         "title": "Choisir le point de terminaison MQTT",
-        "description": "Nous avons trouvé **{count}** chemin(s) vers votre tondeuse Yarbo (ordre de découverte: Primaire, puis Secondaire). Les deux se connectent au même broker. En cas d'échec, le suivant dans cet ordre sera essayé.",
+        "description": "Nous avons trouvé **{count}** chemin(s) vers votre tondeuse Yarbo (ordre de découverte : Primaire, puis Secondaire). Les deux se connectent au même broker. En cas d'échec, le suivant dans cet ordre sera essayé.",
         "data": {
           "selected_endpoint": "Point de terminaison"
         }
@@ -124,11 +124,11 @@
       "head_type": {
         "name": "Type de Tête",
         "state": {
-          "snow_blower": "Souffleuse à Neige",
-          "lawn_mower": "Tondeuse à Gazon",
-          "lawn_mower_pro": "Tondeuse à Gazon Pro",
-          "leaf_blower": "Souffleur de Feuilles",
-          "smart_cover": "Smart Cover",
+          "snow_blower": "Souffleuse à neige",
+          "lawn_mower": "Tondeuse à gazon",
+          "lawn_mower_pro": "Tondeuse à gazon pro",
+          "leaf_blower": "Souffleur de feuilles",
+          "smart_cover": "Capot intelligent",
           "trimmer": "Trimmer",
           "none": "Aucune"
         }
@@ -232,7 +232,7 @@
         "name": "Âge Message MQTT"
       },
       "heading_dop": {
-        "name": "Heading DOP"
+        "name": "DOP du cap"
       },
       "heading_status": {
         "name": "Statut Cap"
@@ -616,7 +616,7 @@
     },
     "mqtt_disconnect": {
       "title": "Station de base Yarbo inaccessible",
-      "description": "Aucune télémétrie n'a été reçue de **{name}** pendant au moins 60 secondes. Le robot peut être hors de portée ou la station de base peut être éteinte.\n\n**Étapes pour résoudre:**\n1. Vérifiez que le Yarbo Data Center (station de base) est allumé.\n2. Vérifiez que la station de base est connectée à votre réseau local.\n3. Confirmez que Home Assistant peut atteindre l'adresse IP de la station de base.\n\nCe problème se résoudra automatiquement à la reprise de la télémétrie."
+      "description": "Aucune télémétrie n'a été reçue de **{name}** pendant au moins 60 secondes. Le robot peut être hors de portée ou la station de base peut être éteinte.\n\n**Étapes pour résoudre :**\n1. Vérifiez que le Yarbo Data Center (station de base) est allumé.\n2. Vérifiez que la station de base est connectée à votre réseau local.\n3. Confirmez que Home Assistant peut atteindre l'adresse IP de la station de base.\n\nCe problème se résoudra automatiquement à la reprise de la télémétrie."
     },
     "controller_lost": {
       "title": "Session de contrôleur Yarbo perdue",
