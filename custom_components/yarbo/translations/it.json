@@ -107,7 +107,9 @@
   },
   "entity": {
     "sensor": {
-      "battery": { "name": "Batteria" },
+      "battery": {
+        "name": "Batteria"
+      },
       "activity": {
         "name": "Attività",
         "state": {
@@ -142,99 +144,277 @@
           "unknown": "Sconosciuto"
         }
       },
-      "heading": { "name": "Puntamento" },
-      "chute_angle": { "name": "Angolo di lancio" },
-      "rain_sensor": { "name": "Sensore Pioggia" },
-      "connection": { "name": "Connessione" },
-      "wifi_network": { "name": "Rete WiFi" },
-      "error_code": { "name": "Codice Errore" },
-      "head_serial": { "name": "Seriale Testa" },
-      "battery_temp_error": { "name": "Errore Temp Batteria" },
-      "base_station_status": { "name": "Stato Stazione Base" },
-      "satellite_count": { "name": "Numero Satelliti" },
-      "gps_fix_quality": { "name": "Qualità Fix GPS" },
-      "gps_hdop": { "name": "GPS HDOP" },
-      "gps_altitude": { "name": "Altitudine GPS" },
-      "charging_power": { "name": "Potenza di Ricarica" },
-      "battery_cell_temp_min": { "name": "Temp Min Cella Batteria" },
-      "battery_cell_temp_max": { "name": "Temp Max Cella Batteria" },
-      "battery_cell_temp_avg": { "name": "Temp Media Cella Batteria" },
-      "odometer": { "name": "Odometro" },
-      "wireless_charge_state": { "name": "Stato Ricarica Wireless" },
-      "wireless_charge_error": { "name": "Errore Ricarica Wireless" },
-      "odom_confidence": { "name": "Affidabilità Odometria" },
-      "odom_x": { "name": "Odometria X" },
-      "odom_y": { "name": "Odometria Y" },
-      "odom_phi": { "name": "Odometria Phi" },
-      "rtcm_age": { "name": "Età RTCM" },
-      "rtcm_source_type": { "name": "Tipo Fonte RTCM" },
-      "charge_voltage": { "name": "Tensione di Ricarica" },
-      "charge_current": { "name": "Corrente di Ricarica" },
-      "mqtt_age": { "name": "Età Messaggio MQTT" },
-      "heading_dop": { "name": "DOP della rotta" },
-      "heading_status": { "name": "Stato Heading" },
-      "antenna_distance": { "name": "Distanza Antenna" },
-      "chute_steering_info": { "name": "Info Sterzo Camino" },
-      "nav_sensor_front_right": { "name": "Sensore Navigazione Anteriore Destro" },
-      "nav_sensor_rear_right": { "name": "Sensore Navigazione Posteriore Destro" },
-      "head_gyro_pitch": { "name": "Pitch Giroscopio Testa" },
-      "head_gyro_roll": { "name": "Roll Giroscopio Testa" },
-      "machine_controller": { "name": "Controller Macchina" },
-      "plan_remaining_time": { "name": "Tempo Rimanente Piano" },
-      "route_priority_hg0": { "name": "Priorità Percorso HG0" },
-      "route_priority_wlan0": { "name": "Priorità Percorso WLAN0" },
-      "route_priority_wwan0": { "name": "Priorità Percorso WWAN0" },
-      "ultrasonic_left_front": { "name": "Ultrasuoni Anteriore Sinistro" },
-      "ultrasonic_middle": { "name": "Ultrasuoni Centrale" },
-      "ultrasonic_right_front": { "name": "Ultrasuoni Anteriore Destro" },
-      "schedule_count": { "name": "Numero Programmazioni" },
-      "body_current": { "name": "Corrente Corpo" },
-      "head_current": { "name": "Corrente Testa" },
-      "speed": { "name": "Velocità" },
-      "product_code": { "name": "Codice Prodotto" },
-      "hub_info": { "name": "Info Hub" },
-      "recharge_point": { "name": "Punto Ricarica" },
-      "wifi_list": { "name": "Lista WiFi" },
-      "map_backup_count": { "name": "Numero Backup Mappe" },
-      "clean_area_count": { "name": "Aree Pulite" },
-      "motor_temp": { "name": "Temperatura Motore" },
-      "last_seen": { "name": "Visto Ultima Volta" },
-      "saved_wifi_list": { "name": "Reti WiFi Salvate" }
+      "heading": {
+        "name": "Puntamento"
+      },
+      "chute_angle": {
+        "name": "Angolo di lancio"
+      },
+      "rain_sensor": {
+        "name": "Sensore Pioggia"
+      },
+      "connection": {
+        "name": "Connessione"
+      },
+      "wifi_network": {
+        "name": "Rete WiFi"
+      },
+      "error_code": {
+        "name": "Codice Errore"
+      },
+      "head_serial": {
+        "name": "Seriale Testa"
+      },
+      "battery_temp_error": {
+        "name": "Errore Temp Batteria"
+      },
+      "base_station_status": {
+        "name": "Stato Stazione Base"
+      },
+      "satellite_count": {
+        "name": "Numero Satelliti"
+      },
+      "gps_fix_quality": {
+        "name": "Qualità Fix GPS"
+      },
+      "gps_hdop": {
+        "name": "GPS HDOP"
+      },
+      "gps_altitude": {
+        "name": "Altitudine GPS"
+      },
+      "charging_power": {
+        "name": "Potenza di Ricarica"
+      },
+      "battery_cell_temp_min": {
+        "name": "Temp Min Cella Batteria"
+      },
+      "battery_cell_temp_max": {
+        "name": "Temp Max Cella Batteria"
+      },
+      "battery_cell_temp_avg": {
+        "name": "Temp Media Cella Batteria"
+      },
+      "odometer": {
+        "name": "Odometro"
+      },
+      "wireless_charge_state": {
+        "name": "Stato Ricarica Wireless"
+      },
+      "wireless_charge_error": {
+        "name": "Errore Ricarica Wireless"
+      },
+      "odom_confidence": {
+        "name": "Affidabilità Odometria"
+      },
+      "odom_x": {
+        "name": "Odometria X"
+      },
+      "odom_y": {
+        "name": "Odometria Y"
+      },
+      "odom_phi": {
+        "name": "Odometria Phi"
+      },
+      "rtcm_age": {
+        "name": "Età RTCM"
+      },
+      "rtcm_source_type": {
+        "name": "Tipo Fonte RTCM"
+      },
+      "charge_voltage": {
+        "name": "Tensione di Ricarica"
+      },
+      "charge_current": {
+        "name": "Corrente di Ricarica"
+      },
+      "mqtt_age": {
+        "name": "Età Messaggio MQTT"
+      },
+      "heading_dop": {
+        "name": "DOP della rotta"
+      },
+      "heading_status": {
+        "name": "Stato Heading"
+      },
+      "antenna_distance": {
+        "name": "Distanza Antenna"
+      },
+      "chute_steering_info": {
+        "name": "Info Sterzo Camino"
+      },
+      "nav_sensor_front_right": {
+        "name": "Sensore Navigazione Anteriore Destro"
+      },
+      "nav_sensor_rear_right": {
+        "name": "Sensore Navigazione Posteriore Destro"
+      },
+      "head_gyro_pitch": {
+        "name": "Pitch Giroscopio Testa"
+      },
+      "head_gyro_roll": {
+        "name": "Roll Giroscopio Testa"
+      },
+      "machine_controller": {
+        "name": "Controller Macchina"
+      },
+      "plan_remaining_time": {
+        "name": "Tempo Rimanente Piano"
+      },
+      "route_priority_hg0": {
+        "name": "Priorità Percorso HG0"
+      },
+      "route_priority_wlan0": {
+        "name": "Priorità Percorso WLAN0"
+      },
+      "route_priority_wwan0": {
+        "name": "Priorità Percorso WWAN0"
+      },
+      "ultrasonic_left_front": {
+        "name": "Ultrasuoni Anteriore Sinistro"
+      },
+      "ultrasonic_middle": {
+        "name": "Ultrasuoni Centrale"
+      },
+      "ultrasonic_right_front": {
+        "name": "Ultrasuoni Anteriore Destro"
+      },
+      "schedule_count": {
+        "name": "Numero Programmazioni"
+      },
+      "body_current": {
+        "name": "Corrente Corpo"
+      },
+      "head_current": {
+        "name": "Corrente Testa"
+      },
+      "speed": {
+        "name": "Velocità"
+      },
+      "product_code": {
+        "name": "Codice Prodotto"
+      },
+      "hub_info": {
+        "name": "Info Hub"
+      },
+      "recharge_point": {
+        "name": "Punto Ricarica"
+      },
+      "wifi_list": {
+        "name": "Lista WiFi"
+      },
+      "map_backup_count": {
+        "name": "Numero Backup Mappe"
+      },
+      "clean_area_count": {
+        "name": "Aree Pulite"
+      },
+      "motor_temp": {
+        "name": "Temperatura Motore"
+      },
+      "last_seen": {
+        "name": "Visto Ultima Volta"
+      },
+      "saved_wifi_list": {
+        "name": "Reti WiFi Salvate"
+      }
     },
     "binary_sensor": {
-      "charging": { "name": "In Ricarica" },
-      "problem": { "name": "Problema" },
-      "planning": { "name": "Pianificazione Attiva" },
-      "planning_active": { "name": "Pianificazione Attiva" },
-      "returning_to_charge": { "name": "Ritorno per Ricarica" },
-      "going_to_start": { "name": "Verso la Partenza" },
-      "follow_mode": { "name": "Modalità Segui" },
-      "planning_paused": { "name": "Pianificazione In Pausa" },
-      "manual_controller": { "name": "Controller Manuale" },
-      "rain_detected": { "name": "Pioggia Rilevata" },
-      "no_charge_period": { "name": "Periodo Senza Ricarica" },
-      "online": { "name": "Online" }
+      "charging": {
+        "name": "In Ricarica"
+      },
+      "problem": {
+        "name": "Problema"
+      },
+      "planning": {
+        "name": "Pianificazione Attiva"
+      },
+      "planning_active": {
+        "name": "Pianificazione Attiva"
+      },
+      "returning_to_charge": {
+        "name": "Ritorno per Ricarica"
+      },
+      "going_to_start": {
+        "name": "Verso la Partenza"
+      },
+      "follow_mode": {
+        "name": "Modalità Segui"
+      },
+      "planning_paused": {
+        "name": "Pianificazione In Pausa"
+      },
+      "manual_controller": {
+        "name": "Controller Manuale"
+      },
+      "rain_detected": {
+        "name": "Pioggia Rilevata"
+      },
+      "no_charge_period": {
+        "name": "Periodo Senza Ricarica"
+      },
+      "online": {
+        "name": "Online"
+      }
     },
     "button": {
-      "beep": { "name": "Bip" },
-      "return_to_dock": { "name": "Ritorna alla Base" },
-      "pause": { "name": "Pausa" },
-      "resume": { "name": "Riprendi" },
-      "stop": { "name": "Stop" },
-      "emergency_stop": { "name": "Stop Emergenza" },
-      "emergency_unlock": { "name": "Sblocco Emergenza" },
-      "play_sound": { "name": "Riproduci Suono" },
-      "shutdown": { "name": "Spegni" },
-      "restart": { "name": "Riavvia" },
-      "manual_stop": { "name": "Stop Manuale" },
-      "save_charging_point": { "name": "Salva Punto Ricarica" },
-      "start_hotspot": { "name": "Avvia Hotspot" },
-      "save_map_backup": { "name": "Salva Backup Mappa" },
-      "camera_calibration": { "name": "Calibra Fotocamera" },
-      "check_camera_status": { "name": "Controlla Stato Fotocamera" },
-      "firmware_update_now": { "name": "Aggiorna Firmware Ora" },
-      "firmware_update_tonight": { "name": "Aggiorna Firmware Stanotte" },
-      "firmware_update_later": { "name": "Posticipa Aggiornamento Firmware" }
+      "beep": {
+        "name": "Bip"
+      },
+      "return_to_dock": {
+        "name": "Ritorna alla Base"
+      },
+      "pause": {
+        "name": "Pausa"
+      },
+      "resume": {
+        "name": "Riprendi"
+      },
+      "stop": {
+        "name": "Stop"
+      },
+      "emergency_stop": {
+        "name": "Stop Emergenza"
+      },
+      "emergency_unlock": {
+        "name": "Sblocco Emergenza"
+      },
+      "play_sound": {
+        "name": "Riproduci Suono"
+      },
+      "shutdown": {
+        "name": "Spegni"
+      },
+      "restart": {
+        "name": "Riavvia"
+      },
+      "manual_stop": {
+        "name": "Stop Manuale"
+      },
+      "save_charging_point": {
+        "name": "Salva Punto Ricarica"
+      },
+      "start_hotspot": {
+        "name": "Avvia Hotspot"
+      },
+      "save_map_backup": {
+        "name": "Salva Backup Mappa"
+      },
+      "camera_calibration": {
+        "name": "Calibra Fotocamera"
+      },
+      "check_camera_status": {
+        "name": "Controlla Stato Fotocamera"
+      },
+      "firmware_update_now": {
+        "name": "Aggiorna Firmware Ora"
+      },
+      "firmware_update_tonight": {
+        "name": "Aggiorna Firmware Stanotte"
+      },
+      "firmware_update_later": {
+        "name": "Posticipa Aggiornamento Firmware"
+      }
     },
     "event": {
       "events": {
@@ -256,71 +436,177 @@
       }
     },
     "light": {
-      "lights": { "name": "Luci" },
-      "head_light": { "name": "Luce Testa" },
-      "led_head": { "name": "LED Testa" },
-      "led_left_w": { "name": "Bianco Sinistro" },
-      "led_right_w": { "name": "Bianco Destro" },
-      "led_body_left": { "name": "Corpo Sinistro" },
-      "led_body_right": { "name": "Corpo Destro" },
-      "led_tail_left": { "name": "Coda Sinistra" },
-      "led_tail_right": { "name": "Coda Destra" }
+      "lights": {
+        "name": "Luci"
+      },
+      "head_light": {
+        "name": "Luce Testa"
+      },
+      "led_head": {
+        "name": "LED Testa"
+      },
+      "led_left_w": {
+        "name": "Bianco Sinistro"
+      },
+      "led_right_w": {
+        "name": "Bianco Destro"
+      },
+      "led_body_left": {
+        "name": "Corpo Sinistro"
+      },
+      "led_body_right": {
+        "name": "Corpo Destro"
+      },
+      "led_tail_left": {
+        "name": "Coda Sinistra"
+      },
+      "led_tail_right": {
+        "name": "Coda Destra"
+      }
     },
     "switch": {
-      "buzzer": { "name": "Cicalino" },
-      "person_detect": { "name": "Rilevamento Persone" },
-      "roller": { "name": "Rullo" },
-      "heating_film": { "name": "Pellicola Riscaldante" },
-      "follow_mode": { "name": "Modalità Segui" },
-      "auto_update": { "name": "Aggiornamento Automatico" },
-      "camera_ota": { "name": "Fotocamera OTA" },
-      "trimmer": { "name": "Decespugliatore" },
-      "camera": { "name": "Fotocamera" },
-      "laser": { "name": "Laser" },
-      "usb": { "name": "USB" },
-      "ignore_obstacles": { "name": "Ignora Ostacoli" },
-      "draw_mode": { "name": "Modalità Disegno" },
-      "module_lock": { "name": "Blocco Modulo" },
-      "wire_charging_lock": { "name": "Blocco Ricarica Cavo" },
-      "smart_blowing": { "name": "Soffiaggio intelligente" },
-      "edge_blowing": { "name": "Soffiaggio dei bordi" },
-      "motor_protect": { "name": "Protezione Motore" },
-      "mower_head_sensor": { "name": "Sensore Testa Rasaerba" },
-      "roof_lights": { "name": "Luci Tetto" },
-      "sound_enable": { "name": "Suono" },
-      "mower_ngz_edge": { "name": "Bordo No-Go Zone Rasaerba" },
-      "geo_fence": { "name": "Geofence" },
-      "elec_fence": { "name": "Recinzione Elettrica" },
-      "smart_vision": { "name": "Visione intelligente" },
-      "video_record": { "name": "Registrazione Video" },
-      "child_lock": { "name": "Sicurezza Bambini" },
-      "bag_record": { "name": "ROS Bag Recording" }
+      "buzzer": {
+        "name": "Cicalino"
+      },
+      "person_detect": {
+        "name": "Rilevamento Persone"
+      },
+      "roller": {
+        "name": "Rullo"
+      },
+      "heating_film": {
+        "name": "Pellicola Riscaldante"
+      },
+      "follow_mode": {
+        "name": "Modalità Segui"
+      },
+      "auto_update": {
+        "name": "Aggiornamento Automatico"
+      },
+      "camera_ota": {
+        "name": "Fotocamera OTA"
+      },
+      "trimmer": {
+        "name": "Decespugliatore"
+      },
+      "camera": {
+        "name": "Fotocamera"
+      },
+      "laser": {
+        "name": "Laser"
+      },
+      "usb": {
+        "name": "USB"
+      },
+      "ignore_obstacles": {
+        "name": "Ignora Ostacoli"
+      },
+      "draw_mode": {
+        "name": "Modalità Disegno"
+      },
+      "module_lock": {
+        "name": "Blocco Modulo"
+      },
+      "wire_charging_lock": {
+        "name": "Blocco Ricarica Cavo"
+      },
+      "smart_blowing": {
+        "name": "Soffiaggio intelligente"
+      },
+      "edge_blowing": {
+        "name": "Soffiaggio dei bordi"
+      },
+      "motor_protect": {
+        "name": "Protezione Motore"
+      },
+      "mower_head_sensor": {
+        "name": "Sensore Testa Rasaerba"
+      },
+      "roof_lights": {
+        "name": "Luci Tetto"
+      },
+      "sound_enable": {
+        "name": "Suono"
+      },
+      "mower_ngz_edge": {
+        "name": "Bordo No-Go Zone Rasaerba"
+      },
+      "geo_fence": {
+        "name": "Geofence"
+      },
+      "elec_fence": {
+        "name": "Recinzione Elettrica"
+      },
+      "smart_vision": {
+        "name": "Visione intelligente"
+      },
+      "video_record": {
+        "name": "Registrazione Video"
+      },
+      "child_lock": {
+        "name": "Sicurezza Bambini"
+      },
+      "bag_record": {
+        "name": "ROS Bag Recording"
+      }
     },
     "number": {
-      "chute_velocity": { "name": "Velocità Camino" },
-      "chute_steering_work": { "name": "Sterzo Camino (Lavoro)" },
-      "blade_height": { "name": "Altezza Lama" },
-      "blade_speed": { "name": "Velocità Lama" },
-      "blower_speed": { "name": "Velocità Soffiatore" },
-      "volume": { "name": "Volume" },
-      "plan_start_percent": { "name": "Percentuale Inizio Piano" },
-      "roller_speed": { "name": "Velocità Rullo" },
-      "battery_charge_min": { "name": "Carica Batteria Minima" },
-      "battery_charge_max": { "name": "Carica Batteria Massima" }
+      "chute_velocity": {
+        "name": "Velocità Camino"
+      },
+      "chute_steering_work": {
+        "name": "Sterzo Camino (Lavoro)"
+      },
+      "blade_height": {
+        "name": "Altezza Lama"
+      },
+      "blade_speed": {
+        "name": "Velocità Lama"
+      },
+      "blower_speed": {
+        "name": "Velocità Soffiatore"
+      },
+      "volume": {
+        "name": "Volume"
+      },
+      "plan_start_percent": {
+        "name": "Percentuale Inizio Piano"
+      },
+      "roller_speed": {
+        "name": "Velocità Rullo"
+      },
+      "battery_charge_min": {
+        "name": "Carica Batteria Minima"
+      },
+      "battery_charge_max": {
+        "name": "Carica Batteria Massima"
+      }
     },
     "select": {
-      "work_plan": { "name": "Piano di Lavoro" },
-      "turn_type": { "name": "Tipo di Curva" },
-      "snow_push_direction": { "name": "Direzione Spinta Neve" }
+      "work_plan": {
+        "name": "Piano di Lavoro"
+      },
+      "turn_type": {
+        "name": "Tipo di Curva"
+      },
+      "snow_push_direction": {
+        "name": "Direzione Spinta Neve"
+      }
     },
     "device_tracker": {
-      "location": { "name": "Posizione" }
+      "location": {
+        "name": "Posizione"
+      }
     },
     "lawn_mower": {
-      "mower": { "name": "Rasaerba" }
+      "mower": {
+        "name": "Rasaerba"
+      }
     },
     "update": {
-      "firmware": { "name": "Firmware" }
+      "firmware": {
+        "name": "Firmware"
+      }
     }
   },
   "issues": {

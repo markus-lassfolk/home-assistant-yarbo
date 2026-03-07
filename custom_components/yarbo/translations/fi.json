@@ -612,7 +612,7 @@
   "issues": {
     "telemetry_timeout": {
       "title": "Yarbo-telemetriaa ei vastaanotettu",
-      "description": "Tukiasemalta **{name}** ei ole vastaanotettu telemetriaa vähintään 60 sekuntiin. Tarkista, että tukiasema on päällä ja yhdistetty verkkoon."
+      "description": "Robotista **{name}** ei ole vastaanotettu telemetriaa vähintään 60 sekuntiin. Tarkista, että tukiasema on päällä ja yhdistetty verkkoon."
     },
     "mqtt_disconnect": {
       "title": "Yarbon tukiasemaan ei saada yhteyttä",

@@ -107,7 +107,9 @@
   },
   "entity": {
     "sensor": {
-      "battery": { "name": "Bateria" },
+      "battery": {
+        "name": "Bateria"
+      },
       "activity": {
         "name": "Aktywność",
         "state": {
@@ -142,99 +144,277 @@
           "unknown": "Nieznany"
         }
       },
-      "heading": { "name": "Kierunek" },
-      "chute_angle": { "name": "Kąt wyrzutni" },
-      "rain_sensor": { "name": "Czujnik deszczu" },
-      "connection": { "name": "Połączenie" },
-      "wifi_network": { "name": "Sieć WiFi" },
-      "error_code": { "name": "Kod błędu" },
-      "head_serial": { "name": "Numer seryjny głowicy" },
-      "battery_temp_error": { "name": "Błąd temperatury baterii" },
-      "base_station_status": { "name": "Status stacji bazowej" },
-      "satellite_count": { "name": "Liczba satelitów" },
-      "gps_fix_quality": { "name": "Jakość poprawki GPS" },
-      "gps_hdop": { "name": "GPS HDOP" },
-      "gps_altitude": { "name": "Wysokość GPS" },
-      "charging_power": { "name": "Moc ładowania" },
-      "battery_cell_temp_min": { "name": "Minimalna temp. ogniwa baterii" },
-      "battery_cell_temp_max": { "name": "Maksymalna temp. ogniwa baterii" },
-      "battery_cell_temp_avg": { "name": "Średnia temp. ogniwa baterii" },
-      "odometer": { "name": "Drogomierz" },
-      "wireless_charge_state": { "name": "Stan ładowania bezprzewodowego" },
-      "wireless_charge_error": { "name": "Błąd ładowania bezprzewodowego" },
-      "odom_confidence": { "name": "Pewność odometrii" },
-      "odom_x": { "name": "Odometria X" },
-      "odom_y": { "name": "Odometria Y" },
-      "odom_phi": { "name": "Odometria Phi" },
-      "rtcm_age": { "name": "Wiek RTCM" },
-      "rtcm_source_type": { "name": "Typ źródła RTCM" },
-      "charge_voltage": { "name": "Napięcie ładowania" },
-      "charge_current": { "name": "Prąd ładowania" },
-      "mqtt_age": { "name": "Wiek wiadomości MQTT" },
-      "heading_dop": { "name": "DOP kursu" },
-      "heading_status": { "name": "Status kierunku" },
-      "antenna_distance": { "name": "Odległość anteny" },
-      "chute_steering_info": { "name": "Informacje o sterowaniu wyrzutnią" },
-      "nav_sensor_front_right": { "name": "Czujnik nawigacji prawy przód" },
-      "nav_sensor_rear_right": { "name": "Czujnik nawigacji prawy tył" },
-      "head_gyro_pitch": { "name": "Kąt pochylenia żyroskopu głowicy" },
-      "head_gyro_roll": { "name": "Kąt przechylenia żyroskopu głowicy" },
-      "machine_controller": { "name": "Kontroler maszyny" },
-      "plan_remaining_time": { "name": "Pozostały czas planu" },
-      "route_priority_hg0": { "name": "Priorytet trasy HG0" },
-      "route_priority_wlan0": { "name": "Priorytet trasy WLAN0" },
-      "route_priority_wwan0": { "name": "Priorytet trasy WWAN0" },
-      "ultrasonic_left_front": { "name": "Ultradźwiękowy lewy przód" },
-      "ultrasonic_middle": { "name": "Ultradźwiękowy środek" },
-      "ultrasonic_right_front": { "name": "Ultradźwiękowy prawy przód" },
-      "schedule_count": { "name": "Liczba harmonogramów" },
-      "body_current": { "name": "Prąd korpusu" },
-      "head_current": { "name": "Prąd głowicy" },
-      "speed": { "name": "Prędkość" },
-      "product_code": { "name": "Kod produktu" },
-      "hub_info": { "name": "Informacje o hubie" },
-      "recharge_point": { "name": "Punkt ładowania" },
-      "wifi_list": { "name": "Lista WiFi" },
-      "map_backup_count": { "name": "Liczba kopii zapasowych map" },
-      "clean_area_count": { "name": "Liczba oczyszczonych obszarów" },
-      "motor_temp": { "name": "Temperatura silnika" },
-      "last_seen": { "name": "Ostatnio widziany" },
-      "saved_wifi_list": { "name": "Zapisane sieci WiFi" }
+      "heading": {
+        "name": "Kierunek"
+      },
+      "chute_angle": {
+        "name": "Kąt wyrzutni"
+      },
+      "rain_sensor": {
+        "name": "Czujnik deszczu"
+      },
+      "connection": {
+        "name": "Połączenie"
+      },
+      "wifi_network": {
+        "name": "Sieć WiFi"
+      },
+      "error_code": {
+        "name": "Kod błędu"
+      },
+      "head_serial": {
+        "name": "Numer seryjny głowicy"
+      },
+      "battery_temp_error": {
+        "name": "Błąd temperatury baterii"
+      },
+      "base_station_status": {
+        "name": "Status stacji bazowej"
+      },
+      "satellite_count": {
+        "name": "Liczba satelitów"
+      },
+      "gps_fix_quality": {
+        "name": "Jakość poprawki GPS"
+      },
+      "gps_hdop": {
+        "name": "GPS HDOP"
+      },
+      "gps_altitude": {
+        "name": "Wysokość GPS"
+      },
+      "charging_power": {
+        "name": "Moc ładowania"
+      },
+      "battery_cell_temp_min": {
+        "name": "Minimalna temp. ogniwa baterii"
+      },
+      "battery_cell_temp_max": {
+        "name": "Maksymalna temp. ogniwa baterii"
+      },
+      "battery_cell_temp_avg": {
+        "name": "Średnia temp. ogniwa baterii"
+      },
+      "odometer": {
+        "name": "Drogomierz"
+      },
+      "wireless_charge_state": {
+        "name": "Stan ładowania bezprzewodowego"
+      },
+      "wireless_charge_error": {
+        "name": "Błąd ładowania bezprzewodowego"
+      },
+      "odom_confidence": {
+        "name": "Pewność odometrii"
+      },
+      "odom_x": {
+        "name": "Odometria X"
+      },
+      "odom_y": {
+        "name": "Odometria Y"
+      },
+      "odom_phi": {
+        "name": "Odometria Phi"
+      },
+      "rtcm_age": {
+        "name": "Wiek RTCM"
+      },
+      "rtcm_source_type": {
+        "name": "Typ źródła RTCM"
+      },
+      "charge_voltage": {
+        "name": "Napięcie ładowania"
+      },
+      "charge_current": {
+        "name": "Prąd ładowania"
+      },
+      "mqtt_age": {
+        "name": "Wiek wiadomości MQTT"
+      },
+      "heading_dop": {
+        "name": "DOP kursu"
+      },
+      "heading_status": {
+        "name": "Status kierunku"
+      },
+      "antenna_distance": {
+        "name": "Odległość anteny"
+      },
+      "chute_steering_info": {
+        "name": "Informacje o sterowaniu wyrzutnią"
+      },
+      "nav_sensor_front_right": {
+        "name": "Czujnik nawigacji prawy przód"
+      },
+      "nav_sensor_rear_right": {
+        "name": "Czujnik nawigacji prawy tył"
+      },
+      "head_gyro_pitch": {
+        "name": "Kąt pochylenia żyroskopu głowicy"
+      },
+      "head_gyro_roll": {
+        "name": "Kąt przechylenia żyroskopu głowicy"
+      },
+      "machine_controller": {
+        "name": "Kontroler maszyny"
+      },
+      "plan_remaining_time": {
+        "name": "Pozostały czas planu"
+      },
+      "route_priority_hg0": {
+        "name": "Priorytet trasy HG0"
+      },
+      "route_priority_wlan0": {
+        "name": "Priorytet trasy WLAN0"
+      },
+      "route_priority_wwan0": {
+        "name": "Priorytet trasy WWAN0"
+      },
+      "ultrasonic_left_front": {
+        "name": "Ultradźwiękowy lewy przód"
+      },
+      "ultrasonic_middle": {
+        "name": "Ultradźwiękowy środek"
+      },
+      "ultrasonic_right_front": {
+        "name": "Ultradźwiękowy prawy przód"
+      },
+      "schedule_count": {
+        "name": "Liczba harmonogramów"
+      },
+      "body_current": {
+        "name": "Prąd korpusu"
+      },
+      "head_current": {
+        "name": "Prąd głowicy"
+      },
+      "speed": {
+        "name": "Prędkość"
+      },
+      "product_code": {
+        "name": "Kod produktu"
+      },
+      "hub_info": {
+        "name": "Informacje o hubie"
+      },
+      "recharge_point": {
+        "name": "Punkt ładowania"
+      },
+      "wifi_list": {
+        "name": "Lista WiFi"
+      },
+      "map_backup_count": {
+        "name": "Liczba kopii zapasowych map"
+      },
+      "clean_area_count": {
+        "name": "Liczba oczyszczonych obszarów"
+      },
+      "motor_temp": {
+        "name": "Temperatura silnika"
+      },
+      "last_seen": {
+        "name": "Ostatnio widziany"
+      },
+      "saved_wifi_list": {
+        "name": "Zapisane sieci WiFi"
+      }
     },
     "binary_sensor": {
-      "charging": { "name": "Ładowanie" },
-      "problem": { "name": "Usterka" },
-      "planning": { "name": "Planowanie aktywne" },
-      "planning_active": { "name": "Planowanie aktywne" },
-      "returning_to_charge": { "name": "Powrót do ładowania" },
-      "going_to_start": { "name": "Powrót na start" },
-      "follow_mode": { "name": "Tryb podążania" },
-      "planning_paused": { "name": "Planowanie wstrzymane" },
-      "manual_controller": { "name": "Sterownik ręczny" },
-      "rain_detected": { "name": "Wykryto deszcz" },
-      "no_charge_period": { "name": "Okres bez ładowania" },
-      "online": { "name": "Online" }
+      "charging": {
+        "name": "Ładowanie"
+      },
+      "problem": {
+        "name": "Usterka"
+      },
+      "planning": {
+        "name": "Planowanie aktywne"
+      },
+      "planning_active": {
+        "name": "Planowanie aktywne"
+      },
+      "returning_to_charge": {
+        "name": "Powrót do ładowania"
+      },
+      "going_to_start": {
+        "name": "Powrót na start"
+      },
+      "follow_mode": {
+        "name": "Tryb podążania"
+      },
+      "planning_paused": {
+        "name": "Planowanie wstrzymane"
+      },
+      "manual_controller": {
+        "name": "Sterownik ręczny"
+      },
+      "rain_detected": {
+        "name": "Wykryto deszcz"
+      },
+      "no_charge_period": {
+        "name": "Okres bez ładowania"
+      },
+      "online": {
+        "name": "Online"
+      }
     },
     "button": {
-      "beep": { "name": "Sygnał dźwiękowy" },
-      "return_to_dock": { "name": "Powrót do stacji" },
-      "pause": { "name": "Pauza" },
-      "resume": { "name": "Wznów" },
-      "stop": { "name": "Zatrzymaj" },
-      "emergency_stop": { "name": "Zatrzymanie awaryjne" },
-      "emergency_unlock": { "name": "Odblokowanie awaryjne" },
-      "play_sound": { "name": "Odtwórz dźwięk" },
-      "shutdown": { "name": "Wyłącz" },
-      "restart": { "name": "Uruchom ponownie" },
-      "manual_stop": { "name": "Ręczne zatrzymanie" },
-      "save_charging_point": { "name": "Zapisz punkt ładowania" },
-      "start_hotspot": { "name": "Uruchom Hotspot" },
-      "save_map_backup": { "name": "Zapisz kopię mapy" },
-      "camera_calibration": { "name": "Kalibruj kamerę" },
-      "check_camera_status": { "name": "Sprawdź status kamery" },
-      "firmware_update_now": { "name": "Zaktualizuj firmware teraz" },
-      "firmware_update_tonight": { "name": "Zaktualizuj firmware w nocy" },
-      "firmware_update_later": { "name": "Odłóż aktualizację firmware" }
+      "beep": {
+        "name": "Sygnał dźwiękowy"
+      },
+      "return_to_dock": {
+        "name": "Powrót do stacji"
+      },
+      "pause": {
+        "name": "Pauza"
+      },
+      "resume": {
+        "name": "Wznów"
+      },
+      "stop": {
+        "name": "Zatrzymaj"
+      },
+      "emergency_stop": {
+        "name": "Zatrzymanie awaryjne"
+      },
+      "emergency_unlock": {
+        "name": "Odblokowanie awaryjne"
+      },
+      "play_sound": {
+        "name": "Odtwórz dźwięk"
+      },
+      "shutdown": {
+        "name": "Wyłącz"
+      },
+      "restart": {
+        "name": "Uruchom ponownie"
+      },
+      "manual_stop": {
+        "name": "Ręczne zatrzymanie"
+      },
+      "save_charging_point": {
+        "name": "Zapisz punkt ładowania"
+      },
+      "start_hotspot": {
+        "name": "Uruchom Hotspot"
+      },
+      "save_map_backup": {
+        "name": "Zapisz kopię mapy"
+      },
+      "camera_calibration": {
+        "name": "Kalibruj kamerę"
+      },
+      "check_camera_status": {
+        "name": "Sprawdź status kamery"
+      },
+      "firmware_update_now": {
+        "name": "Zaktualizuj firmware teraz"
+      },
+      "firmware_update_tonight": {
+        "name": "Zaktualizuj firmware w nocy"
+      },
+      "firmware_update_later": {
+        "name": "Odłóż aktualizację firmware"
+      }
     },
     "event": {
       "events": {
@@ -256,71 +436,177 @@
       }
     },
     "light": {
-      "lights": { "name": "Światła" },
-      "head_light": { "name": "Światło głowicy" },
-      "led_head": { "name": "LED Głowicy" },
-      "led_left_w": { "name": "Lewe białe" },
-      "led_right_w": { "name": "Prawe białe" },
-      "led_body_left": { "name": "Korpus lewy" },
-      "led_body_right": { "name": "Korpus prawy" },
-      "led_tail_left": { "name": "Tył lewy" },
-      "led_tail_right": { "name": "Tył prawy" }
+      "lights": {
+        "name": "Światła"
+      },
+      "head_light": {
+        "name": "Światło głowicy"
+      },
+      "led_head": {
+        "name": "LED Głowicy"
+      },
+      "led_left_w": {
+        "name": "Lewe białe"
+      },
+      "led_right_w": {
+        "name": "Prawe białe"
+      },
+      "led_body_left": {
+        "name": "Korpus lewy"
+      },
+      "led_body_right": {
+        "name": "Korpus prawy"
+      },
+      "led_tail_left": {
+        "name": "Tył lewy"
+      },
+      "led_tail_right": {
+        "name": "Tył prawy"
+      }
     },
     "switch": {
-      "buzzer": { "name": "Brzęczyk" },
-      "person_detect": { "name": "Wykrywanie osób" },
-      "roller": { "name": "Rolka" },
-      "heating_film": { "name": "Folia grzewcza" },
-      "follow_mode": { "name": "Tryb podążania" },
-      "auto_update": { "name": "Automatyczna aktualizacja" },
-      "camera_ota": { "name": "Kamera OTA" },
-      "trimmer": { "name": "Podkaszarka" },
-      "camera": { "name": "Kamera" },
-      "laser": { "name": "Laser" },
-      "usb": { "name": "USB" },
-      "ignore_obstacles": { "name": "Ignoruj przeszkody" },
-      "draw_mode": { "name": "Tryb rysowania" },
-      "module_lock": { "name": "Blokada modułu" },
-      "wire_charging_lock": { "name": "Blokada ładowania przewodowego" },
-      "smart_blowing": { "name": "Inteligentne dmuchanie" },
-      "edge_blowing": { "name": "Dmuchanie krawędzi" },
-      "motor_protect": { "name": "Ochrona silnika" },
-      "mower_head_sensor": { "name": "Czujnik głowicy kosiarki" },
-      "roof_lights": { "name": "Światła dachowe" },
-      "sound_enable": { "name": "Dźwięk" },
-      "mower_ngz_edge": { "name": "Krawędź strefy zakazanej kosiarki" },
-      "geo_fence": { "name": "Geofence" },
-      "elec_fence": { "name": "Ogrodzenie elektryczne" },
-      "smart_vision": { "name": "Inteligentna wizja" },
-      "video_record": { "name": "Nagrywanie wideo" },
-      "child_lock": { "name": "Blokada rodzicielska" },
-      "bag_record": { "name": "ROS Bag Recording" }
+      "buzzer": {
+        "name": "Brzęczyk"
+      },
+      "person_detect": {
+        "name": "Wykrywanie osób"
+      },
+      "roller": {
+        "name": "Rolka"
+      },
+      "heating_film": {
+        "name": "Folia grzewcza"
+      },
+      "follow_mode": {
+        "name": "Tryb podążania"
+      },
+      "auto_update": {
+        "name": "Automatyczna aktualizacja"
+      },
+      "camera_ota": {
+        "name": "Kamera OTA"
+      },
+      "trimmer": {
+        "name": "Podkaszarka"
+      },
+      "camera": {
+        "name": "Kamera"
+      },
+      "laser": {
+        "name": "Laser"
+      },
+      "usb": {
+        "name": "USB"
+      },
+      "ignore_obstacles": {
+        "name": "Ignoruj przeszkody"
+      },
+      "draw_mode": {
+        "name": "Tryb rysowania"
+      },
+      "module_lock": {
+        "name": "Blokada modułu"
+      },
+      "wire_charging_lock": {
+        "name": "Blokada ładowania przewodowego"
+      },
+      "smart_blowing": {
+        "name": "Inteligentne dmuchanie"
+      },
+      "edge_blowing": {
+        "name": "Dmuchanie krawędzi"
+      },
+      "motor_protect": {
+        "name": "Ochrona silnika"
+      },
+      "mower_head_sensor": {
+        "name": "Czujnik głowicy kosiarki"
+      },
+      "roof_lights": {
+        "name": "Światła dachowe"
+      },
+      "sound_enable": {
+        "name": "Dźwięk"
+      },
+      "mower_ngz_edge": {
+        "name": "Krawędź strefy zakazanej kosiarki"
+      },
+      "geo_fence": {
+        "name": "Geofence"
+      },
+      "elec_fence": {
+        "name": "Ogrodzenie elektryczne"
+      },
+      "smart_vision": {
+        "name": "Inteligentna wizja"
+      },
+      "video_record": {
+        "name": "Nagrywanie wideo"
+      },
+      "child_lock": {
+        "name": "Blokada rodzicielska"
+      },
+      "bag_record": {
+        "name": "ROS Bag Recording"
+      }
     },
     "number": {
-      "chute_velocity": { "name": "Prędkość wyrzutni" },
-      "chute_steering_work": { "name": "Sterowanie wyrzutnią (Praca)" },
-      "blade_height": { "name": "Wysokość ostrza" },
-      "blade_speed": { "name": "Prędkość ostrza" },
-      "blower_speed": { "name": "Prędkość dmuchawy" },
-      "volume": { "name": "Głośność" },
-      "plan_start_percent": { "name": "Procent rozpoczęcia planu" },
-      "roller_speed": { "name": "Prędkość rolki" },
-      "battery_charge_min": { "name": "Minimalne naładowanie baterii" },
-      "battery_charge_max": { "name": "Maksymalne naładowanie baterii" }
+      "chute_velocity": {
+        "name": "Prędkość wyrzutni"
+      },
+      "chute_steering_work": {
+        "name": "Sterowanie wyrzutnią (Praca)"
+      },
+      "blade_height": {
+        "name": "Wysokość ostrza"
+      },
+      "blade_speed": {
+        "name": "Prędkość ostrza"
+      },
+      "blower_speed": {
+        "name": "Prędkość dmuchawy"
+      },
+      "volume": {
+        "name": "Głośność"
+      },
+      "plan_start_percent": {
+        "name": "Procent rozpoczęcia planu"
+      },
+      "roller_speed": {
+        "name": "Prędkość rolki"
+      },
+      "battery_charge_min": {
+        "name": "Minimalne naładowanie baterii"
+      },
+      "battery_charge_max": {
+        "name": "Maksymalne naładowanie baterii"
+      }
     },
     "select": {
-      "work_plan": { "name": "Plan pracy" },
-      "turn_type": { "name": "Typ skrętu" },
-      "snow_push_direction": { "name": "Kierunek odśnieżania" }
+      "work_plan": {
+        "name": "Plan pracy"
+      },
+      "turn_type": {
+        "name": "Typ skrętu"
+      },
+      "snow_push_direction": {
+        "name": "Kierunek odśnieżania"
+      }
     },
     "device_tracker": {
-      "location": { "name": "Lokalizacja" }
+      "location": {
+        "name": "Lokalizacja"
+      }
     },
     "lawn_mower": {
-      "mower": { "name": "Kosiarka" }
+      "mower": {
+        "name": "Kosiarka"
+      }
     },
     "update": {
-      "firmware": { "name": "Firmware" }
+      "firmware": {
+        "name": "Firmware"
+      }
     }
   },
   "issues": {
