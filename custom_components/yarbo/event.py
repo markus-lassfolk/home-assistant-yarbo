@@ -151,7 +151,9 @@ class YarboEventEntity(YarboEntity, EventEntity):
             )
 
         if (
-            previous.battery_capacity >= 20
+            previous.battery_capacity is not None
+            and telemetry.battery_capacity is not None
+            and previous.battery_capacity >= 20
             and telemetry.battery_capacity < 20
             and telemetry.charging_status not in (1, 2, 3)
         ):
