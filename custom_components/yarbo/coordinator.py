@@ -1126,6 +1126,18 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             except asyncio.CancelledError:
                 _LOGGER.debug("Telemetry loop cancelled")
                 raise
+            except RuntimeError as err:
+                if "event loop is closed" in str(err).lower():
+                    _LOGGER.debug("Event loop closed — telemetry loop stopping")
+                    return
+                _LOGGER.exception(
+                    "Runtime error in telemetry loop — retrying in %ds",
+                    TELEMETRY_RETRY_DELAY_SECONDS,
+                )
+                self.last_update_success = False
+                with contextlib.suppress(Exception):
+                    await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
+                continue
             except YarboConnectionError as err:
                 self.last_update_success = False
                 port = self._entry.data.get(CONF_BROKER_PORT) or DEFAULT_BROKER_PORT
@@ -1213,7 +1225,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     TELEMETRY_RETRY_DELAY_SECONDS,
                 )
                 self.last_update_success = False
-                await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
+                with contextlib.suppress(Exception):
+                    await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
 
     async def _heartbeat_watchdog(self) -> None:
         """Watch for telemetry silence and raise a repair issue.
@@ -1235,6 +1248,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 self._issue_active = True
         except asyncio.CancelledError:
             _LOGGER.debug("Heartbeat watchdog cancelled")
+            raise
+        except RuntimeError as err:
+            if "event loop is closed" in str(err).lower():
+                _LOGGER.debug("Event loop closed — heartbeat watchdog stopping")
+                return
             raise
 
     async def _async_update_data(self) -> YarboTelemetry:
@@ -1285,9 +1303,17 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             except asyncio.CancelledError:
                 _LOGGER.debug("Diagnostic polling loop cancelled")
                 raise
+            except RuntimeError as err:
+                if "event loop is closed" in str(err).lower():
+                    _LOGGER.debug("Event loop closed — diagnostic polling loop stopping")
+                    return
+                _LOGGER.exception("Unexpected error in diagnostic polling loop — retrying in 300s")
+                with contextlib.suppress(Exception):
+                    await asyncio.sleep(300)
             except Exception:
                 _LOGGER.exception("Unexpected error in diagnostic polling loop — retrying in 300s")
-                await asyncio.sleep(300)
+                with contextlib.suppress(Exception):
+                    await asyncio.sleep(300)
 
     async def async_config_entry_first_refresh(self) -> None:
         """Start push telemetry before the first refresh."""
