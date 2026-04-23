@@ -26,7 +26,7 @@ except ImportError:
 
 # Minimum python-yarbo version required by this integration.
 # Bump this when using new library features (e.g. get_controller(timeout=...)).
-MIN_LIB_VERSION = "2026.3.20"
+MIN_LIB_VERSION = "2026.3.21"
 
 from .const import (  # noqa: E402
     CONF_ALTERNATE_BROKER_HOST,
