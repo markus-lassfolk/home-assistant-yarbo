@@ -23,13 +23,13 @@ from custom_components.yarbo.coordinator import YarboDataCoordinator
 async def _loop_closed_gen() -> AsyncGenerator[Any, None]:
     """Async generator that immediately raises RuntimeError: Event loop is closed."""
     raise RuntimeError("Event loop is closed")
-    yield  # pragma: no cover – makes this function an async generator
+    yield  # pragma: no cover -- makes this function an async generator
 
 
 async def _other_runtime_error_gen() -> AsyncGenerator[Any, None]:
     """Async generator that raises an unrelated RuntimeError immediately."""
     raise RuntimeError("Some other runtime error")
-    yield  # pragma: no cover – makes this function an async generator
+    yield  # pragma: no cover -- makes this function an async generator
 
 
 def _make_coordinator_for_tasks() -> YarboDataCoordinator:

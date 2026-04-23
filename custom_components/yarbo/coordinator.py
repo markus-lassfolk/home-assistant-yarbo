@@ -94,6 +94,17 @@ from .repairs import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _is_event_loop_closed_error(err: RuntimeError) -> bool:
+    """Return True if *err* indicates the asyncio event loop has been closed.
+
+    The message 'Event loop is closed' has been stable in CPython since 3.4 and
+    is the only runtime error raised by ``call_soon_threadsafe`` / ``create_task``
+    when the loop is closed.  String matching is intentional here — there is no
+    dedicated exception type for this condition.
+    """
+    return "event loop is closed" in str(err).lower()
+
+
 @dataclass(slots=True)
 class PlanSummary:
     """Minimal work plan summary."""
@@ -1127,7 +1138,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 _LOGGER.debug("Telemetry loop cancelled")
                 raise
             except RuntimeError as err:
-                if "event loop is closed" in str(err).lower():
+                if _is_event_loop_closed_error(err):
                     _LOGGER.debug("Event loop closed — telemetry loop stopping")
                     return
                 _LOGGER.exception(
@@ -1250,7 +1261,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             _LOGGER.debug("Heartbeat watchdog cancelled")
             raise
         except RuntimeError as err:
-            if "event loop is closed" in str(err).lower():
+            if _is_event_loop_closed_error(err):
                 _LOGGER.debug("Event loop closed — heartbeat watchdog stopping")
                 return
             raise
@@ -1304,7 +1315,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 _LOGGER.debug("Diagnostic polling loop cancelled")
                 raise
             except RuntimeError as err:
-                if "event loop is closed" in str(err).lower():
+                if _is_event_loop_closed_error(err):
                     _LOGGER.debug("Event loop closed — diagnostic polling loop stopping")
                     return
                 _LOGGER.exception("Unexpected error in diagnostic polling loop — retrying in 300s")
