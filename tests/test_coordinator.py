@@ -141,8 +141,6 @@ class TestHeartbeatWatchdogEventLoopClosed:
                 raise AssertionError("Should have raised RuntimeError")
             except RuntimeError as err:
                 assert "Something unrelated" in str(err)
-            except asyncio.TimeoutError:
-                pass  # Also acceptable if it times out before raising
 
 
 class TestDiagnosticPollingLoopEventLoopClosed:

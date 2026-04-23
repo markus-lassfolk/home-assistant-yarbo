@@ -105,6 +105,10 @@ def _is_event_loop_closed_error(err: RuntimeError) -> bool:
     return "event loop is closed" in str(err).lower()
 
 
+# Polling interval for the diagnostic background task (seconds).
+# Kept here (not in const.py) because it is an implementation detail of this module.
+_DIAGNOSTIC_POLL_INTERVAL_SECONDS: int = 300
+
 @dataclass(slots=True)
 class PlanSummary:
     """Minimal work plan summary."""
@@ -1286,7 +1290,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """
         while True:
             try:
-                await asyncio.sleep(300)
+                await asyncio.sleep(_DIAGNOSTIC_POLL_INTERVAL_SECONDS)
                 async with self._diagnostic_lock:
                     diagnostic_methods = [
                         self.get_wifi_name,
@@ -1318,13 +1322,19 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 if _is_event_loop_closed_error(err):
                     _LOGGER.debug("Event loop closed — diagnostic polling loop stopping")
                     return
-                _LOGGER.exception("Unexpected error in diagnostic polling loop — retrying in 300s")
+                _LOGGER.exception(
+                    "Unexpected error in diagnostic polling loop — retrying in %ds",
+                    _DIAGNOSTIC_POLL_INTERVAL_SECONDS,
+                )
                 with contextlib.suppress(Exception):
-                    await asyncio.sleep(300)
+                    await asyncio.sleep(_DIAGNOSTIC_POLL_INTERVAL_SECONDS)
             except Exception:
-                _LOGGER.exception("Unexpected error in diagnostic polling loop — retrying in 300s")
+                _LOGGER.exception(
+                    "Unexpected error in diagnostic polling loop — retrying in %ds",
+                    _DIAGNOSTIC_POLL_INTERVAL_SECONDS,
+                )
                 with contextlib.suppress(Exception):
-                    await asyncio.sleep(300)
+                    await asyncio.sleep(_DIAGNOSTIC_POLL_INTERVAL_SECONDS)
 
     async def async_config_entry_first_refresh(self) -> None:
         """Start push telemetry before the first refresh."""
