@@ -17,6 +17,7 @@ from .const import (
     HEAD_TYPE_LEAF_BLOWER,
     HEAD_TYPE_SNOW_BLOWER,
 )
+from .controller import async_ensure_controller
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 
@@ -78,7 +79,7 @@ class YarboChuteSteeringWorkNumber(YarboEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set chute steering angle."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.set_chute_steering_work(int(value))
         self._current_angle = value
         self.async_write_ha_state()
@@ -122,7 +123,7 @@ class YarboChuteVelocityNumber(YarboEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set chute velocity."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             # Note: python-yarbo API uses 'vel' parameter name
             await self.coordinator.client.set_chute(vel=int(value))
         self._current_velocity = value
@@ -161,7 +162,7 @@ class YarboBladeHeightNumber(YarboEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set blade height."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.set_blade_height(int(value))
         self._current_height = value
         self.async_write_ha_state()
@@ -199,7 +200,7 @@ class YarboBladeSpeedNumber(YarboEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set blade speed."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.set_blade_speed(int(value))
         self._current_speed = value
         self.async_write_ha_state()
@@ -239,7 +240,7 @@ class YarboBlowerSpeedNumber(YarboEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set blower speed."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.set_roller_speed(int(value))
         self._current_speed = value
         self.async_write_ha_state()
@@ -268,7 +269,7 @@ class YarboVolumeNumber(YarboEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set volume."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.set_sound(int(value))
         self._current_volume = value
         self.async_write_ha_state()
@@ -340,7 +341,7 @@ class YarboRollerSpeedNumber(YarboEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set roller speed in RPM."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.set_roller(speed=int(value))
         self._current_speed = value
         self.async_write_ha_state()
@@ -376,7 +377,7 @@ class YarboBatteryChargeMinNumber(YarboEntity, NumberEntity):
                 f"Minimum charge ({min_pct}%) cannot exceed maximum charge ({max_pct}%)"
             )
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.set_charge_limit(min_pct=min_pct, max_pct=max_pct)
             self.coordinator.set_charge_limit_min(min_pct)
         self._current_value = value
@@ -413,7 +414,7 @@ class YarboBatteryChargeMaxNumber(YarboEntity, NumberEntity):
                 f"Maximum charge ({max_pct}%) cannot be below minimum charge ({min_pct}%)"
             )
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.set_charge_limit(min_pct=min_pct, max_pct=max_pct)
             self.coordinator.set_charge_limit_max(max_pct)
         self._current_value = value

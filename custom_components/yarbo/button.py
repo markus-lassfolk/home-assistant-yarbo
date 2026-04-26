@@ -17,6 +17,7 @@ from .const import (
     normalize_command_name,
     validate_head_type_for_command,
 )
+from .controller import async_ensure_controller
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 
@@ -68,7 +69,7 @@ class YarboButton(YarboEntity, ButtonEntity):
         if not is_valid:
             raise HomeAssistantError(error_message)
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.publish_raw(normalized_command, payload)
 
 
@@ -82,7 +83,7 @@ class YarboBeepButton(YarboButton):
 
     async def async_press(self) -> None:
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.buzzer(state=1)
 
 

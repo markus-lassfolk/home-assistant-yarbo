@@ -47,6 +47,7 @@ from .const import (
     is_active_operation,
     normalize_command_name,
 )
+from .controller import async_ensure_controller
 from .models import YarboTelemetry
 from .mqtt_recorder import MqttRecorder
 from .repairs import (
@@ -597,7 +598,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     async def start_plan(self, plan_id: str | int) -> None:
         """Start a work plan by id."""
         async with self.command_lock:
-            await self.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.client)
             await self.client.start_plan_direct(plan_id=plan_id, percent=self._plan_start_percent)
         self._selected_plan_id = plan_id
         self.async_update_listeners()
@@ -611,7 +612,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         if action not in {"pause", "resume", "stop"}:
             raise ValueError(f"Unsupported plan action: {action}")
         async with self.command_lock:
-            await self.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.client)
             await self.client.in_plan_action(action=action)
 
     async def _request_data_feedback(

@@ -24,6 +24,7 @@ from .const import (
     LIGHT_CHANNEL_TAIL_RIGHT,
     LIGHT_CHANNELS,
 )
+from .controller import async_ensure_controller
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 
@@ -90,7 +91,7 @@ class YarboAllLightsGroup(YarboLight):
         """Turn on all lights, optionally at a given brightness."""
         brightness: int = kwargs.get(ATTR_BRIGHTNESS, 255)
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.set_lights(
                 YarboLightState(
                     led_head=brightness,
@@ -111,7 +112,7 @@ class YarboAllLightsGroup(YarboLight):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off all lights."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.set_lights(
                 YarboLightState(
                     led_head=0,
@@ -144,7 +145,7 @@ class YarboChannelLight(YarboLight):
         """Turn on this LED channel."""
         brightness: int = kwargs.get(ATTR_BRIGHTNESS, 255)
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             state_dict = self.coordinator.light_state.copy()
             state_dict[self._channel] = brightness
             await self.coordinator.client.set_lights(YarboLightState(**state_dict))
@@ -156,7 +157,7 @@ class YarboChannelLight(YarboLight):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off this LED channel."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             state_dict = self.coordinator.light_state.copy()
             state_dict[self._channel] = 0
             await self.coordinator.client.set_lights(YarboLightState(**state_dict))
@@ -196,7 +197,7 @@ class YarboHeadLight(YarboEntity, LightEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the head light."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.set_head_light(True)
         self._is_on = True
         self.async_write_ha_state()
@@ -204,7 +205,7 @@ class YarboHeadLight(YarboEntity, LightEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the head light."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.set_head_light(False)
         self._is_on = False
         self.async_write_ha_state()

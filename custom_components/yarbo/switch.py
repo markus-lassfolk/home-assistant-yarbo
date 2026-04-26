@@ -21,6 +21,7 @@ from .const import (
     normalize_command_name,
     validate_head_type_for_command,
 )
+from .controller import async_ensure_controller
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 
@@ -92,7 +93,7 @@ class YarboBuzzerSwitch(YarboEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Activate the buzzer."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.buzzer(state=1)
         self._is_on = True
         self.async_write_ha_state()
@@ -100,7 +101,7 @@ class YarboBuzzerSwitch(YarboEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Deactivate the buzzer."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.buzzer(state=0)
         self._is_on = False
         self.async_write_ha_state()
@@ -140,7 +141,7 @@ class YarboCommandSwitch(YarboEntity, SwitchEntity):
         if not is_valid:
             raise HomeAssistantError(error_message)
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             # NOTE: Commands are entity-configured; keep publish_raw for now even
             # though some could map to typed methods.
             await self.coordinator.client.publish_raw(

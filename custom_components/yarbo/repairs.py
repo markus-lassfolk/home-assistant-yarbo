@@ -15,9 +15,11 @@ from homeassistant.components.repairs import RepairsFlow
 from homeassistant.config_entries import SOURCE_REAUTH
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
 
 from .const import CONF_ROBOT_NAME, DATA_COORDINATOR, DOMAIN
+from .controller import async_ensure_controller
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -146,8 +148,10 @@ class YarboRepairFlow(RepairsFlow):
                     ]
                     async with coordinator.command_lock:
                         try:
-                            await coordinator.client.get_controller(timeout=5.0)
+                            await async_ensure_controller(coordinator.client, timeout=5.0)
                             coordinator.resolve_controller_lost()
+                        except HomeAssistantError:
+                            return self.async_abort(reason="cannot_connect")
                         except Exception as err:
                             _LOGGER.warning("Failed to re-acquire Yarbo controller: %s", err)
                             return self.async_abort(reason="cannot_connect")

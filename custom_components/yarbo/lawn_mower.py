@@ -13,6 +13,7 @@ from .const import (
     HEAD_TYPE_LAWN_MOWER,
     HEAD_TYPE_LAWN_MOWER_PRO,
 )
+from .controller import async_ensure_controller
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 
@@ -73,17 +74,17 @@ class YarboLawnMower(YarboEntity, LawnMowerEntity):
     async def async_start_mowing(self) -> None:
         """Start mowing — resumes last plan or starts default."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.resume()
 
     async def async_pause(self) -> None:
         """Pause mowing."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.pause_planning()
 
     async def async_dock(self) -> None:
         """Return robot to dock."""
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.return_to_dock()

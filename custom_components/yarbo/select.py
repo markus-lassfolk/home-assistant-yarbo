@@ -15,6 +15,7 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DATA_COORDINATOR, DOMAIN, HEAD_TYPE_SNOW_BLOWER
+from .controller import async_ensure_controller
 from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 
@@ -99,7 +100,7 @@ class YarboTurnTypeSelect(YarboEntity, SelectEntity):
         if option not in self._turn_type_map:
             raise HomeAssistantError(f"Unknown turn type: {option}")
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.set_turn_type(turn_type=self._turn_type_map[option])
         self._current_option = option
         self.async_write_ha_state()
@@ -141,7 +142,7 @@ class YarboSnowPushDirectionSelect(YarboEntity, SelectEntity):
         if option not in self._direction_map:
             raise HomeAssistantError(f"Unknown snow push direction: {option}")
         async with self.coordinator.command_lock:
-            await self.coordinator.client.get_controller(timeout=5.0)
+            await async_ensure_controller(self.coordinator.client)
             await self.coordinator.client.push_snow_dir(direction=self._direction_map[option])
         self._current_option = option
         self.async_write_ha_state()

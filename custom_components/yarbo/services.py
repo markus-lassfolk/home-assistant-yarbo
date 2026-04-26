@@ -7,7 +7,7 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 
 from yarbo import YarboLightState
@@ -21,6 +21,7 @@ from .const import (
     normalize_command_name,
     validate_head_type_for_command,
 )
+from .controller import async_ensure_controller
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -131,7 +132,10 @@ def _get_client_and_coordinator(hass: HomeAssistant, device_id: str) -> tuple[An
 async def _acquire_controller(client: Any, coordinator: Any) -> None:
     """Acquire controller with error handling and state reporting."""
     try:
-        await client.get_controller(timeout=5.0)
+        await async_ensure_controller(client, timeout=5.0)
+    except HomeAssistantError as err:
+        # Timeout / user-actionable — do not treat as "controller stolen" (#147)
+        raise ServiceValidationError(str(err)) from err
     except Exception as err:
         _LOGGER.warning("Failed to acquire controller: %s", err)
         coordinator.report_controller_lost()

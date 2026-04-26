@@ -93,7 +93,12 @@ class YarboConnectionError(Exception):
     """Stub for YarboConnectionError."""
 
 
+class YarboTimeoutError(TimeoutError):
+    """Stub for YarboTimeoutError (get_controller ack timeout)."""
+
+
 _yarbo_exceptions.YarboConnectionError = YarboConnectionError
+_yarbo_exceptions.YarboTimeoutError = YarboTimeoutError
 _yarbo_module.exceptions = _yarbo_exceptions
 
 # Stub yarbo.error_reporting so __init__.py can disable library-level Sentry.
