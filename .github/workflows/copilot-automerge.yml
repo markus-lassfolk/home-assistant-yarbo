@@ -21,7 +21,7 @@ jobs:
       github.event_name == 'pull_request'
     steps:
       - name: Auto-merge eligible bot fix PRs
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
