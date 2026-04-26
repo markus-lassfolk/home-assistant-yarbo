@@ -133,7 +133,7 @@ See [Entities](entities.md) for a full list of which entities are enabled by def
 
 ## Connection Sensor
 
-The **Connection** sensor (diagnostic, entity ID: `sensor.yarbo_XXXX_connection`) shows which MQTT endpoint the integration is currently using:
+The **Connection** sensor (diagnostic, entity ID: `sensor.community_yarbo_XXXX_connection`) shows which MQTT endpoint the integration is currently using:
 
 - `Data Center (<ip>)` — connected via the base-station relay
 - `Rover (<ip>)` — connected directly to the rover unit

@@ -1,6 +1,6 @@
 {
-  "domain": "yarbo",
-  "name": "Yarbo",
+  "domain": "community_yarbo",
+  "name": "Community Yarbo",
   "after_dependencies": [
     "logbook"
   ],

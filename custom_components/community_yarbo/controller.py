@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 from homeassistant.exceptions import HomeAssistantError
-
 from yarbo.exceptions import YarboTimeoutError
 
 _LOGGER = logging.getLogger(__name__)

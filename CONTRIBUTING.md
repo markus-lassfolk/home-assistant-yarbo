@@ -32,12 +32,12 @@ pytest tests/ -v
 # Run linting
 ruff check custom_components/ tests/
 ruff format --check custom_components/ tests/
-mypy custom_components/yarbo/
+mypy custom_components/community_yarbo/
 ```
 
 ### Installing in Home Assistant (dev mode)
 
-1. Copy `custom_components/yarbo/` to your HA `config/custom_components/yarbo/`
+1. Copy `custom_components/community_yarbo/` to your HA `config/custom_components/community_yarbo/`
 2. Restart Home Assistant
 3. Add the integration: Settings → Devices & Services → Add Integration → Yarbo
 

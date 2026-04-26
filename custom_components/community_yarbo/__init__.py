@@ -11,12 +11,11 @@ from homeassistant.const import __version__
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.loader import async_get_integration
-
 from yarbo import YarboLocalClient
 from yarbo.exceptions import YarboConnectionError
 
 # Disable library-level Sentry auto-init so python-yarbo doesn't start its own
-# error reporting.  HA manages its own via custom_components/yarbo/error_reporting.py.
+# error reporting.  HA manages its own via custom_components/community_yarbo/error_reporting.py.
 try:
     from yarbo.error_reporting import init_error_reporting as _lib_init_error_reporting
 
@@ -212,9 +211,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if CONF_BROKER_ENDPOINTS not in data:
         primary = data.get(CONF_BROKER_HOST)
         alternate = data.get(CONF_ALTERNATE_BROKER_HOST)
-        raw: list[Any] = (
-            [primary, alternate] if alternate and alternate != primary else [primary]
-        )
+        raw: list[Any] = [primary, alternate] if alternate and alternate != primary else [primary]
         data[CONF_BROKER_ENDPOINTS] = [h for h in raw if h]
         changed = True
     resolved_host = _resolve_broker_host(data)

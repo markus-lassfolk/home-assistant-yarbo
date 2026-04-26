@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 
 from homeassistant.const import STATE_HOME, STATE_NOT_HOME
 
-from custom_components.yarbo.const import CONF_ROBOT_NAME, CONF_ROBOT_SERIAL
-from custom_components.yarbo.device_tracker import YarboDeviceTracker
+from custom_components.community_yarbo.const import CONF_ROBOT_NAME, CONF_ROBOT_SERIAL
+from custom_components.community_yarbo.device_tracker import YarboDeviceTracker
 
 
 def _make_coordinator(**telemetry_kwargs: object) -> MagicMock:

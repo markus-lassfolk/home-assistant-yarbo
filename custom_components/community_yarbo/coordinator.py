@@ -15,7 +15,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-
 from yarbo import YarboLocalClient
 from yarbo.exceptions import YarboConnectionError
 
@@ -1077,7 +1076,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
     def _apply_debug_logging(self, enabled: bool) -> None:
         """Toggle debug logging for all yarbo components."""
         logger_names = (
-            "custom_components.yarbo",
+            "custom_components.community_yarbo",
             "yarbo",
             "yarbo.client",
             "yarbo.local",

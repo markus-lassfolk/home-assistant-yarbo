@@ -26,7 +26,9 @@ def _load_blueprint(path: str) -> dict:  # type: ignore[type-arg]
         return yaml.load(f, Loader=_HALoader)
 
 
-BLUEPRINTS_DIR = os.path.join(os.path.dirname(__file__), "..", "blueprints", "automation", "yarbo")
+BLUEPRINTS_DIR = os.path.join(
+    os.path.dirname(__file__), "..", "blueprints", "automation", "community_yarbo"
+)
 
 
 class TestLowBatteryBlueprint:

@@ -10,7 +10,7 @@ send_command:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
     command:
       name: Command
       description: The MQTT command name (e.g. read_all_plan, cmd_recharge).
@@ -37,7 +37,7 @@ start_plan:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
     plan_id:
       name: Plan ID
       description: The UUID of the work plan to start.
@@ -67,7 +67,7 @@ pause:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
 
 resume:
   name: Resume paused job
@@ -78,7 +78,7 @@ resume:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
 
 return_to_dock:
   name: Return to dock
@@ -89,7 +89,7 @@ return_to_dock:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
 
 set_lights:
   name: Set lights
@@ -100,7 +100,7 @@ set_lights:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
     brightness:
       name: Global brightness
       description: Set all channels to this value (0–255).
@@ -169,7 +169,7 @@ set_chute_velocity:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
     velocity:
       name: Velocity
       description: Chute velocity (-2000 to 2000). Negative = left, positive = right.
@@ -188,7 +188,7 @@ manual_drive:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
     linear:
       name: Linear
       description: Linear velocity (-1.0 to 1.0).
@@ -219,7 +219,7 @@ go_to_waypoint:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
     index:
       name: Index
       description: Waypoint index to navigate to.
@@ -239,7 +239,7 @@ delete_plan:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
     plan_id:
       name: Plan ID
       description: Plan ID to delete (string or UUID — must match exactly).
@@ -263,7 +263,7 @@ delete_all_plans:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
     confirmation:
       name: Confirm deletion
       description: Set to true to confirm this destructive operation.
@@ -281,7 +281,7 @@ erase_map:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
     confirmation:
       name: Confirm erasure
       description: Set to true to confirm this destructive operation.
@@ -299,7 +299,7 @@ map_recovery:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
     map_id:
       name: Map ID
       description: Optional map ID to recover. If omitted, the robot uses its default recovery.
@@ -323,7 +323,7 @@ save_current_map:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
 
 save_map_backup_and_get_all_map_backup_nameandid:
   name: Save map backup and list backups
@@ -336,4 +336,4 @@ save_map_backup_and_get_all_map_backup_nameandid:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo

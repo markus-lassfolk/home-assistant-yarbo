@@ -7,11 +7,11 @@ from unittest.mock import MagicMock
 
 from homeassistant.helpers.entity import EntityCategory
 
-from custom_components.yarbo.binary_sensor import (
+from custom_components.community_yarbo.binary_sensor import (
     YarboNoChargePeriodSensor,
     YarboOnlineBinarySensor,
 )
-from custom_components.yarbo.const import (
+from custom_components.community_yarbo.const import (
     CONF_ROBOT_NAME,
     CONF_ROBOT_SERIAL,
     HEARTBEAT_TIMEOUT_SECONDS,

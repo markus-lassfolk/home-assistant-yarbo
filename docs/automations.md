@@ -28,14 +28,14 @@ automation:
   description: "Automatically sends the robot home when battery drops below 20%"
   trigger:
     - platform: numeric_state
-      entity_id: sensor.yarbo_allgott_battery
+      entity_id: sensor.community_yarbo_allgott_battery
       below: 20
   condition:
     - condition: state
-      entity_id: sensor.yarbo_allgott_activity
+      entity_id: sensor.community_yarbo_allgott_activity
       state: "working"
   action:
-    - service: yarbo.return_to_dock
+    - service: community_yarbo.return_to_dock
       data:
         device_id: "YOUR_DEVICE_ID"
 ```
@@ -48,14 +48,14 @@ automation:
   description: "Pauses the robot if rain is detected while working"
   trigger:
     - platform: state
-      entity_id: binary_sensor.yarbo_allgott_rain_detected
+      entity_id: binary_sensor.community_yarbo_allgott_rain_detected
       to: "on"
   condition:
     - condition: state
-      entity_id: sensor.yarbo_allgott_activity
+      entity_id: sensor.community_yarbo_allgott_activity
       state: "working"
   action:
-    - service: yarbo.pause
+    - service: community_yarbo.pause
       data:
         device_id: "YOUR_DEVICE_ID"
     - service: notify.mobile_app
@@ -71,16 +71,16 @@ automation:
   description: "Resumes the robot 5 minutes after rain stops"
   trigger:
     - platform: state
-      entity_id: binary_sensor.yarbo_allgott_rain_detected
+      entity_id: binary_sensor.community_yarbo_allgott_rain_detected
       to: "off"
       for:
         minutes: 5
   condition:
     - condition: state
-      entity_id: sensor.yarbo_allgott_activity
+      entity_id: sensor.community_yarbo_allgott_activity
       state: "paused"
   action:
-    - service: yarbo.resume
+    - service: community_yarbo.resume
       data:
         device_id: "YOUR_DEVICE_ID"
 ```
@@ -103,13 +103,13 @@ automation:
         - tue
         - fri
     - condition: state
-      entity_id: binary_sensor.yarbo_allgott_charging
+      entity_id: binary_sensor.community_yarbo_allgott_charging
       state: "on"
     - condition: numeric_state
-      entity_id: sensor.yarbo_allgott_battery
+      entity_id: sensor.community_yarbo_allgott_battery
       above: 80
   action:
-    - service: yarbo.start_plan
+    - service: community_yarbo.start_plan
       data:
         device_id: "YOUR_DEVICE_ID"
         plan_id: "1"
@@ -129,13 +129,13 @@ automation:
         minutes: 30
   condition:
     - condition: state
-      entity_id: sensor.yarbo_allgott_activity
+      entity_id: sensor.community_yarbo_allgott_activity
       state: "idle"
     - condition: numeric_state
-      entity_id: sensor.yarbo_allgott_battery
+      entity_id: sensor.community_yarbo_allgott_battery
       above: 50
   action:
-    - service: yarbo.start_plan
+    - service: community_yarbo.start_plan
       data:
         device_id: "YOUR_DEVICE_ID"
         plan_id: "2"
@@ -155,7 +155,7 @@ automation:
   alias: "Yarbo: Notify when work plan finishes"
   trigger:
     - platform: state
-      entity_id: sensor.yarbo_allgott_activity
+      entity_id: sensor.community_yarbo_allgott_activity
       from: "working"
       to: "returning"
   action:
@@ -172,7 +172,7 @@ automation:
   alias: "Yarbo: Alert on error"
   trigger:
     - platform: state
-      entity_id: binary_sensor.yarbo_allgott_problem
+      entity_id: binary_sensor.community_yarbo_allgott_problem
       to: "on"
   action:
     - service: notify.mobile_app
@@ -180,7 +180,7 @@ automation:
         title: "Yarbo Alert"
         message: >
           Yarbo has reported a problem.
-          Error code: {{ states('sensor.yarbo_allgott_error_code') }}.
+          Error code: {{ states('sensor.community_yarbo_allgott_error_code') }}.
           Please check the robot.
 ```
 
@@ -197,9 +197,9 @@ automation:
       data:
         title: "Yarbo Daily Status"
         message: >
-          Battery: {{ states('sensor.yarbo_allgott_battery') }}%
-          Status: {{ states('sensor.yarbo_allgott_activity') }}
-          Head: {{ states('sensor.yarbo_allgott_head_type') }}
+          Battery: {{ states('sensor.community_yarbo_allgott_battery') }}%
+          Status: {{ states('sensor.community_yarbo_allgott_activity') }}
+          Head: {{ states('sensor.community_yarbo_allgott_head_type') }}
 ```
 
 ---
@@ -216,12 +216,12 @@ automation:
       event: sunset
   condition:
     - condition: state
-      entity_id: sensor.yarbo_allgott_activity
+      entity_id: sensor.community_yarbo_allgott_activity
       state: "working"
   action:
     - service: light.turn_on
       target:
-        entity_id: light.yarbo_allgott_lights
+        entity_id: light.community_yarbo_allgott_lights
       data:
         brightness: 255
 ```
@@ -233,12 +233,12 @@ automation:
   alias: "Yarbo: Turn off lights when docked"
   trigger:
     - platform: state
-      entity_id: sensor.yarbo_allgott_activity
+      entity_id: sensor.community_yarbo_allgott_activity
       to: "charging"
   action:
     - service: light.turn_off
       target:
-        entity_id: light.yarbo_allgott_lights
+        entity_id: light.community_yarbo_allgott_lights
 ```
 
 ---
@@ -247,40 +247,40 @@ automation:
 
 ### Adjust Chute Direction with Input Select
 
-Create a helper `input_select.yarbo_chute_direction` with options: Left, Right, Center.
+Create a helper `input_select.community_yarbo_chute_direction` with options: Left, Right, Center.
 
 ```yaml
 automation:
   alias: "Yarbo: Set snow chute direction from input"
   trigger:
     - platform: state
-      entity_id: input_select.yarbo_chute_direction
+      entity_id: input_select.community_yarbo_chute_direction
   action:
     - choose:
         - conditions:
             - condition: state
-              entity_id: input_select.yarbo_chute_direction
+              entity_id: input_select.community_yarbo_chute_direction
               state: "Left"
           sequence:
-            - service: yarbo.set_chute_velocity
+            - service: community_yarbo.set_chute_velocity
               data:
                 device_id: "YOUR_DEVICE_ID"
                 velocity: -1000
         - conditions:
             - condition: state
-              entity_id: input_select.yarbo_chute_direction
+              entity_id: input_select.community_yarbo_chute_direction
               state: "Right"
           sequence:
-            - service: yarbo.set_chute_velocity
+            - service: community_yarbo.set_chute_velocity
               data:
                 device_id: "YOUR_DEVICE_ID"
                 velocity: 1000
         - conditions:
             - condition: state
-              entity_id: input_select.yarbo_chute_direction
+              entity_id: input_select.community_yarbo_chute_direction
               state: "Center"
           sequence:
-            - service: yarbo.set_chute_velocity
+            - service: community_yarbo.set_chute_velocity
               data:
                 device_id: "YOUR_DEVICE_ID"
                 velocity: 0
@@ -296,27 +296,27 @@ automation:
 type: vertical-stack
 cards:
   - type: entity
-    entity: sensor.yarbo_allgott_activity
+    entity: sensor.community_yarbo_allgott_activity
     name: Yarbo Status
   - type: entities
     entities:
-      - sensor.yarbo_allgott_battery
-      - sensor.yarbo_allgott_head_type
-      - binary_sensor.yarbo_allgott_charging
-      - binary_sensor.yarbo_allgott_problem
+      - sensor.community_yarbo_allgott_battery
+      - sensor.community_yarbo_allgott_head_type
+      - binary_sensor.community_yarbo_allgott_charging
+      - binary_sensor.community_yarbo_allgott_problem
   - type: grid
     columns: 3
     cards:
       - type: button
-        entity: button.yarbo_allgott_return_to_dock
+        entity: button.community_yarbo_allgott_return_to_dock
         name: Return
         icon: mdi:home-battery
       - type: button
-        entity: button.yarbo_allgott_pause
+        entity: button.community_yarbo_allgott_pause
         name: Pause
         icon: mdi:pause
       - type: button
-        entity: button.yarbo_allgott_resume
+        entity: button.community_yarbo_allgott_resume
         name: Resume
         icon: mdi:play
 ```
@@ -326,7 +326,7 @@ cards:
 ```yaml
 type: map
 entities:
-  - device_tracker.yarbo_allgott_location
+  - device_tracker.community_yarbo_allgott_location
 title: Yarbo Location
 aspect_ratio: 16x9
 ```

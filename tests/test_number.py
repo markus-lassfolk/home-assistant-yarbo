@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from homeassistant.helpers.entity import EntityCategory
 
-from custom_components.yarbo.const import (
+from custom_components.community_yarbo.const import (
     CONF_ROBOT_NAME,
     CONF_ROBOT_SERIAL,
     HEAD_TYPE_LAWN_MOWER,
@@ -16,7 +16,7 @@ from custom_components.yarbo.const import (
     HEAD_TYPE_LEAF_BLOWER,
     HEAD_TYPE_SNOW_BLOWER,
 )
-from custom_components.yarbo.number import (
+from custom_components.community_yarbo.number import (
     YarboBatteryChargeMaxNumber,
     YarboBatteryChargeMinNumber,
     YarboBladeHeightNumber,

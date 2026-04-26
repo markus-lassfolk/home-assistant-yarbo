@@ -4,7 +4,7 @@ Checklist for submitting Yarbo branding to [home-assistant/brands](https://githu
 
 ## Asset spec
 
-Create directory `core_integrations/yarbo/` in a fork of [home-assistant/brands](https://github.com/home-assistant/brands).
+Create directory `custom_integrations/community_yarbo/` in a fork of [home-assistant/brands](https://github.com/home-assistant/brands).
 
 | File        | Size        | Notes                          |
 |------------|-------------|--------------------------------|
@@ -18,7 +18,7 @@ Create directory `core_integrations/yarbo/` in a fork of [home-assistant/brands]
 ## Steps
 
 1. Fork [home-assistant/brands](https://github.com/home-assistant/brands).
-2. Create `core_integrations/yarbo/` and add the three asset files.
+2. Create `custom_integrations/community_yarbo/` and add the three asset files.
 3. Open a PR against `home-assistant/brands` main branch.
 4. Wait for review and merge.
 

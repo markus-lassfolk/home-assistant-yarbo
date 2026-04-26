@@ -14,7 +14,7 @@ This directory contains brand assets for the Yarbo Home Assistant integration.
 To submit brand assets to the official Home Assistant brands repository:
 
 1. Fork [home-assistant/brands](https://github.com/home-assistant/brands)
-2. Create directory: `custom_integrations/yarbo/`
+2. Create directory: `custom_integrations/community_yarbo/`
 3. Add icon files following the [brands contribution guide](https://github.com/home-assistant/brands/blob/master/CONTRIBUTING.md)
 4. Open a Pull Request
 

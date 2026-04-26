@@ -122,7 +122,7 @@ from typing import Any
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.yarbo.const import (
+from custom_components.community_yarbo.const import (
     CONF_BROKER_HOST,
     CONF_BROKER_MAC,
     CONF_BROKER_PORT,
@@ -185,7 +185,7 @@ async def _telemetry_stream() -> AsyncGenerator[Any, None]:
 @pytest.fixture(autouse=True)
 def mock_yarbo_client_autouse() -> Generator[MagicMock, None, None]:
     """Auto-mock YarboLocalClient so config entry setup never hits real MQTT."""
-    with patch("custom_components.yarbo.YarboLocalClient", autospec=True) as mock_cls:
+    with patch("custom_components.community_yarbo.YarboLocalClient", autospec=True) as mock_cls:
         client = mock_cls.return_value
         client.connect = AsyncMock()
         client.disconnect = AsyncMock()
@@ -228,7 +228,7 @@ def mock_yarbo_client() -> Generator[MagicMock, None, None]:
     Mocks: connect, disconnect, watch_telemetry, get_status,
            publish_raw, set_lights, buzzer, set_chute.
     """
-    with patch("custom_components.yarbo.YarboLocalClient", autospec=True) as mock_cls:
+    with patch("custom_components.community_yarbo.YarboLocalClient", autospec=True) as mock_cls:
         client = mock_cls.return_value
         client.connect = AsyncMock()
         client.disconnect = AsyncMock()

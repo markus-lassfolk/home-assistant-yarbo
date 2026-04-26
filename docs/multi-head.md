@@ -149,12 +149,12 @@ automation:
   alias: "Yarbo: Notify when head type changes"
   trigger:
     - platform: state
-      entity_id: sensor.yarbo_allgott_head_type
+      entity_id: sensor.community_yarbo_allgott_head_type
   action:
     - service: notify.mobile_app
       data:
         message: >
-          Yarbo head changed to {{ states('sensor.yarbo_allgott_head_type') }}
+          Yarbo head changed to {{ states('sensor.community_yarbo_allgott_head_type') }}
 ```
 
 ---
@@ -167,7 +167,7 @@ Add the card to your dashboard:
 
 ```yaml
 type: lawn-mower
-entity: lawn_mower.yarbo_allgott_mower
+entity: lawn_mower.community_yarbo_allgott_mower
 ```
 
 The card shows:

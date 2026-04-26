@@ -11,7 +11,6 @@ from homeassistant.components import dhcp
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
-
 from yarbo import YarboLocalClient
 from yarbo.exceptions import YarboConnectionError
 

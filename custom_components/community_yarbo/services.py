@@ -9,7 +9,6 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
-
 from yarbo import YarboLightState
 
 from .const import (
@@ -152,7 +151,7 @@ def async_register_services(hass: HomeAssistant) -> None:
     """Register all Yarbo services."""
 
     async def handle_send_command(call: ServiceCall) -> None:
-        """Handle yarbo.send_command — publish an MQTT command."""
+        """Handle community_yarbo.send_command — publish an MQTT command."""
         device_id: str = call.data["device_id"]
         command: str = call.data["command"]
         payload: dict[str, Any] = call.data.get("payload") or {}
@@ -167,7 +166,7 @@ def async_register_services(hass: HomeAssistant) -> None:
 
         normalized_command = normalize_command_name(command)
         _LOGGER.debug(
-            "yarbo.send_command: device=%s command=%s payload=%s",
+            "community_yarbo.send_command: device=%s command=%s payload=%s",
             device_id,
             normalized_command,
             payload,
@@ -185,10 +184,10 @@ def async_register_services(hass: HomeAssistant) -> None:
             await client.publish_raw(normalized_command, payload)
 
     async def handle_start_plan(call: ServiceCall) -> None:
-        """Handle yarbo.start_plan — start a saved work plan by ID."""
+        """Handle community_yarbo.start_plan — start a saved work plan by ID."""
         device_id: str = call.data["device_id"]
         plan_id: str = call.data["plan_id"]
-        _LOGGER.debug("yarbo.start_plan: device=%s plan_id=%s", device_id, plan_id)
+        _LOGGER.debug("community_yarbo.start_plan: device=%s plan_id=%s", device_id, plan_id)
         _, coordinator = _get_client_and_coordinator(hass, device_id)
         # Optional percent override; fall back to coordinator stored value
         percent: int = call.data.get("percent", coordinator.plan_start_percent)
@@ -199,7 +198,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             await client.start_plan(plan_id, percent=percent)
 
     async def handle_pause(call: ServiceCall) -> None:
-        """Handle yarbo.pause — pause current job."""
+        """Handle community_yarbo.pause — pause current job."""
         _, coordinator = _get_client_and_coordinator(hass, call.data["device_id"])
         async with coordinator.command_lock:
             client = coordinator.client
@@ -208,7 +207,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             await client.pause_planning()
 
     async def handle_resume(call: ServiceCall) -> None:
-        """Handle yarbo.resume — resume paused job."""
+        """Handle community_yarbo.resume — resume paused job."""
         _, coordinator = _get_client_and_coordinator(hass, call.data["device_id"])
         async with coordinator.command_lock:
             client = coordinator.client
@@ -217,7 +216,7 @@ def async_register_services(hass: HomeAssistant) -> None:
             await client.resume()
 
     async def handle_return_to_dock(call: ServiceCall) -> None:
-        """Handle yarbo.return_to_dock — send robot to dock."""
+        """Handle community_yarbo.return_to_dock — send robot to dock."""
         _, coordinator = _get_client_and_coordinator(hass, call.data["device_id"])
         async with coordinator.command_lock:
             client = coordinator.client
@@ -226,10 +225,10 @@ def async_register_services(hass: HomeAssistant) -> None:
             await client.return_to_dock()
 
     async def handle_set_lights(call: ServiceCall) -> None:
-        """Handle yarbo.set_lights — set 7 LED channel brightness values."""
+        """Handle community_yarbo.set_lights — set 7 LED channel brightness values."""
         device_id: str = call.data["device_id"]
         brightness: int = call.data.get("brightness", 255)
-        _LOGGER.debug("yarbo.set_lights: device=%s brightness=%s", device_id, brightness)
+        _LOGGER.debug("community_yarbo.set_lights: device=%s brightness=%s", device_id, brightness)
         _, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
             client = coordinator.client
@@ -255,11 +254,15 @@ def async_register_services(hass: HomeAssistant) -> None:
             coordinator.light_state["tail_right_r"] = call.data.get("tail_right_r", brightness)
 
     async def handle_set_chute_velocity(call: ServiceCall) -> None:
-        """Handle yarbo.set_chute_velocity — control snow chute direction."""
+        """Handle community_yarbo.set_chute_velocity — control snow chute direction."""
         device_id: str = call.data["device_id"]
         # Service field 'velocity' maps to python-yarbo API parameter 'vel'
         velocity: int = call.data["velocity"]
-        _LOGGER.debug("yarbo.set_chute_velocity: device=%s velocity=%d", device_id, velocity)
+        _LOGGER.debug(
+            "community_yarbo.set_chute_velocity: device=%s velocity=%d",
+            device_id,
+            velocity,
+        )
         _, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
             client = coordinator.client
@@ -268,12 +271,12 @@ def async_register_services(hass: HomeAssistant) -> None:
             await client.set_chute(vel=velocity)
 
     async def handle_manual_drive(call: ServiceCall) -> None:
-        """Handle yarbo.manual_drive — send linear/angular velocity."""
+        """Handle community_yarbo.manual_drive — send linear/angular velocity."""
         device_id: str = call.data["device_id"]
         linear: float = call.data["linear"]
         angular: float = call.data["angular"]
         _LOGGER.debug(
-            "yarbo.manual_drive: device=%s linear=%.3f angular=%.3f",
+            "community_yarbo.manual_drive: device=%s linear=%.3f angular=%.3f",
             device_id,
             linear,
             angular,
@@ -285,10 +288,10 @@ def async_register_services(hass: HomeAssistant) -> None:
             await client.set_velocity(linear, angular)
 
     async def handle_go_to_waypoint(call: ServiceCall) -> None:
-        """Handle yarbo.go_to_waypoint — navigate to waypoint index."""
+        """Handle community_yarbo.go_to_waypoint — navigate to waypoint index."""
         device_id: str = call.data["device_id"]
         index: int = call.data["index"]
-        _LOGGER.debug("yarbo.go_to_waypoint: device=%s index=%d", device_id, index)
+        _LOGGER.debug("community_yarbo.go_to_waypoint: device=%s index=%d", device_id, index)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
@@ -296,10 +299,10 @@ def async_register_services(hass: HomeAssistant) -> None:
             await client.start_waypoint(index=index)
 
     async def handle_delete_plan(call: ServiceCall) -> None:
-        """Handle yarbo.delete_plan — delete a plan by id."""
+        """Handle community_yarbo.delete_plan — delete a plan by id."""
         device_id: str = call.data["device_id"]
         plan_id: str = call.data["plan_id"]
-        _LOGGER.debug("yarbo.delete_plan: device=%s plan_id=%s", device_id, plan_id)
+        _LOGGER.debug("community_yarbo.delete_plan: device=%s plan_id=%s", device_id, plan_id)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
@@ -307,9 +310,9 @@ def async_register_services(hass: HomeAssistant) -> None:
             await client.delete_plan(plan_id, confirm=True)
 
     async def handle_delete_all_plans(call: ServiceCall) -> None:
-        """Handle yarbo.delete_all_plans — delete all plans."""
+        """Handle community_yarbo.delete_all_plans — delete all plans."""
         device_id: str = call.data["device_id"]
-        _LOGGER.debug("yarbo.delete_all_plans: device=%s", device_id)
+        _LOGGER.debug("community_yarbo.delete_all_plans: device=%s", device_id)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
@@ -317,9 +320,9 @@ def async_register_services(hass: HomeAssistant) -> None:
             await client.delete_all_plans(confirm=True)
 
     async def handle_erase_map(call: ServiceCall) -> None:
-        """Handle yarbo.erase_map — erase the current map."""
+        """Handle community_yarbo.erase_map — erase the current map."""
         device_id: str = call.data["device_id"]
-        _LOGGER.debug("yarbo.erase_map: device=%s", device_id)
+        _LOGGER.debug("community_yarbo.erase_map: device=%s", device_id)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
@@ -327,10 +330,10 @@ def async_register_services(hass: HomeAssistant) -> None:
             await client.erase_map(confirm=True)
 
     async def handle_map_recovery(call: ServiceCall) -> None:
-        """Handle yarbo.map_recovery — recover a map by optional map ID."""
+        """Handle community_yarbo.map_recovery — recover a map by optional map ID."""
         device_id: str = call.data["device_id"]
         map_id: str | None = call.data.get("map_id")
-        _LOGGER.debug("yarbo.map_recovery: device=%s map_id=%s", device_id, map_id)
+        _LOGGER.debug("community_yarbo.map_recovery: device=%s map_id=%s", device_id, map_id)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
@@ -338,9 +341,9 @@ def async_register_services(hass: HomeAssistant) -> None:
             await client.map_recovery(map_id=map_id, confirm=True)
 
     async def handle_save_current_map(call: ServiceCall) -> None:
-        """Handle yarbo.save_current_map — save the current working map."""
+        """Handle community_yarbo.save_current_map — save the current working map."""
         device_id: str = call.data["device_id"]
-        _LOGGER.debug("yarbo.save_current_map: device=%s", device_id)
+        _LOGGER.debug("community_yarbo.save_current_map: device=%s", device_id)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):
@@ -348,12 +351,12 @@ def async_register_services(hass: HomeAssistant) -> None:
             await client.save_current_map()
 
     async def handle_save_map_backup(call: ServiceCall) -> None:
-        """Handle yarbo.save_map_backup_and_get_all_map_backup_nameandid.
+        """Handle community_yarbo.save_map_backup_and_get_all_map_backup_nameandid.
 
         Saves a backup of the current map and retrieves all backup names and IDs.
         """
         device_id: str = call.data["device_id"]
-        _LOGGER.debug("yarbo.save_map_backup: device=%s", device_id)
+        _LOGGER.debug("community_yarbo.save_map_backup: device=%s", device_id)
         client, coordinator = _get_client_and_coordinator(hass, device_id)
         async with coordinator.command_lock:
             if _should_auto_acquire_controller(coordinator):

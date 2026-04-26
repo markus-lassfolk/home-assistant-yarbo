@@ -103,12 +103,12 @@ def _frame_is_yarbo(frame: dict) -> bool:
     module = (frame.get("module") or "") or (frame.get("filename") or "")
     if not module:
         return False
-    # Module names: custom_components.yarbo.*, yarbo.*
-    if module.startswith("custom_components.yarbo") or module.startswith("yarbo."):
+    # Module names: custom_components.community_yarbo.*, yarbo.*
+    if module.startswith("custom_components.community_yarbo") or module.startswith("yarbo."):
         return True
-    # File paths: .../custom_components/yarbo/... or .../yarbo/...
+    # File paths: .../custom_components/community_yarbo/... or .../yarbo/...
     norm = module.replace("\\", "/")
-    if "/custom_components/yarbo/" in norm or "/yarbo/" in norm:
+    if "/custom_components/community_yarbo/" in norm or "/yarbo/" in norm:
         return True
     return False
 

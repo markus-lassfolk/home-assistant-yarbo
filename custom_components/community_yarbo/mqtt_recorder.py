@@ -16,6 +16,8 @@ import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
+from .const import DOMAIN
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -28,7 +30,7 @@ class MqttRecorder:
         serial_number: str,
         max_size_bytes: int = 10 * 1024 * 1024,  # 10 MB
     ) -> None:
-        self._dir = storage_dir / "yarbo_recordings"
+        self._dir = storage_dir / f"{DOMAIN}_recordings"
         self._serial = serial_number
         self._max_size = max_size_bytes
         self._enabled = False
@@ -53,7 +55,7 @@ class MqttRecorder:
             self._dir.mkdir(parents=True, exist_ok=True)
             safe_serial = self._serial[-8:] if len(self._serial) > 8 else self._serial
             ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-            self._current_path = self._dir / f"yarbo_{safe_serial}_{ts}.jsonl"
+            self._current_path = self._dir / f"{DOMAIN}_{safe_serial}_{ts}.jsonl"
             self._file = open(self._current_path, "a", encoding="utf-8")
             self._bytes_written = (
                 self._current_path.stat().st_size if self._current_path.exists() else 0
@@ -198,7 +200,7 @@ class MqttRecorder:
         if not self._dir.exists():
             return []
         safe_serial = self._serial[-8:] if len(self._serial) > 8 else self._serial
-        return sorted(self._dir.glob(f"yarbo_{safe_serial}_*.jsonl"), reverse=True)
+        return sorted(self._dir.glob(f"{DOMAIN}_{safe_serial}_*.jsonl"), reverse=True)
 
     def cleanup(self) -> None:
         for path in self.list_recordings():

@@ -12,8 +12,8 @@ from homeassistant.components import dhcp
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
-from custom_components.yarbo.config_flow import YarboConfigFlow
-from custom_components.yarbo.const import (
+from custom_components.community_yarbo.config_flow import YarboConfigFlow
+from custom_components.community_yarbo.const import (
     CONF_BROKER_HOST,
     CONF_BROKER_MAC,
     CONF_BROKER_PORT,
@@ -59,7 +59,7 @@ class TestManualConfigFlow:
     ) -> None:
         """When discovery finds no devices, user sees manual IP/port form."""
         with patch(
-            "custom_components.yarbo.config_flow.async_discover_endpoints",
+            "custom_components.community_yarbo.config_flow.async_discover_endpoints",
             return_value=[],
         ):
             result = await hass.config_entries.flow.async_init(
@@ -73,7 +73,7 @@ class TestManualConfigFlow:
     ) -> None:
         """Submit manual IP/port and successful MQTT test leads to name step."""
         with patch(
-            "custom_components.yarbo.config_flow.async_discover_endpoints",
+            "custom_components.community_yarbo.config_flow.async_discover_endpoints",
             return_value=[],
         ):
             result = await hass.config_entries.flow.async_init(
@@ -87,7 +87,7 @@ class TestManualConfigFlow:
         mock_client.watch_telemetry = MagicMock(return_value=_async_gen_one(_mock_telemetry()))
 
         with patch(
-            "custom_components.yarbo.config_flow.YarboLocalClient",
+            "custom_components.community_yarbo.config_flow.YarboLocalClient",
             return_value=mock_client,
         ):
             result = await hass.config_entries.flow.async_configure(
@@ -107,11 +107,11 @@ class TestManualConfigFlow:
         mock_client.watch_telemetry = MagicMock(return_value=_async_gen_one(_mock_telemetry()))
         with (
             patch(
-                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                "custom_components.community_yarbo.config_flow.async_discover_endpoints",
                 return_value=[],
             ),
             patch(
-                "custom_components.yarbo.config_flow.YarboLocalClient",
+                "custom_components.community_yarbo.config_flow.YarboLocalClient",
                 return_value=mock_client,
             ),
         ):
@@ -143,11 +143,11 @@ class TestManualConfigFlow:
         mock_client.disconnect = AsyncMock()
         with (
             patch(
-                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                "custom_components.community_yarbo.config_flow.async_discover_endpoints",
                 return_value=[],
             ),
             patch(
-                "custom_components.yarbo.config_flow.YarboLocalClient",
+                "custom_components.community_yarbo.config_flow.YarboLocalClient",
                 return_value=mock_client,
             ),
         ):
@@ -175,15 +175,15 @@ class TestManualConfigFlow:
         mock_client.is_connected = True
         with (
             patch(
-                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                "custom_components.community_yarbo.config_flow.async_discover_endpoints",
                 return_value=[],
             ),
             patch(
-                "custom_components.yarbo.config_flow.YarboLocalClient",
+                "custom_components.community_yarbo.config_flow.YarboLocalClient",
                 return_value=mock_client,
             ),
             patch(
-                "custom_components.yarbo.config_flow.asyncio.wait_for",
+                "custom_components.community_yarbo.config_flow.asyncio.wait_for",
                 side_effect=TimeoutError(),
             ),
         ):
@@ -209,11 +209,11 @@ class TestManualConfigFlow:
         mock_client.watch_telemetry = MagicMock(side_effect=RuntimeError("decode failed"))
         with (
             patch(
-                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                "custom_components.community_yarbo.config_flow.async_discover_endpoints",
                 return_value=[],
             ),
             patch(
-                "custom_components.yarbo.config_flow.YarboLocalClient",
+                "custom_components.community_yarbo.config_flow.YarboLocalClient",
                 return_value=mock_client,
             ),
         ):
@@ -244,11 +244,11 @@ class TestManualConfigFlow:
         mock_client.watch_telemetry = MagicMock(side_effect=fresh_telemetry_gen)
         with (
             patch(
-                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                "custom_components.community_yarbo.config_flow.async_discover_endpoints",
                 return_value=[],
             ),
             patch(
-                "custom_components.yarbo.config_flow.YarboLocalClient",
+                "custom_components.community_yarbo.config_flow.YarboLocalClient",
                 return_value=mock_client,
             ),
         ):
@@ -306,7 +306,7 @@ class TestDhcpDiscoveryFlow:
                 return_value=(MOCK_ROBOT_SERIAL, "MyYarbo"),
             ),
             patch(
-                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                "custom_components.community_yarbo.config_flow.async_discover_endpoints",
                 return_value=[],
             ),
         ):
@@ -334,7 +334,7 @@ class TestDhcpDiscoveryFlow:
         )
         with (
             patch(
-                "custom_components.yarbo.config_flow.YarboLocalClient",
+                "custom_components.community_yarbo.config_flow.YarboLocalClient",
                 return_value=mock_client,
             ),
             patch.object(
@@ -343,11 +343,11 @@ class TestDhcpDiscoveryFlow:
                 return_value=(MOCK_ROBOT_SERIAL, "MyYarbo"),
             ),
             patch(
-                "custom_components.yarbo.config_flow.async_discover_endpoints",
+                "custom_components.community_yarbo.config_flow.async_discover_endpoints",
                 return_value=[],
             ),
             patch(
-                "custom_components.yarbo.async_setup_entry",
+                "custom_components.community_yarbo.async_setup_entry",
                 return_value=True,
             ),
         ):

@@ -13,7 +13,7 @@ blueprint:
       description: The Yarbo events entity to listen to.
       selector:
         entity:
-          integration: yarbo
+          integration: community_yarbo
           domain: event
 
     battery_sensor:
@@ -21,7 +21,7 @@ blueprint:
       description: The Yarbo battery sensor for post-job status.
       selector:
         entity:
-          integration: yarbo
+          integration: community_yarbo
           domain: sensor
           device_class: battery
 

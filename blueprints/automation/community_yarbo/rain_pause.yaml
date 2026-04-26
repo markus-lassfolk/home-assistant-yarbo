@@ -19,7 +19,7 @@ blueprint:
       description: The Yarbo robot device to control.
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
 
     rain_sensor:
       name: Rain Sensor
@@ -62,7 +62,7 @@ blueprint:
       description: The Yarbo activity sensor — used to check if robot is working.
       selector:
         entity:
-          integration: yarbo
+          integration: community_yarbo
           domain: sensor
 
 variables:
@@ -91,12 +91,12 @@ action:
             entity_id: !input activity_sensor
             state: working
         sequence:
-          - service: yarbo.pause
+          - service: community_yarbo.pause
             data:
               device_id: !input yarbo_device
           - delay:
               seconds: 5
-          - service: yarbo.return_to_dock
+          - service: community_yarbo.return_to_dock
             data:
               device_id: !input yarbo_device
 
@@ -117,7 +117,7 @@ action:
               - condition: state
                 entity_id: !input activity_sensor
                 state: paused
-          - service: yarbo.resume
+          - service: community_yarbo.resume
             data:
               device_id: !input yarbo_device
 

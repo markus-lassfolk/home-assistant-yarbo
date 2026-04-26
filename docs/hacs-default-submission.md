@@ -6,7 +6,7 @@ Checklist for submitting this integration to the [HACS default](https://github.c
 
 - [x] **hacs.json** in repo root with: `name`, `render_readme`, `homeassistant` min version, `content_in_root: false`
 - [x] **manifest.json** has: `version`, `name`, `codeowners`, `issue_tracker`, `documentation`, `domain`
-- [x] **Structure**: single integration under `custom_components/yarbo/`
+- [x] **Structure**: single integration under `custom_components/community_yarbo/`
 - [x] **README** has badges (HACS, release, CI, license, issues)
 
 ## Before submitting to HACS default

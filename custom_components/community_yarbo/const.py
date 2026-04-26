@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from .models import YarboTelemetry
 
-DOMAIN = "yarbo"
+DOMAIN = "community_yarbo"
 
 # Platforms to load
 PLATFORMS: list[str] = [

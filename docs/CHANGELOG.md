@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- **Integration domain** is now `community_yarbo` (folder `custom_components/community_yarbo/`, UI name **Community Yarbo**) to avoid clashing with the official [YarboInc/YarboHA](https://github.com/YarboInc/YarboHA) `yarbo` domain. Existing installs must remove the old integration, install the new folder path, add **Community Yarbo** again, and update automations (entity IDs, `community_yarbo.*` services, and event-bus names such as `community_yarbo_job_completed`). MQTT debug recordings now live under `community_yarbo_recordings/`.
+
 ---
 
 ## [2026.3.21] — 2026-03-02

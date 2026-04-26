@@ -198,7 +198,7 @@ class YarboEventEntity(YarboEntity, EventEntity):
         self._previous = telemetry
 
     def _fire_event(self, event_type: str, data: dict) -> None:  # type: ignore[type-arg]
-        self.hass.bus.async_fire(f"yarbo_{event_type}", data)
+        self.hass.bus.async_fire(f"{DOMAIN}_{event_type}", data)
         self._trigger_event(event_type, data)  # Fixed: was async_trigger (wrong method name)
         self.async_write_ha_state()
 

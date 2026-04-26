@@ -8,7 +8,7 @@ import pytest
 from homeassistant.exceptions import HomeAssistantError
 from yarbo.exceptions import YarboTimeoutError
 
-from custom_components.yarbo.controller import async_ensure_controller
+from custom_components.community_yarbo.controller import async_ensure_controller
 
 
 @pytest.mark.asyncio

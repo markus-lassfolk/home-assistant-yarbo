@@ -13,11 +13,11 @@ from collections.abc import AsyncGenerator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from custom_components.yarbo.const import (
+from custom_components.community_yarbo.const import (
     DEFAULT_TELEMETRY_THROTTLE,
     OPT_TELEMETRY_THROTTLE,
 )
-from custom_components.yarbo.coordinator import YarboDataCoordinator
+from custom_components.community_yarbo.coordinator import YarboDataCoordinator
 
 
 async def _loop_closed_gen() -> AsyncGenerator[Any, None]:
@@ -39,7 +39,7 @@ def _make_coordinator_for_tasks() -> YarboDataCoordinator:
     minimum state that the background task methods require.
     """
     with patch(
-        "custom_components.yarbo.coordinator.DataUpdateCoordinator.__init__",
+        "custom_components.community_yarbo.coordinator.DataUpdateCoordinator.__init__",
         return_value=None,
     ):
         coord = object.__new__(YarboDataCoordinator)

@@ -61,7 +61,7 @@ async def send_command(self, cmd: str, payload: dict) -> None:
 If two HA instances connect to the same Yarbo base station broker:
 
 - **Telemetry**: Both instances receive all telemetry. This is safe and expected.
-- **Controller role**: Only one instance can hold the controller role at a time. The second instance to call `get_controller` will claim the role, causing the first to lose it and fire a `yarbo_controller_lost` event.
+- **Controller role**: Only one instance can hold the controller role at a time. The second instance to call `get_controller` will claim the role, causing the first to lose it and fire a `community_yarbo_controller_lost` event.
 
 Running two HA instances with `auto_controller: true` against the same robot will cause controller role contention. Set `auto_controller: false` on the secondary instance to avoid this.
 

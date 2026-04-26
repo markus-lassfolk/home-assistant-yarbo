@@ -13,7 +13,7 @@ blueprint:
       description: The Yarbo robot device to control (must have Snow Blower head installed).
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
 
     snow_plan_id:
       name: Snow Clearing Plan ID
@@ -36,7 +36,7 @@ blueprint:
       description: The Yarbo head type sensor — used to verify snow blower is installed.
       selector:
         entity:
-          integration: yarbo
+          integration: community_yarbo
           domain: sensor
 
     trigger_time:
@@ -73,7 +73,7 @@ action:
         {% set forecast_data.result = next.get('condition', '') in ['snowy', 'snowy-rainy'] or next.get('precipitation', 0) | float > 5 %}
       {% endif %}
       {{ forecast_data.result }}
-  - service: yarbo.start_plan
+  - service: community_yarbo.start_plan
     data:
       device_id: !input yarbo_device
       plan_id: !input snow_plan_id

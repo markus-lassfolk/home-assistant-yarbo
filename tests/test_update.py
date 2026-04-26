@@ -7,15 +7,17 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from custom_components.yarbo.const import (
+from custom_components.community_yarbo.const import (
     CONF_CLOUD_REFRESH_TOKEN,
     CONF_CLOUD_USERNAME,
     DEFAULT_CLOUD_ENABLED,
     OPT_CLOUD_ENABLED,
 )
-from custom_components.yarbo.update import YarboFirmwareUpdate
+from custom_components.community_yarbo.update import YarboFirmwareUpdate
 
 from .conftest import MOCK_ROBOT_SERIAL
+
+_YARBO_CLOUD_CLIENT = "custom_components.community_yarbo.update.YarboCloudClient"
 
 
 def _make_coordinator(data: Any = None, options: dict | None = None) -> MagicMock:
@@ -184,7 +186,7 @@ class TestAsyncUpdate:
         mock_client.get_latest_version = AsyncMock(return_value={"firmwareVersion": None})
         mock_client.auth = MagicMock()
 
-        with patch("custom_components.yarbo.update.YarboCloudClient", return_value=mock_client):
+        with patch(_YARBO_CLOUD_CLIENT, return_value=mock_client):
             await entity.async_update()
 
         assert entity._latest_version is None
@@ -201,7 +203,7 @@ class TestAsyncUpdate:
         mock_client.get_latest_version = AsyncMock(return_value={})
         mock_client.auth = MagicMock()
 
-        with patch("custom_components.yarbo.update.YarboCloudClient", return_value=mock_client):
+        with patch(_YARBO_CLOUD_CLIENT, return_value=mock_client):
             await entity.async_update()
 
         assert entity._latest_version is None

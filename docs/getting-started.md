@@ -59,9 +59,9 @@ If your robot is on the same network, it will usually be **auto-discovered** —
 If you prefer not to use HACS:
 
 1. Download the latest release from [GitHub Releases](https://github.com/markus-lassfolk/home-assistant-yarbo/releases)
-2. Copy the `custom_components/yarbo/` directory to your HA config directory:
+2. Copy the `custom_components/community_yarbo/` directory to your HA config directory:
    ```
-   /config/custom_components/yarbo/
+   /config/custom_components/community_yarbo/
    ```
 3. Restart Home Assistant
 4. Add the integration via **Settings → Devices & Services → Add Integration → Yarbo**
@@ -126,7 +126,7 @@ Always **restart Home Assistant** after updating.
 
 ### Manual
 
-Replace the `custom_components/yarbo/` directory with the new version and restart.
+Replace the `custom_components/community_yarbo/` directory with the new version and restart.
 
 ---
 

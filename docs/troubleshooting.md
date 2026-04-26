@@ -188,7 +188,7 @@ To get detailed logs, add to your `configuration.yaml`:
 ```yaml
 logger:
   logs:
-    custom_components.yarbo: debug
+    custom_components.community_yarbo: debug
     python_yarbo: debug
 ```
 

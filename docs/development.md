@@ -52,7 +52,7 @@ The easiest way to test is with a development HA instance (container or `venv`):
 
 ```bash
 # If using HA in a Python venv:
-ln -s $(pwd)/custom_components/yarbo ~/.homeassistant/custom_components/yarbo
+ln -s $(pwd)/custom_components/community_yarbo ~/.homeassistant/custom_components/community_yarbo
 ```
 
 Or use the [Home Assistant Dev Container](https://developers.home-assistant.io/docs/development_environment/) setup.
@@ -102,16 +102,16 @@ The project follows the [Home Assistant coding standards](https://developers.hom
 Run all checks:
 
 ```bash
-ruff check custom_components/yarbo/
-black --check custom_components/yarbo/
-mypy custom_components/yarbo/
+ruff check custom_components/community_yarbo/
+black --check custom_components/community_yarbo/
+mypy custom_components/community_yarbo/
 ```
 
 Auto-fix:
 
 ```bash
-ruff check --fix custom_components/yarbo/
-black custom_components/yarbo/
+ruff check --fix custom_components/community_yarbo/
+black custom_components/community_yarbo/
 ```
 
 ---
@@ -127,7 +127,7 @@ pytest tests/
 ### Run with Coverage
 
 ```bash
-pytest --cov=custom_components.yarbo tests/
+pytest --cov=custom_components.community_yarbo tests/
 ```
 
 ### Write a Test
@@ -145,11 +145,11 @@ async def test_battery_sensor(hass: HomeAssistant) -> None:
     entry = MockConfigEntry(domain="yarbo", data={...})
     entry.add_to_hass(hass)
 
-    with patch("custom_components.yarbo.coordinator.YarboClient") as mock:
+    with patch("custom_components.community_yarbo.coordinator.YarboClient") as mock:
         mock.return_value.async_connect = AsyncMock()
         await hass.config_entries.async_setup(entry.entry_id)
 
-    state = hass.states.get("sensor.yarbo_test_battery")
+    state = hass.states.get("sensor.community_yarbo_test_battery")
     assert state is not None
     assert state.state == "83"
 ```
@@ -225,7 +225,7 @@ my_new_service:
       required: true
       selector:
         device:
-          integration: yarbo
+          integration: community_yarbo
     my_param:
       required: true
       selector:
@@ -258,7 +258,7 @@ hass.services.async_register(
 
 When adding support for new robot features, the [Protocol Reference](protocol-reference.md) documents the known MQTT command names and payload formats. The [Command Catalogue](protocol-reference.md#core-commands) lists all known commands.
 
-To observe what commands the robot responds to, enable debug logging (`logger: custom_components.yarbo: debug`) and watch for `data_feedback` messages after sending commands with `yarbo.send_command`.
+To observe what commands the robot responds to, enable debug logging (`logger: custom_components.community_yarbo: debug`) and watch for `data_feedback` messages after sending commands with `community_yarbo.send_command`.
 
 ---
 
@@ -276,8 +276,8 @@ To observe what commands the robot responds to, enable debug logging (`logger: c
 4. Run the full test suite and linters (all must pass):
    ```bash
    pytest tests/
-   ruff check custom_components/yarbo/
-   black --check custom_components/yarbo/
+   ruff check custom_components/community_yarbo/
+   black --check custom_components/community_yarbo/
    ```
 
 5. Update relevant documentation in `docs/` if needed.

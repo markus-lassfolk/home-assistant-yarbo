@@ -10,8 +10,15 @@ import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 
-from custom_components.yarbo.const import DOMAIN, HEAD_TYPE_LEAF_BLOWER, HEAD_TYPE_SNOW_BLOWER
-from custom_components.yarbo.services import async_register_services, async_unregister_services
+from custom_components.community_yarbo.const import (
+    DOMAIN,
+    HEAD_TYPE_LEAF_BLOWER,
+    HEAD_TYPE_SNOW_BLOWER,
+)
+from custom_components.community_yarbo.services import (
+    async_register_services,
+    async_unregister_services,
+)
 
 
 @pytest.fixture
@@ -75,7 +82,7 @@ class TestServiceRegistration:
 
 
 class TestStartPlanService:
-    """Tests for the yarbo.start_plan service (issue #16)."""
+    """Tests for the community_yarbo.start_plan service (issue #16)."""
 
     async def test_start_plan_calls_typed_method(
         self,
@@ -86,7 +93,7 @@ class TestStartPlanService:
         client, coordinator = mock_client_and_coordinator
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)
@@ -111,7 +118,7 @@ class TestStartPlanService:
         client, coordinator = mock_client_and_coordinator
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)
@@ -159,7 +166,7 @@ class TestStartPlanService:
         client.start_plan.side_effect = _start_plan
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)
@@ -174,7 +181,7 @@ class TestStartPlanService:
 
 
 class TestSendCommandService:
-    """Tests for the yarbo.send_command service and head validation."""
+    """Tests for the community_yarbo.send_command service and head validation."""
 
     async def test_send_command_passes_command(
         self,
@@ -185,7 +192,7 @@ class TestSendCommandService:
         client, coordinator = mock_client_and_coordinator
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)
@@ -208,7 +215,7 @@ class TestSendCommandService:
         coordinator.data.head_type = HEAD_TYPE_SNOW_BLOWER
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)
@@ -230,7 +237,7 @@ class TestSendCommandService:
         coordinator.data.head_type = HEAD_TYPE_LEAF_BLOWER
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)
@@ -249,7 +256,7 @@ class TestGetClientAndCoordinator:
 
     async def test_unknown_device_raises(self, hass: HomeAssistant) -> None:
         """Raises ServiceValidationError when device not found in registry."""
-        from custom_components.yarbo.services import _get_client_and_coordinator
+        from custom_components.community_yarbo.services import _get_client_and_coordinator
 
         with pytest.raises(ServiceValidationError, match="not found"):
             _get_client_and_coordinator(hass, "nonexistent-device-id")
@@ -260,7 +267,7 @@ class TestGetClientAndCoordinator:
 
         from homeassistant.helpers import device_registry as dr
 
-        from custom_components.yarbo.services import _get_client_and_coordinator
+        from custom_components.community_yarbo.services import _get_client_and_coordinator
 
         dev_reg = dr.async_get(hass)
         mock_device = MagicMock()
@@ -273,7 +280,7 @@ class TestGetClientAndCoordinator:
 
 
 class TestManualDriveService:
-    """Tests for the yarbo.manual_drive service."""
+    """Tests for the community_yarbo.manual_drive service."""
 
     async def test_manual_drive_uses_set_velocity(
         self,
@@ -284,7 +291,7 @@ class TestManualDriveService:
         client, coordinator = mock_client_and_coordinator
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)
@@ -300,7 +307,7 @@ class TestManualDriveService:
 
 
 class TestGoToWaypointService:
-    """Tests for the yarbo.go_to_waypoint service."""
+    """Tests for the community_yarbo.go_to_waypoint service."""
 
     async def test_go_to_waypoint_calls_typed_method(
         self,
@@ -311,7 +318,7 @@ class TestGoToWaypointService:
         client, coordinator = mock_client_and_coordinator
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)
@@ -327,7 +334,7 @@ class TestGoToWaypointService:
 
 
 class TestDeletePlanService:
-    """Tests for the yarbo.delete_plan service."""
+    """Tests for the community_yarbo.delete_plan service."""
 
     async def test_delete_plan_calls_typed_method(
         self,
@@ -338,7 +345,7 @@ class TestDeletePlanService:
         client, coordinator = mock_client_and_coordinator
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)
@@ -354,7 +361,7 @@ class TestDeletePlanService:
 
 
 class TestDeleteAllPlansService:
-    """Tests for the yarbo.delete_all_plans service."""
+    """Tests for the community_yarbo.delete_all_plans service."""
 
     async def test_delete_all_plans_calls_typed_method(
         self,
@@ -365,7 +372,7 @@ class TestDeleteAllPlansService:
         client, coordinator = mock_client_and_coordinator
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)
@@ -392,7 +399,7 @@ class TestMapManagementServices:
         client, coordinator = mock_client_and_coordinator
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)
@@ -415,7 +422,7 @@ class TestMapManagementServices:
         client, coordinator = mock_client_and_coordinator
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)
@@ -438,7 +445,7 @@ class TestMapManagementServices:
         client, coordinator = mock_client_and_coordinator
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)
@@ -461,7 +468,7 @@ class TestMapManagementServices:
         client, coordinator = mock_client_and_coordinator
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)
@@ -484,7 +491,7 @@ class TestMapManagementServices:
         client, coordinator = mock_client_and_coordinator
 
         with patch(
-            "custom_components.yarbo.services._get_client_and_coordinator",
+            "custom_components.community_yarbo.services._get_client_and_coordinator",
             return_value=(client, coordinator),
         ):
             async_register_services(hass)

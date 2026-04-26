@@ -97,7 +97,7 @@ def test_get_controller_accepts_timeout() -> None:
     import ast
     import pathlib
 
-    for pyfile in pathlib.Path("custom_components/yarbo").glob("*.py"):
+    for pyfile in pathlib.Path("custom_components/community_yarbo").glob("*.py"):
         tree = ast.parse(pyfile.read_text())
         for node in ast.walk(tree):
             if (
@@ -114,8 +114,8 @@ def test_get_controller_accepts_timeout() -> None:
 
 def test_resolve_broker_host() -> None:
     """Regression: GlitchTip #155 — entry.data may omit broker_host; derive from endpoints."""
-    from custom_components.yarbo import _resolve_broker_host
-    from custom_components.yarbo.const import (
+    from custom_components.community_yarbo import _resolve_broker_host
+    from custom_components.community_yarbo.const import (
         CONF_ALTERNATE_BROKER_HOST,
         CONF_BROKER_ENDPOINTS,
         CONF_BROKER_HOST,
@@ -134,7 +134,7 @@ def test_min_lib_version_constant() -> None:
 
     from packaging.version import Version
 
-    from custom_components.yarbo import MIN_LIB_VERSION
+    from custom_components.community_yarbo import MIN_LIB_VERSION
 
     installed = importlib.metadata.version("python-yarbo")
     assert Version(installed) >= Version(MIN_LIB_VERSION), (

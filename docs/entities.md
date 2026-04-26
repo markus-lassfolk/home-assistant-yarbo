@@ -289,7 +289,7 @@ Supports: **Start mowing**, **Pause**, **Dock** (return to charge).
 
 All entity IDs follow the pattern: `<platform>.<device_name>_<entity_key>`
 
-Example: `sensor.yarbo_allgott_battery`, `button.yarbo_allgott_return_to_dock`
+Example: `sensor.community_yarbo_allgott_battery`, `button.community_yarbo_allgott_return_to_dock`
 
 The device name is derived from the friendly name set during setup.
 
