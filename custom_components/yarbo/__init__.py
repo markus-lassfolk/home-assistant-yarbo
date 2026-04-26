@@ -33,10 +33,10 @@ from .const import (  # noqa: E402
     CONF_BROKER_ENDPOINTS,
     CONF_BROKER_HOST,
     CONF_BROKER_PORT,
-    DEFAULT_BROKER_PORT,
     CONF_ROBOT_SERIAL,
     DATA_CLIENT,
     DATA_COORDINATOR,
+    DEFAULT_BROKER_PORT,
     DEFAULT_ERROR_REPORTING,
     DOMAIN,
     OPT_ERROR_REPORTING,
@@ -318,16 +318,35 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update — propagate new options to the coordinator."""
-    entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
-    if entry_data is None:
+    # Avoid KeyError when runtime data was never stored or was already torn down
+    # (e.g. reload race, failed setup, GlitchTip #148 / GitHub #148).
+    domain_data = hass.data.get(DOMAIN)
+    if not isinstance(domain_data, dict):
+        return
+    entry_data = domain_data.get(entry.entry_id)
+    if not isinstance(entry_data, dict):
         _LOGGER.warning(
             "Options update for entry %s skipped — integration not fully loaded",
             entry.entry_id,
         )
         return
-    coordinator: YarboDataCoordinator = entry_data[DATA_COORDINATOR]
-    options: dict[str, Any] = dict(entry.options)
-    coordinator.update_options(options)
+    coordinator = entry_data.get(DATA_COORDINATOR)
+    if coordinator is None:
+        _LOGGER.warning(
+            "Options update for entry %s skipped — no coordinator (setup incomplete or unloaded)",
+            entry.entry_id,
+        )
+        return
+    try:
+        options: dict[str, Any] = dict(entry.options)
+        coordinator.update_options(options)
+    except KeyError as err:
+        _LOGGER.warning(
+            "Options update for entry %s failed (%s) — ignoring",
+            entry.entry_id,
+            err,
+        )
+        return
     _LOGGER.debug("Yarbo options applied for entry %s", entry.entry_id)
 
 
@@ -342,16 +361,26 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        data = hass.data[DOMAIN].pop(entry.entry_id)
-        coordinator: YarboDataCoordinator = data[DATA_COORDINATOR]
-        await coordinator.async_shutdown()
-        await data[DATA_CLIENT].disconnect()
+        domain_data = hass.data.get(DOMAIN)
+        data = domain_data.pop(entry.entry_id, None) if domain_data else None
+        if data is not None:
+            coordinator = data.get(DATA_COORDINATOR)
+            client = data.get(DATA_CLIENT)
+            if coordinator is not None:
+                await coordinator.async_shutdown()
+            if client is not None:
+                await client.disconnect()
+        else:
+            _LOGGER.warning(
+                "Yarbo unload: no runtime data for entry %s (already removed?)",
+                entry.entry_id,
+            )
         # Clean up any active repair issues to prevent orphaned issues
         async_delete_mqtt_disconnect_issue(hass, entry.entry_id)
         async_delete_controller_lost_issue(hass, entry.entry_id)
         async_delete_cloud_token_expired_issue(hass, entry.entry_id)
-        if not hass.data[DOMAIN]:
-            hass.data.pop(DOMAIN)
+        if domain_data is not None and not domain_data:
+            hass.data.pop(DOMAIN, None)
             async_unregister_services(hass)
 
     return unload_ok
