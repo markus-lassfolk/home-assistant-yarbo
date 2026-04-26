@@ -105,6 +105,22 @@ def _is_event_loop_closed_error(err: RuntimeError) -> bool:
     return "event loop is closed" in str(err).lower()
 
 
+async def _telemetry_retry_sleep_or_stop() -> bool:
+    """Sleep before telemetry reconnect/retry.
+
+    Returns False if the event loop is already closed during sleep (caller
+    should exit the background task). Re-raises unrelated ``RuntimeError``s.
+    """
+    try:
+        await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
+    except RuntimeError as sleep_err:
+        if _is_event_loop_closed_error(sleep_err):
+            _LOGGER.debug("Event loop closed during telemetry retry sleep")
+            return False
+        raise
+    return True
+
+
 # Polling interval for the diagnostic background task (seconds).
 # Kept here (not in const.py) because it is an implementation detail of this module.
 _DIAGNOSTIC_POLL_INTERVAL_SECONDS: int = 300
@@ -1213,7 +1229,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         except Exception as ctrl_err:
                             _LOGGER.warning("Failover controller acquisition failed: %s", ctrl_err)
                         _LOGGER.info("Failover to %s succeeded", next_host)
-                        await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
+                        if not await _telemetry_retry_sleep_or_stop():
+                            return
                         continue
                     except Exception as connect_err:
                         _LOGGER.warning(
@@ -1228,7 +1245,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         err,
                         TELEMETRY_RETRY_DELAY_SECONDS,
                     )
-                await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
+                if not await _telemetry_retry_sleep_or_stop():
+                    return
                 try:
                     await self.client.disconnect()
                     await self.client.connect()

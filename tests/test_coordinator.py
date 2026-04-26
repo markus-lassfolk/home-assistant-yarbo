@@ -90,8 +90,8 @@ class TestTelemetryLoopEventLoopClosed:
         # Should return without raising — not propagate the RuntimeError
         await asyncio.wait_for(coord._telemetry_loop(), timeout=2.0)
 
-    async def test_telemetry_loop_reraises_other_runtime_errors(self) -> None:
-        """_telemetry_loop must re-raise RuntimeErrors unrelated to event loop closure."""
+    async def test_telemetry_loop_retries_on_other_runtime_errors(self) -> None:
+        """_telemetry_loop must keep retrying on RuntimeErrors unrelated to loop closure."""
         coord = _make_coordinator_for_tasks()
         coord.client.watch_telemetry = MagicMock(
             side_effect=lambda: _other_runtime_error_gen()
