@@ -1176,10 +1176,14 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                 # Ordered list from discovery: Primary, Secondary, … (like DNS)
                 endpoints = self._entry.data.get(CONF_BROKER_ENDPOINTS)
                 if not endpoints and self._entry.data.get(CONF_ALTERNATE_BROKER_HOST):
-                    endpoints = [
-                        self._entry.data[CONF_BROKER_HOST],
-                        self._entry.data[CONF_ALTERNATE_BROKER_HOST],
-                    ]
+                    primary = self._entry.data.get(CONF_BROKER_HOST)
+                    if primary:
+                        endpoints = [
+                            primary,
+                            self._entry.data[CONF_ALTERNATE_BROKER_HOST],
+                        ]
+                    else:
+                        endpoints = [self._entry.data[CONF_ALTERNATE_BROKER_HOST]]
                 if not endpoints:
                     endpoints = [self._entry.data.get(CONF_BROKER_HOST)]
                 endpoints = [h for h in endpoints if h]

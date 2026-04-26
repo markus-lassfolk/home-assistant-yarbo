@@ -9,7 +9,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import SOURCE_DHCP, ConfigEntry
 from homeassistant.const import __version__
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.loader import async_get_integration
 
 from yarbo import YarboLocalClient
@@ -33,6 +33,7 @@ from .const import (  # noqa: E402
     CONF_BROKER_ENDPOINTS,
     CONF_BROKER_HOST,
     CONF_BROKER_PORT,
+    DEFAULT_BROKER_PORT,
     CONF_ROBOT_SERIAL,
     DATA_CLIENT,
     DATA_COORDINATOR,
@@ -103,6 +104,13 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
         if CONF_BROKER_ENDPOINTS not in new_data:
             endpoints = [primary, alternate] if alternate and alternate != primary else [primary]
             new_data[CONF_BROKER_ENDPOINTS] = [h for h in endpoints if h]
+        # Rare corrupt v1 rows: broker_host missing but endpoints or alternate present
+        if not new_data.get(CONF_BROKER_HOST):
+            backfill = next((h for h in new_data.get(CONF_BROKER_ENDPOINTS, []) if h), None)
+            if not backfill and alternate:
+                backfill = alternate
+            if backfill:
+                new_data[CONF_BROKER_HOST] = backfill
         hass.config_entries.async_update_entry(config_entry, data=new_data, version=2)
         _LOGGER.info("Migrated Yarbo config entry to version 2")
 
@@ -149,6 +157,28 @@ def _warmup_connect(host: str, port: int) -> None:
         pass  # Warmup failure is non-fatal
 
 
+def _resolve_broker_host(data: dict[str, Any]) -> str | None:
+    """Return MQTT broker host from entry data (explicit key or endpoint list)."""
+    host = data.get(CONF_BROKER_HOST)
+    if host:
+        s = str(host).strip()
+        if s:
+            return s
+    eps = data.get(CONF_BROKER_ENDPOINTS)
+    if isinstance(eps, list):
+        for h in eps:
+            if h:
+                s = str(h).strip()
+                if s:
+                    return s
+    alt = data.get(CONF_ALTERNATE_BROKER_HOST)
+    if alt:
+        s = str(alt).strip()
+        if s:
+            return s
+    return None
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Yarbo from a config entry."""
 
@@ -176,16 +206,42 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 f"python-yarbo {_lib_ver} < {MIN_LIB_VERSION}; upgrade required"
             )
     # --- End version guard ---
-    # Ensure ordered endpoints list for Primary/Secondary failover (from discovery order)
-    if CONF_BROKER_ENDPOINTS not in entry.data:
-        data = dict(entry.data)
-        primary = entry.data.get(CONF_BROKER_HOST)
-        alternate = entry.data.get(CONF_ALTERNATE_BROKER_HOST)
-        data[CONF_BROKER_ENDPOINTS] = (
+    # Normalize broker_host + CONF_BROKER_ENDPOINTS (handles corrupt / legacy storage)
+    data = dict(entry.data)
+    changed = False
+    if CONF_BROKER_ENDPOINTS not in data:
+        primary = data.get(CONF_BROKER_HOST)
+        alternate = data.get(CONF_ALTERNATE_BROKER_HOST)
+        raw: list[Any] = (
             [primary, alternate] if alternate and alternate != primary else [primary]
         )
-        if primary:
-            hass.config_entries.async_update_entry(entry, data=data)
+        data[CONF_BROKER_ENDPOINTS] = [h for h in raw if h]
+        changed = True
+    resolved_host = _resolve_broker_host(data)
+    if resolved_host and not data.get(CONF_BROKER_HOST):
+        data[CONF_BROKER_HOST] = resolved_host
+        changed = True
+    if not data.get(CONF_BROKER_ENDPOINTS) and resolved_host:
+        data[CONF_BROKER_ENDPOINTS] = [resolved_host]
+        changed = True
+    if changed:
+        hass.config_entries.async_update_entry(entry, data=data)
+
+    broker_host = _resolve_broker_host(entry.data)
+    broker_port = entry.data.get(CONF_BROKER_PORT, DEFAULT_BROKER_PORT)
+    if broker_port in (None, ""):
+        broker_port = DEFAULT_BROKER_PORT
+    else:
+        broker_port = int(broker_port)
+    if not broker_host:
+        _LOGGER.error(
+            "Yarbo config entry %s is missing broker_host and no usable endpoints",
+            entry.entry_id,
+        )
+        raise ConfigEntryError(
+            "This Yarbo device is missing a base station IP. "
+            "Remove the integration and set it up again, or use Reconfigure."
+        )
 
     # Get actual integration version from manifest
     integration_version = "unknown"
@@ -214,15 +270,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         await hass.async_add_executor_job(
             _warmup_connect,
-            entry.data[CONF_BROKER_HOST],
-            entry.data[CONF_BROKER_PORT],
+            broker_host,
+            broker_port,
         )
     except Exception:
         _LOGGER.debug("Warmup connect failed (non-fatal)")
 
     client = YarboLocalClient(
-        broker=entry.data[CONF_BROKER_HOST],
-        port=entry.data[CONF_BROKER_PORT],
+        broker=broker_host,
+        port=broker_port,
     )
 
     try:

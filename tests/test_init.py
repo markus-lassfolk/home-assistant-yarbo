@@ -112,6 +112,22 @@ def test_get_controller_accepts_timeout() -> None:
     raise AssertionError("No get_controller(timeout=...) call found in integration code")
 
 
+def test_resolve_broker_host() -> None:
+    """Regression: GlitchTip #155 — entry.data may omit broker_host; derive from endpoints."""
+    from custom_components.yarbo import _resolve_broker_host
+    from custom_components.yarbo.const import (
+        CONF_ALTERNATE_BROKER_HOST,
+        CONF_BROKER_ENDPOINTS,
+        CONF_BROKER_HOST,
+    )
+
+    assert _resolve_broker_host({CONF_BROKER_HOST: " 10.0.0.1 "}) == "10.0.0.1"
+    assert _resolve_broker_host({CONF_BROKER_ENDPOINTS: ["a", "b"]}) == "a"
+    assert _resolve_broker_host({CONF_ALTERNATE_BROKER_HOST: "alt"}) == "alt"
+    assert _resolve_broker_host({CONF_BROKER_HOST: "", CONF_BROKER_ENDPOINTS: ["x"]}) == "x"
+    assert _resolve_broker_host({}) is None
+
+
 def test_min_lib_version_constant() -> None:
     """Ensure MIN_LIB_VERSION is set and the installed library meets it."""
     import importlib.metadata
