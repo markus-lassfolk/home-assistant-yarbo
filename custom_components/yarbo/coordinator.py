@@ -125,6 +125,7 @@ async def _telemetry_retry_sleep_or_stop() -> bool:
 # Kept here (not in const.py) because it is an implementation detail of this module.
 _DIAGNOSTIC_POLL_INTERVAL_SECONDS: int = 300
 
+
 @dataclass(slots=True)
 class PlanSummary:
     """Minimal work plan summary."""

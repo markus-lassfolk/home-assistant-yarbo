@@ -93,9 +93,7 @@ class TestTelemetryLoopEventLoopClosed:
     async def test_telemetry_loop_retries_on_other_runtime_errors(self) -> None:
         """_telemetry_loop must keep retrying on RuntimeErrors unrelated to loop closure."""
         coord = _make_coordinator_for_tasks()
-        coord.client.watch_telemetry = MagicMock(
-            side_effect=lambda: _other_runtime_error_gen()
-        )
+        coord.client.watch_telemetry = MagicMock(side_effect=lambda: _other_runtime_error_gen())
 
         # Should not return immediately — task keeps retrying (sleeping) for other RuntimeErrors
         task = asyncio.create_task(coord._telemetry_loop())
@@ -147,7 +145,7 @@ class TestDiagnosticPollingLoopEventLoopClosed:
     """GlitchTip #34: _diagnostic_polling_loop stops gracefully when event loop closes."""
 
     async def test_diagnostic_loop_exits_on_event_loop_closed(self) -> None:
-        """_diagnostic_polling_loop must return (not raise) on RuntimeError: Event loop is closed."""
+        """_diagnostic_polling_loop returns cleanly when RuntimeError is loop-closed."""
         coord = _make_coordinator_for_tasks()
 
         async def _sleep_raises_loop_closed(_seconds: float) -> None:
