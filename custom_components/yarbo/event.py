@@ -150,9 +150,14 @@ class YarboEventEntity(YarboEntity, EventEntity):
                 },
             )
 
+        # battery_capacity may be None when the robot is offline (#146)
+        prev_cap = previous.battery_capacity
+        cur_cap = telemetry.battery_capacity
         if (
-            previous.battery_capacity >= 20
-            and telemetry.battery_capacity < 20
+            prev_cap is not None
+            and cur_cap is not None
+            and prev_cap >= 20
+            and cur_cap < 20
             and telemetry.charging_status not in (1, 2, 3)
         ):
             self._fire_event(
@@ -160,7 +165,7 @@ class YarboEventEntity(YarboEntity, EventEntity):
                 {
                     "device_id": device_id,
                     "robot_sn": robot_sn,
-                    "battery_level": telemetry.battery_capacity,
+                    "battery_level": cur_cap,
                     "timestamp": now,
                 },
             )
