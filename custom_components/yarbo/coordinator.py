@@ -94,6 +94,38 @@ from .repairs import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _is_event_loop_closed_error(err: RuntimeError) -> bool:
+    """Return True if *err* indicates the asyncio event loop has been closed.
+
+    The message 'Event loop is closed' has been stable in CPython since 3.4 and
+    is the only runtime error raised by ``call_soon_threadsafe`` / ``create_task``
+    when the loop is closed.  String matching is intentional here — there is no
+    dedicated exception type for this condition.
+    """
+    return "event loop is closed" in str(err).lower()
+
+
+async def _telemetry_retry_sleep_or_stop() -> bool:
+    """Sleep before telemetry reconnect/retry.
+
+    Returns False if the event loop is already closed during sleep (caller
+    should exit the background task). Re-raises unrelated ``RuntimeError``s.
+    """
+    try:
+        await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
+    except RuntimeError as sleep_err:
+        if _is_event_loop_closed_error(sleep_err):
+            _LOGGER.debug("Event loop closed during telemetry retry sleep")
+            return False
+        raise
+    return True
+
+
+# Polling interval for the diagnostic background task (seconds).
+# Kept here (not in const.py) because it is an implementation detail of this module.
+_DIAGNOSTIC_POLL_INTERVAL_SECONDS: int = 300
+
+
 @dataclass(slots=True)
 class PlanSummary:
     """Minimal work plan summary."""
@@ -1126,6 +1158,18 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             except asyncio.CancelledError:
                 _LOGGER.debug("Telemetry loop cancelled")
                 raise
+            except RuntimeError as err:
+                if _is_event_loop_closed_error(err):
+                    _LOGGER.debug("Event loop closed — telemetry loop stopping")
+                    return
+                _LOGGER.exception(
+                    "Runtime error in telemetry loop — retrying in %ds",
+                    TELEMETRY_RETRY_DELAY_SECONDS,
+                )
+                self.last_update_success = False
+                with contextlib.suppress(Exception):
+                    await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
+                continue
             except YarboConnectionError as err:
                 self.last_update_success = False
                 port = self._entry.data.get(CONF_BROKER_PORT) or DEFAULT_BROKER_PORT
@@ -1186,7 +1230,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         except Exception as ctrl_err:
                             _LOGGER.warning("Failover controller acquisition failed: %s", ctrl_err)
                         _LOGGER.info("Failover to %s succeeded", next_host)
-                        await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
+                        if not await _telemetry_retry_sleep_or_stop():
+                            return
                         continue
                     except Exception as connect_err:
                         _LOGGER.warning(
@@ -1201,7 +1246,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                         err,
                         TELEMETRY_RETRY_DELAY_SECONDS,
                     )
-                await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
+                if not await _telemetry_retry_sleep_or_stop():
+                    return
                 try:
                     await self.client.disconnect()
                     await self.client.connect()
@@ -1213,7 +1259,8 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
                     TELEMETRY_RETRY_DELAY_SECONDS,
                 )
                 self.last_update_success = False
-                await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
+                with contextlib.suppress(Exception):
+                    await asyncio.sleep(TELEMETRY_RETRY_DELAY_SECONDS)
 
     async def _heartbeat_watchdog(self) -> None:
         """Watch for telemetry silence and raise a repair issue.
@@ -1236,6 +1283,11 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         except asyncio.CancelledError:
             _LOGGER.debug("Heartbeat watchdog cancelled")
             raise
+        except RuntimeError as err:
+            if _is_event_loop_closed_error(err):
+                _LOGGER.debug("Event loop closed — heartbeat watchdog stopping")
+                return
+            raise
 
     async def _async_update_data(self) -> YarboTelemetry:
         """Fallback status fetch for initial data load.
@@ -1257,7 +1309,7 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
         """
         while True:
             try:
-                await asyncio.sleep(300)
+                await asyncio.sleep(_DIAGNOSTIC_POLL_INTERVAL_SECONDS)
                 async with self._diagnostic_lock:
                     diagnostic_methods = [
                         self.get_wifi_name,
@@ -1285,9 +1337,23 @@ class YarboDataCoordinator(DataUpdateCoordinator[YarboTelemetry]):
             except asyncio.CancelledError:
                 _LOGGER.debug("Diagnostic polling loop cancelled")
                 raise
+            except RuntimeError as err:
+                if _is_event_loop_closed_error(err):
+                    _LOGGER.debug("Event loop closed — diagnostic polling loop stopping")
+                    return
+                _LOGGER.exception(
+                    "Unexpected error in diagnostic polling loop — retrying in %ds",
+                    _DIAGNOSTIC_POLL_INTERVAL_SECONDS,
+                )
+                with contextlib.suppress(Exception):
+                    await asyncio.sleep(_DIAGNOSTIC_POLL_INTERVAL_SECONDS)
             except Exception:
-                _LOGGER.exception("Unexpected error in diagnostic polling loop — retrying in 300s")
-                await asyncio.sleep(300)
+                _LOGGER.exception(
+                    "Unexpected error in diagnostic polling loop — retrying in %ds",
+                    _DIAGNOSTIC_POLL_INTERVAL_SECONDS,
+                )
+                with contextlib.suppress(Exception):
+                    await asyncio.sleep(_DIAGNOSTIC_POLL_INTERVAL_SECONDS)
 
     async def async_config_entry_first_refresh(self) -> None:
         """Start push telemetry before the first refresh."""
