@@ -69,7 +69,7 @@ The integration uses a push-based coordinator (no polling interval).
 
 ## Pull Request Process
 
-1. Branch from `develop` (not `main`)
+1. Branch from `main` (default branch; use a short `feature/` or `fix/` branch for PRs)
 2. Name your branch: `feature/short-description` or `fix/issue-number-description`
 3. Write tests for new functionality
 4. Ensure CI passes: `hassfest`, `hacs-validate`, `lint`, `test`
