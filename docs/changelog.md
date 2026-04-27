@@ -21,29 +21,27 @@ All notable changes to this project are documented here. The project follows [Se
 
 ## [2026.4.270] — 2026-04-27
 
-> **Compared to Git tag `v2026.3.63`:** see the detailed narrative in [Release notes — v2026.4.270](releases/v2026.4.270.md).
+> **Since Git tag [`v2026.3.63`](https://github.com/markus-lassfolk/home-assistant-yarbo/releases/tag/v2026.3.63`):** see [Release notes — v2026.4.270](releases/v2026.4.270.md). On `main`: Sentry **release** uses manifest version (`2539a70`), `event.py` **battery_capacity** `None` guard (`bdc735b`), then [#156](https://github.com/markus-lassfolk/home-assistant-yarbo/pull/156) (Community Yarbo rename and related fixes).
 
 ### Breaking
 
-- **Community Yarbo** — integration domain is `community_yarbo` (folder `custom_components/community_yarbo/`). Coexists with the official `yarbo` integration. Requires removing the old community `yarbo` entry, installing the new folder, restart, and re-adding **Community Yarbo**; update services, events, blueprints, and entity IDs accordingly. MQTT debug folder: `community_yarbo_recordings/`.
+- **Community Yarbo** — domain `community_yarbo` (folder `custom_components/community_yarbo/`). Coexists with the official `yarbo` integration. Remove the old community integration, install the new folder, restart, re-add **Community Yarbo**; update services, events, blueprints, and entity IDs. MQTT debug folder: `community_yarbo_recordings/`.
 
 ### Added
 
 - **Translations:** `fi`, `sv`, `de`, `nl`, `nb`, `es`, `fr`, `it`, `pl` (#131).
-- **Runtime behaviour:** `CONFIG_SCHEMA`; centralized controller acquisition with clear timeout errors (#147); broker host resolution and migration (#155).
+- **`CONFIG_SCHEMA`**; **`async_ensure_controller`** for clearer timeout errors (#147); broker host resolution and migration (#155).
 
 ### Fixed
 
-- Telemetry / shutdown race when the event loop is closing (#137).
-- Options listener and unload with missing runtime data (#148).
-- Low-battery listener when `battery_capacity` is `None` (#146).
-- `MIN_LIB_VERSION` vs manifest for `get_controller(timeout=...)` (#153).
-- CI: clone `python-yarbo` from `main`; Ruff + DHCP test socket fixes.
+- **Sentry / GlitchTip** — release string from integration version, not commit hash (`2539a70`).
+- **Low battery** — `None` `battery_capacity` guard in `event.py` (`bdc735b`; #146).
+- **Telemetry / shutdown** (#137, #154); **options & unload** (#148); **library guard** vs manifest (#153); **CI** `python-yarbo@main`; Ruff + DHCP test socket fixes; **Copilot** docs + **`discover_yarbo`** for discovery/DHCP (no direct `paho.mqtt` in those paths).
 
 ### Changed
 
-- GitHub Actions dependency bumps; dev setuptools `>=82.0.1` (#151).
-- Merged `main` through **2026.3.63** (performance diagnostics, Last Seen write optimization, polling options); PR #156 conflict resolution; Copilot doc + `discover_yarbo` discovery fixes.
+- **GitHub Actions** (#149, #150); dev **setuptools** `>=82.0.1` (#151).
+- **`python-yarbo>=2026.3.60`** (see **2026.3.60–2026.3.63** in the root changelog for polling, Last Seen, and MQTT tooling already on the 2026.3.x line).
 
 ---
 

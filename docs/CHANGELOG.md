@@ -12,22 +12,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 Full notes: [docs/releases/v2026.4.270.md](releases/v2026.4.270.md).
 
+Scope: everything after Git tag **[v2026.3.63](https://github.com/markus-lassfolk/home-assistant-yarbo/releases/tag/v2026.3.63)** on `main` (Sentry release tagging, event battery guard, then squash merge [#156](https://github.com/markus-lassfolk/home-assistant-yarbo/pull/156)).
+
 ### Breaking
 
 - **Community Yarbo** — domain `community_yarbo`, folder `custom_components/community_yarbo/`, UI name **Community Yarbo** (coexists with [YarboInc/YarboHA](https://github.com/YarboInc/YarboHA)). Remove old `yarbo` entry, install new folder, restart, re-add; update entity IDs, `community_yarbo.*` services, events (e.g. `community_yarbo_job_completed`); MQTT under `community_yarbo_recordings/`.
-- Merged latest `main` through **2026.3.63** into this branch.
 
-### Added / merged from main
+### Added
 
-- See **2026.3.60–2026.3.63** below (polling options, performance diagnostics, Last Seen write optimization, MQTT tooling, `python-yarbo>=2026.3.60`).
 - **Translations:** fi, sv, de, nl, nb, es, fr, it, pl (#131).
-- **`CONFIG_SCHEMA`**, **`async_ensure_controller`**, controller/DHCP/conftest test coverage (see release notes).
+- **`CONFIG_SCHEMA`**, **`async_ensure_controller`**, broker-host regression tests, controller timeout tests, coordinator performance diagnostics test for `community_yarbo` (see **2026.3.62** below for coordinator diagnostics fields).
 
 ### Fixed
 
-- **PR #156 merge** with `main`: `MIN_LIB_VERSION` **2026.3.60**, `YarboLocalClient(broker=..., sn=...)`, failover **polling restart** + **telemetry retry sleep**, conftest `error_reporting` stub.
-- **Copilot review:** `docs/services.md` / **CONTRIBUTING** use **Community Yarbo**; **no direct `paho.mqtt`** in `discovery.py` or DHCP `_probe_robot_identity` — use **`discover_yarbo`**.
-- **Shutdown / telemetry** (#137, #154); **broker host** (#155); **options & unload** (#148); **low battery** `None` guard (#146); **library vs manifest** guard (#153); **Sentry** duplicate init; **CI** `python-yarbo@main`; Actions / setuptools (#149–#151).
+- **GlitchTip / Sentry** — `sentry_sdk.init` **release** uses integration **version** from metadata or `manifest.json`, not a raw git hash (`2539a70`).
+- **Low battery / offline robot** — guard `None` `battery_capacity` before comparisons in `event.py` (`bdc735b`; [#146](https://github.com/markus-lassfolk/home-assistant-yarbo/issues/146)).
+- **PR #156:** rename + `MIN_LIB_VERSION` **2026.3.60**, `YarboLocalClient(broker=..., sn=...)`, failover **polling restart** + **telemetry retry sleep**, **shutdown / telemetry** (#137, #154), **broker host** resolution (#155), **options & unload** (#148), **controller timeout** mapping (#147), **library guard** (#153), **Sentry** duplicate init + **`yarbo.error_reporting`** conftest stub, **CI** `python-yarbo@main`, **Copilot:** `docs/services.md` / **CONTRIBUTING** + **`discover_yarbo`** instead of direct **`paho.mqtt`** in `discovery.py` and DHCP probe.
+- **Actions / dev deps:** `action-gh-release` v3 (#149), `github-script` v9 (#150), setuptools `>=82.0.1` (#151).
+
+### Changed
+
+- **Requirement:** `python-yarbo>=2026.3.60,<2027.0` (floor matches **2026.3.61–2026.3.63** work in the changelog below: polling, Last Seen write optimization, MQTT capture docs, performance troubleshooting).
 
 ---
 
