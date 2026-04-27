@@ -2,9 +2,10 @@
 
 This module attempts to discover Yarbo MQTT brokers using the python-yarbo
 library's discover() API when available. When the library provides no discovery,
-it falls back to scanning the local ARP table via 'ip neigh' and probing each
-host for an MQTT broker on the configured port. This approach is MAC-agnostic
-and works with any Yarbo hardware revision regardless of WiFi chipset vendor.
+it falls back to scanning the local ARP table via 'ip neigh', TCP-checking the
+MQTT port, then confirming Yarbo with python-yarbo's discover_yarbo (no direct
+paho client in this module). This approach is MAC-agnostic and works with any
+Yarbo hardware revision regardless of WiFi chipset vendor.
 
 Discovered hosts are normalized to YarboEndpoint objects with colon-delimited
 MACs and a canonical endpoint_type. If discovery yields no results, a seed_host
@@ -19,7 +20,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Any
 
 from .const import (
     DEFAULT_BROKER_PORT,
@@ -27,6 +27,11 @@ from .const import (
     ENDPOINT_TYPE_ROVER,
     ENDPOINT_TYPE_UNKNOWN,
 )
+
+try:
+    from yarbo import discover_yarbo as _discover_yarbo
+except ImportError:  # pragma: no cover — older python-yarbo
+    _discover_yarbo = None
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,15 +100,6 @@ def _from_library_result(r: object, port: int) -> YarboEndpoint | None:
     )
 
 
-@dataclass
-class _YarboProbeResult:
-    """Result of a Yarbo MQTT probe — includes SN and name if found."""
-
-    is_yarbo: bool = False
-    serial: str | None = None
-    name: str | None = None
-
-
 async def _probe_mqtt(host: str, port: int) -> bool:
     """Try to open a TCP connection to host:port.
 
@@ -122,81 +118,22 @@ async def _probe_mqtt(host: str, port: int) -> bool:
         return False
 
 
-def _sync_yarbo_probe(host: str, port: int, timeout: float = 5.0) -> _YarboProbeResult:
-    """Connect via MQTT and listen for snowbot/+/device/... topics.
-
-    Returns a result indicating whether this is a real Yarbo broker,
-    plus the serial number and robot name if found.
-    """
-    import json as _json
-    import threading
-    import time
-
+async def _library_confirms_yarbo(host: str, port: int, timeout: float = 6.0) -> bool:
+    """True if python-yarbo reports a robot SN on this broker (subnet /32)."""
+    if _discover_yarbo is None:
+        return False
     try:
-        import paho.mqtt.client as mqtt
-    except ImportError:
-        _LOGGER.debug("paho-mqtt not available for Yarbo probe")
-        return _YarboProbeResult()
-
-    result = _YarboProbeResult()
-    got_telemetry = threading.Event()
-
-    def on_connect(client: Any, userdata: Any, flags: Any, rc: Any, props: Any = None) -> None:
-        rc_val = getattr(rc, "value", rc)
-        if rc_val == 0:
-            client.subscribe("snowbot/+/device/DeviceMSG")
-            client.subscribe("snowbot/+/device/heart_beat")
-
-    def on_message(client: Any, userdata: Any, msg: Any) -> None:
-        parts = msg.topic.split("/")
-        if len(parts) >= 2 and parts[0] == "snowbot" and parts[1]:
-            result.serial = parts[1]
-            result.is_yarbo = True
-        try:
-            import zlib
-
-            try:
-                raw = zlib.decompress(msg.payload)
-            except zlib.error:
-                raw = msg.payload
-            payload = _json.loads(raw)
-            if not result.name:
-                result.name = (
-                    payload.get("name") or payload.get("robotName") or payload.get("snowbotName")
-                )
-        except Exception:
-            pass
-        if result.serial:
-            got_telemetry.set()
-
-    client = mqtt.Client(
-        callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
-        client_id=f"yarbo-ha-discover-{int(time.time())}",
-    )
-    client.on_connect = on_connect
-    client.on_message = on_message
-    try:
-        client.connect(host, port, keepalive=10)
-        client.loop_start()
-        got_telemetry.wait(timeout=timeout)
-    except Exception:
-        pass
-    finally:
-        try:
-            client.loop_stop()
-        except Exception:
-            pass
-        try:
-            client.disconnect()
-        except Exception:
-            pass
-
-    return result
-
-
-async def _async_yarbo_probe(host: str, port: int, timeout: float = 5.0) -> _YarboProbeResult:
-    """Async wrapper around the synchronous Yarbo MQTT probe."""
-    return await asyncio.to_thread(_sync_yarbo_probe, host, port, timeout)
+        robots = await asyncio.wait_for(
+            _discover_yarbo(timeout=timeout, port=port, subnet=f"{host}/32"),
+            timeout=timeout + 2.0,
+        )
+    except Exception as err:
+        _LOGGER.debug("discover_yarbo(%s) failed: %s", host, err)
+        return False
+    for r in robots:
+        if getattr(r, "broker_host", None) == host and (getattr(r, "sn", None) or "").strip():
+            return True
+    return False
 
 
 async def _discover_from_arp(port: int = DEFAULT_BROKER_PORT) -> list[YarboEndpoint]:
@@ -255,27 +192,20 @@ async def _discover_from_arp(port: int = DEFAULT_BROKER_PORT) -> list[YarboEndpo
     if not mqtt_hosts:
         return []
 
-    # Phase 2: Yarbo-specific probe — connect via MQTT and listen for
-    # snowbot/+/device/... topics. Only real Yarbo devices respond.
+    # Phase 2: confirm Yarbo via python-yarbo discover_yarbo (no direct paho client).
     _LOGGER.debug(
-        "ARP discovery: verifying %d MQTT hosts for Yarbo SN broadcast",
+        "ARP discovery: verifying %d MQTT hosts with discover_yarbo",
         len(mqtt_hosts),
     )
 
-    yarbo_results = await asyncio.gather(
-        *[_async_yarbo_probe(ip, port, timeout=6.0) for ip, _mac in mqtt_hosts]
+    confirmed = await asyncio.gather(
+        *[_library_confirms_yarbo(ip, port, timeout=6.0) for ip, _mac in mqtt_hosts]
     )
 
     endpoints: list[YarboEndpoint] = []
-    for (ip, mac), probe in zip(mqtt_hosts, yarbo_results, strict=True):
-        if probe.is_yarbo:
-            _LOGGER.info(
-                "ARP discovery: confirmed Yarbo at %s (MAC %s, SN %s, name %s)",
-                ip,
-                mac,
-                probe.serial,
-                probe.name,
-            )
+    for (ip, mac), ok in zip(mqtt_hosts, confirmed, strict=True):
+        if ok:
+            _LOGGER.info("ARP discovery: confirmed Yarbo broker at %s (MAC %s)", ip, mac)
             endpoints.append(
                 YarboEndpoint(
                     host=ip,
@@ -309,7 +239,7 @@ async def async_discover_endpoints(
         yarbo_discover = None
 
     if yarbo_discover is None:
-        # Library has no discover() yet — fall back to ARP + MQTT probe
+        # Library has no discover() yet — fall back to ARP + discover_yarbo confirmation
         endpoints = await _discover_from_arp(port)
         if endpoints:
             return endpoints

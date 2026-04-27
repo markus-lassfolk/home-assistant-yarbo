@@ -11,7 +11,7 @@ description: "Home Assistant services provided by the Yarbo integration"
 > **Disclaimer:** This is an independent community project. NOT affiliated with Yarbo or its manufacturer.
 {: .warning }
 
-All services are registered under the `yarbo` domain. They require a `device_id` targeting a Yarbo device.
+All services are registered under the `community_yarbo` domain. They require a `device_id` targeting a Community Yarbo device.
 
 1. TOC
 {:toc}

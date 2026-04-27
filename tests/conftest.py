@@ -103,7 +103,7 @@ _yarbo_module.exceptions = _yarbo_exceptions
 
 # Stub yarbo.error_reporting so __init__.py can disable library-level Sentry.
 _yarbo_error_reporting = types.ModuleType("yarbo.error_reporting")
-_yarbo_error_reporting.init_error_reporting = lambda **kwargs: None  # type: ignore[attr-defined]
+_yarbo_error_reporting.init_error_reporting = lambda *args, **kwargs: None  # type: ignore[attr-defined]
 _yarbo_module.error_reporting = _yarbo_error_reporting
 
 sys.modules.setdefault("yarbo", _yarbo_module)

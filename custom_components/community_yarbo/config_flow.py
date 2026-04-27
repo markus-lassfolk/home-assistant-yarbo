@@ -91,6 +91,8 @@ from .const import (  # noqa: E402
     DEFAULT_DEBUG_LOGGING,
     DEFAULT_ERROR_REPORTING,
     DEFAULT_MQTT_RECORDING,
+    DEFAULT_POLL_ACQUIRE_CONTROLLER,
+    DEFAULT_POLL_INTERVAL,
     DEFAULT_TELEMETRY_THROTTLE,
     DOMAIN,
     ENDPOINT_TYPE_ROVER,
@@ -100,7 +102,11 @@ from .const import (  # noqa: E402
     OPT_DEBUG_LOGGING,
     OPT_ERROR_REPORTING,
     OPT_MQTT_RECORDING,
+    OPT_POLL_ACQUIRE_CONTROLLER,
+    OPT_POLL_INTERVAL,
     OPT_TELEMETRY_THROTTLE,
+    POLL_INTERVAL_MAX,
+    POLL_INTERVAL_MIN,
 )
 from .discovery import YarboEndpoint, async_discover_endpoints  # noqa: E402
 from .repairs import async_delete_cloud_token_expired_issue  # noqa: E402
@@ -233,89 +239,34 @@ class YarboConfigFlow(ConfigFlow, domain=DOMAIN):
     async def _probe_robot_identity(
         self, host: str, port: int, timeout: float = 8.0
     ) -> tuple[str | None, str | None]:
-        """Quick MQTT probe to discover the robot serial number and name.
-
-        Uses a synchronous paho-mqtt client in a thread executor to avoid
-        blocking-call warnings from HA's event loop detector (paho's import
-        and connect trigger synchronous file I/O).
-
-        TODO: Replace direct paho-mqtt usage with the python-yarbo library once
-        the library exposes a lightweight probe/identify API that doesn't require
-        a full YarboLocalClient lifecycle. Until then, paho>=1.6 is required for
-        CallbackAPIVersion.VERSION2 support (paho 2.x is also supported).
-
-        Returns (serial_number, bot_name) — either may be None.
-        """
-
-        def _sync_probe() -> tuple[str | None, str | None]:
-            """Run entirely in a thread — no async, no event loop interaction."""
-            import json as _json
-            import threading
-
-            import paho.mqtt.client as mqtt
-
-            result: dict[str, str | None] = {"sn": None, "name": None}
-            got_telemetry = threading.Event()
-
-            def on_connect(
-                client: Any, userdata: Any, flags: Any, rc: Any, props: Any = None
-            ) -> None:
-                rc_val = getattr(rc, "value", rc)
-                if rc_val == 0:
-                    client.subscribe("snowbot/+/device/DeviceMSG")
-                    client.subscribe("snowbot/+/device/heart_beat")
-
-            def on_message(client: Any, userdata: Any, msg: Any) -> None:
-                parts = msg.topic.split("/")
-                if len(parts) >= 2 and parts[0] == "snowbot" and parts[1]:
-                    result["sn"] = parts[1]
-                try:
-                    import zlib
-
-                    try:
-                        raw = zlib.decompress(msg.payload)
-                    except zlib.error:
-                        raw = msg.payload
-                    payload = _json.loads(raw)
-                    if not result["name"]:
-                        result["name"] = (
-                            payload.get("name")
-                            or payload.get("robotName")
-                            or payload.get("snowbotName")
-                        )
-                except Exception:
-                    pass
-                if result["sn"]:
-                    got_telemetry.set()
-
-            c = mqtt.Client(
-                callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
-                client_id=f"yarbo-ha-probe-{int(__import__('time').time())}",
-            )
-            c.on_connect = on_connect
-            c.on_message = on_message
-            try:
-                c.connect(host, port, keepalive=10)
-                c.loop_start()
-                got_telemetry.wait(timeout=timeout)
-            except Exception:
-                pass
-            finally:
-                try:
-                    c.loop_stop()
-                except Exception:
-                    pass
-                try:
-                    c.disconnect()
-                except Exception:
-                    pass
-            return (result["sn"], result["name"])
-
-        try:
-            return await asyncio.get_running_loop().run_in_executor(None, _sync_probe)
-        except Exception:
-            _LOGGER.debug("Robot identity probe failed for %s:%d", host, port)
+        """Discover robot serial and display name on this broker via python-yarbo."""
+        if discover_yarbo is None:
+            _LOGGER.debug("discover_yarbo unavailable; cannot probe identity for %s", host)
             return (None, None)
+        try:
+            robots = await asyncio.wait_for(
+                discover_yarbo(timeout=timeout, port=port, subnet=f"{host}/32"),
+                timeout=timeout + 2.0,
+            )
+        except Exception as err:
+            _LOGGER.debug("discover_yarbo failed for %s:%s: %s", host, port, err)
+            return (None, None)
+        for r in robots:
+            if getattr(r, "broker_host", None) != host:
+                continue
+            sn = (getattr(r, "sn", None) or "").strip() or None
+            name = (
+                getattr(r, "name", None)
+                or getattr(r, "robot_name", None)
+                or getattr(r, "snowbot_name", None)
+            )
+            if isinstance(name, str):
+                name = name.strip() or None
+            else:
+                name = None
+            if sn:
+                return (sn, name)
+        return (None, None)
 
     async def async_step_dhcp(self, discovery_info: dhcp.DhcpServiceInfo) -> FlowResult:
         """Handle DHCP discovery (issue #2).
@@ -758,6 +709,21 @@ class YarboOptionsFlow(OptionsFlow):
                         OPT_TELEMETRY_THROTTLE, DEFAULT_TELEMETRY_THROTTLE
                     ),
                 ): vol.All(vol.Coerce(float), vol.Range(min=1.0, max=10.0)),
+                vol.Optional(
+                    OPT_POLL_INTERVAL,
+                    default=self._config_entry.options.get(
+                        OPT_POLL_INTERVAL, DEFAULT_POLL_INTERVAL
+                    ),
+                ): vol.All(
+                    vol.Coerce(int),
+                    vol.Range(min=POLL_INTERVAL_MIN, max=POLL_INTERVAL_MAX),
+                ),
+                vol.Optional(
+                    OPT_POLL_ACQUIRE_CONTROLLER,
+                    default=self._config_entry.options.get(
+                        OPT_POLL_ACQUIRE_CONTROLLER, DEFAULT_POLL_ACQUIRE_CONTROLLER
+                    ),
+                ): bool,
                 vol.Optional(
                     OPT_AUTO_CONTROLLER,
                     default=self._config_entry.options.get(

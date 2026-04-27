@@ -42,6 +42,8 @@ ENDPOINT_TYPE_UNKNOWN = "unknown"
 
 # Options keys
 OPT_TELEMETRY_THROTTLE = "telemetry_throttle"
+OPT_POLL_INTERVAL = "poll_interval"
+OPT_POLL_ACQUIRE_CONTROLLER = "poll_acquire_controller"
 OPT_AUTO_CONTROLLER = "auto_controller"
 OPT_CLOUD_ENABLED = "cloud_enabled"
 OPT_ACTIVITY_PERSONALITY = "activity_personality"
@@ -49,6 +51,14 @@ OPT_ACTIVITY_PERSONALITY = "activity_personality"
 # Defaults
 DEFAULT_BROKER_PORT = 1883
 DEFAULT_TELEMETRY_THROTTLE = 1.0
+# Telemetry polling when robot is not streaming (e.g. app closed).
+# Match python-yarbo const: 1-3600s.
+DEFAULT_POLL_INTERVAL = 10
+POLL_INTERVAL_MIN = 1
+POLL_INTERVAL_MAX = 3600
+# When False, get_status/polling do not call get_controller (app can stay in control).
+# See python-yarbo 539526b.
+DEFAULT_POLL_ACQUIRE_CONTROLLER = False
 DEFAULT_AUTO_CONTROLLER = True
 DEFAULT_CLOUD_ENABLED = False
 DEFAULT_ACTIVITY_PERSONALITY = False  # Boolean: False=standard, True=fun/verbose descriptions

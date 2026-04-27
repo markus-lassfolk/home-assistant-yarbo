@@ -51,10 +51,22 @@ def init_error_reporting(
         return
 
     try:
+        import importlib.metadata
+
         import sentry_sdk
+
+        try:
+            _version = importlib.metadata.version("home-assistant-yarbo")
+        except importlib.metadata.PackageNotFoundError:
+            import json
+            import pathlib
+
+            _manifest = pathlib.Path(__file__).parent / "manifest.json"
+            _version = json.loads(_manifest.read_text()).get("version", "unknown")
 
         sentry_sdk.init(
             dsn=effective_dsn,
+            release=f"home-assistant-yarbo@{_version}",
             environment=environment,
             traces_sample_rate=0.1,
             send_default_pii=False,

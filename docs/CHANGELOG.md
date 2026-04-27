@@ -6,8 +6,67 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [2026.4.270] — 2026-04-27
+
+Release notes: [docs/releases/v2026.4.270.md](releases/v2026.4.270.md).
+
+### Breaking
+
+- **Community Yarbo** — domain `community_yarbo`, folder `custom_components/community_yarbo/`, UI name **Community Yarbo** (coexists with official [YarboInc/YarboHA](https://github.com/YarboInc/YarboHA)). Remove old `yarbo` entry, install new folder, restart, re-add; update entity IDs, `community_yarbo.*` services, events (e.g. `community_yarbo_job_completed`); MQTT recordings under `community_yarbo_recordings/`.
+- Merged latest `main` through **2026.3.63** into this branch.
+
+### Added / merged from main
+
+- See **2026.3.60–2026.3.63** below (polling options, performance diagnostics, Last Seen write optimization, MQTT tooling, `python-yarbo>=2026.3.60`).
+
+### Fixed
+
+- **PR #156 merge conflicts** with `main`: `MIN_LIB_VERSION` **2026.3.60**, `YarboLocalClient(broker=..., sn=...)`, failover **polling restart** + **telemetry retry sleep**, tests/conftest stub.
+- **Copilot review**: `docs/services.md` and **CONTRIBUTING** use **Community Yarbo**; **removed direct `paho.mqtt` usage** from `discovery.py` and DHCP `_probe_robot_identity` in favor of **`discover_yarbo`**.
+
+---
+
+## [2026.3.63] — 2026-03-06
+
 ### Changed
-- **Integration domain** is now `community_yarbo` (folder `custom_components/community_yarbo/`, UI name **Community Yarbo**) to avoid clashing with the official [YarboInc/YarboHA](https://github.com/YarboInc/YarboHA) `yarbo` domain. Existing installs must remove the old integration, install the new folder path, add **Community Yarbo** again, and update automations (entity IDs, `community_yarbo.*` services, and event-bus names such as `community_yarbo_job_completed`). MQTT debug recordings now live under `community_yarbo_recordings/`.
+- **Last Seen / Last Seen Latency** — These diagnostic sensors now write state only when their rounded value actually changes (once per minute for Last Seen, once per 30s for Latency). This reduces recorder and Activity log updates and avoids flooding the logbook.
+
+---
+
+## [2026.3.62] — 2026-03-06
+
+### Added
+- **Performance diagnostics** — coordinator diagnostics now include `listener_count` and `poll_interval` to help diagnose "HA hangs" or high load when there are many entities.
+- **Performance troubleshooting** — new section in [Troubleshooting](troubleshooting.md): "HA hangs or runs out of resources when Yarbo is enabled" (what to collect, what to try, how to report).
+- **Debug timing** — when debug logging is on, log when `async_set_updated_data` takes >0.1s (listener count in message).
+- **Performance test** — `tests/test_coordinator_performance.py` (diagnostics include listener_count and poll_interval).
+
+### Changed
+- **Diagnostic polling** — 0.3s delay between each diagnostic request (every 300s) to avoid blocking the event loop and reduce burst load on the robot.
+- **Options** — improved description for `poll_acquire_controller` (when app is closed, what "acquire controller" means, when to leave off).
+
+### Fixed
+- One-time INFO when entity count >40 suggesting to raise telemetry update interval if HA is slow.
+
+---
+
+## [2026.3.61] — 2026-03-06
+
+All changes since 2026.3.40.
+
+### Changed
+- **python-yarbo** — requirement `>=2026.3.60,<2027.0` for correct `data_feedback` get_device_msg handling and Last Seen updates.
+- **Options UI** — clarified labels and descriptions for `poll_acquire_controller` (acquire when polling for telemetry) vs `auto_controller` (acquire before sending commands); added description for auto_controller.
+
+### Added
+- **MQTT capture and analysis** — `scripts/capture_mqtt_traffic.py`, `scripts/analyze_mqtt_capture.py`, [docs/mqtt-data-feedback-payload.md](mqtt-data-feedback-payload.md).
+- **Testing before release** — [docs/testing-before-release.md](testing-before-release.md), `scripts/install_latest_to_hass.sh`.
+
+### Documentation
+- Troubleshooting: link to data_feedback payload doc and capture/analyze scripts (Last Seen).
+- Development: link to Testing before release guide.
 
 ---
 

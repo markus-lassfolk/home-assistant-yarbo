@@ -89,7 +89,7 @@
         "description": "Configure integration behaviour. Changes take effect immediately (no restart required).",
         "data": {
           "telemetry_throttle": "Telemetry update interval (1–10 seconds)",
-          "auto_controller": "Auto-acquire controller before commands",
+          "auto_controller": "Acquire controller before sending commands (buttons, services)",
           "cloud_enabled": "Enable cloud features",
           "activity_personality": "Fun activity descriptions (emoji mode)",
           "debug_logging": "Enable debug logging",
@@ -314,6 +314,9 @@
       },
       "last_seen": {
         "name": "Last Seen"
+      },
+      "last_seen_latency": {
+        "name": "Last Seen Latency"
       },
       "saved_wifi_list": {
         "name": "Saved WiFi Networks"

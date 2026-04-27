@@ -45,6 +45,9 @@ from .coordinator import YarboDataCoordinator
 from .entity import YarboEntity
 from .telemetry import get_gngga_data, get_nested_raw_value, get_value_from_paths
 
+# Sentinel for "not yet written" in last-seen sensors (cannot equal datetime/float/None)
+_LAST_SEEN_UNWRITTEN: Final = object()
+
 # Internal activity state values (snake_case enum values)
 ACTIVITY_CHARGING: Final = "charging"
 ACTIVITY_IDLE: Final = "idle"
@@ -170,6 +173,7 @@ async def async_setup_entry(
             YarboCleanAreaCountSensor(coordinator),
             YarboMotorTempSensor(coordinator),
             YarboLastSeenSensor(coordinator),
+            YarboLastSeenLatencySensor(coordinator),
             # #98 — Saved WiFi networks list
             YarboSavedWifiListSensor(coordinator),
         ]
@@ -1547,7 +1551,12 @@ class YarboSavedWifiListSensor(YarboSensor):
 
 
 class YarboLastSeenSensor(YarboSensor):
-    """Timestamp sensor showing when the robot last sent telemetry."""
+    """Timestamp sensor showing when the robot last sent telemetry.
+
+    The reported time is rounded to the nearest minute. We only write state when
+    that rounded value changes, so the recorder and Activity get at most one
+    update per minute instead of every telemetry message.
+    """
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
@@ -1556,12 +1565,64 @@ class YarboLastSeenSensor(YarboSensor):
 
     def __init__(self, coordinator: YarboDataCoordinator) -> None:
         super().__init__(coordinator, "last_seen")
+        self._last_written_value: datetime | None = _LAST_SEEN_UNWRITTEN  # type: ignore[assignment]
+
+    def _handle_coordinator_update(self) -> None:
+        """Only write state when the rounded timestamp actually changed."""
+        new_val = self.native_value
+        if (
+            self._last_written_value is not _LAST_SEEN_UNWRITTEN
+            and new_val == self._last_written_value
+        ):
+            return
+        self._last_written_value = new_val
+        super()._handle_coordinator_update()
 
     @property
     def native_value(self) -> datetime | None:
-        """Return the last-seen time as a UTC datetime."""
+        """Return the last-seen time as a UTC datetime, rounded to the minute."""
         last_seen = self.coordinator.last_seen
         if last_seen is None:
             return None
         elapsed = time.monotonic() - last_seen
-        return datetime.now(UTC) - timedelta(seconds=elapsed)
+        dt = datetime.now(UTC) - timedelta(seconds=elapsed)
+        return dt.replace(second=0, microsecond=0)
+
+
+class YarboLastSeenLatencySensor(YarboSensor):
+    """Numeric sensor: seconds since last telemetry (for History graph / latency over time).
+
+    The value is rounded to 30-second steps. We only write state when that value
+    actually changed, so the recorder and Activity get at most one update per
+    30 seconds instead of every telemetry message.
+    """
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_translation_key = "last_seen_latency"
+    _attr_native_unit_of_measurement = UnitOfTime.SECONDS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: YarboDataCoordinator) -> None:
+        super().__init__(coordinator, "last_seen_latency")
+        self._last_written_value: float | None = _LAST_SEEN_UNWRITTEN  # type: ignore[assignment]
+
+    def _handle_coordinator_update(self) -> None:
+        """Only write state when the rounded latency value actually changed."""
+        new_val = self.native_value
+        if (
+            self._last_written_value is not _LAST_SEEN_UNWRITTEN
+            and new_val == self._last_written_value
+        ):
+            return
+        self._last_written_value = new_val
+        super()._handle_coordinator_update()
+
+    @property
+    def native_value(self) -> float | None:
+        """Return seconds since last telemetry, rounded to 30s."""
+        last_seen = self.coordinator.last_seen
+        if last_seen is None:
+            return None
+        elapsed = time.monotonic() - last_seen
+        return round(elapsed / 30.0) * 30.0

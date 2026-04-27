@@ -39,7 +39,7 @@ mypy custom_components/community_yarbo/
 
 1. Copy `custom_components/community_yarbo/` to your HA `config/custom_components/community_yarbo/`
 2. Restart Home Assistant
-3. Add the integration: Settings → Devices & Services → Add Integration → Yarbo
+3. Add the integration: Settings → Devices & Services → Add Integration → Community Yarbo
 
 ## Code Standards
 
