@@ -10,21 +10,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [2026.4.270] — 2026-04-27
 
-Release notes: [docs/releases/v2026.4.270.md](releases/v2026.4.270.md).
+Full notes: [docs/releases/v2026.4.270.md](releases/v2026.4.270.md).
 
 ### Breaking
 
-- **Community Yarbo** — domain `community_yarbo`, folder `custom_components/community_yarbo/`, UI name **Community Yarbo** (coexists with official [YarboInc/YarboHA](https://github.com/YarboInc/YarboHA)). Remove old `yarbo` entry, install new folder, restart, re-add; update entity IDs, `community_yarbo.*` services, events (e.g. `community_yarbo_job_completed`); MQTT recordings under `community_yarbo_recordings/`.
+- **Community Yarbo** — domain `community_yarbo`, folder `custom_components/community_yarbo/`, UI name **Community Yarbo** (coexists with [YarboInc/YarboHA](https://github.com/YarboInc/YarboHA)). Remove old `yarbo` entry, install new folder, restart, re-add; update entity IDs, `community_yarbo.*` services, events (e.g. `community_yarbo_job_completed`); MQTT under `community_yarbo_recordings/`.
 - Merged latest `main` through **2026.3.63** into this branch.
 
 ### Added / merged from main
 
 - See **2026.3.60–2026.3.63** below (polling options, performance diagnostics, Last Seen write optimization, MQTT tooling, `python-yarbo>=2026.3.60`).
+- **Translations:** fi, sv, de, nl, nb, es, fr, it, pl (#131).
+- **`CONFIG_SCHEMA`**, **`async_ensure_controller`**, controller/DHCP/conftest test coverage (see release notes).
 
 ### Fixed
 
-- **PR #156 merge conflicts** with `main`: `MIN_LIB_VERSION` **2026.3.60**, `YarboLocalClient(broker=..., sn=...)`, failover **polling restart** + **telemetry retry sleep**, tests/conftest stub.
-- **Copilot review**: `docs/services.md` and **CONTRIBUTING** use **Community Yarbo**; **removed direct `paho.mqtt` usage** from `discovery.py` and DHCP `_probe_robot_identity` in favor of **`discover_yarbo`**.
+- **PR #156 merge** with `main`: `MIN_LIB_VERSION` **2026.3.60**, `YarboLocalClient(broker=..., sn=...)`, failover **polling restart** + **telemetry retry sleep**, conftest `error_reporting` stub.
+- **Copilot review:** `docs/services.md` / **CONTRIBUTING** use **Community Yarbo**; **no direct `paho.mqtt`** in `discovery.py` or DHCP `_probe_robot_identity` — use **`discover_yarbo`**.
+- **Shutdown / telemetry** (#137, #154); **broker host** (#155); **options & unload** (#148); **low battery** `None` guard (#146); **library vs manifest** guard (#153); **Sentry** duplicate init; **CI** `python-yarbo@main`; Actions / setuptools (#149–#151).
 
 ---
 

@@ -19,6 +19,34 @@ All notable changes to this project are documented here. The project follows [Se
 
 ---
 
+## [2026.4.270] — 2026-04-27
+
+> **Compared to Git tag `v2026.3.63`:** see the detailed narrative in [Release notes — v2026.4.270](releases/v2026.4.270.md).
+
+### Breaking
+
+- **Community Yarbo** — integration domain is `community_yarbo` (folder `custom_components/community_yarbo/`). Coexists with the official `yarbo` integration. Requires removing the old community `yarbo` entry, installing the new folder, restart, and re-adding **Community Yarbo**; update services, events, blueprints, and entity IDs accordingly. MQTT debug folder: `community_yarbo_recordings/`.
+
+### Added
+
+- **Translations:** `fi`, `sv`, `de`, `nl`, `nb`, `es`, `fr`, `it`, `pl` (#131).
+- **Runtime behaviour:** `CONFIG_SCHEMA`; centralized controller acquisition with clear timeout errors (#147); broker host resolution and migration (#155).
+
+### Fixed
+
+- Telemetry / shutdown race when the event loop is closing (#137).
+- Options listener and unload with missing runtime data (#148).
+- Low-battery listener when `battery_capacity` is `None` (#146).
+- `MIN_LIB_VERSION` vs manifest for `get_controller(timeout=...)` (#153).
+- CI: clone `python-yarbo` from `main`; Ruff + DHCP test socket fixes.
+
+### Changed
+
+- GitHub Actions dependency bumps; dev setuptools `>=82.0.1` (#151).
+- Merged `main` through **2026.3.63** (performance diagnostics, Last Seen write optimization, polling options); PR #156 conflict resolution; Copilot doc + `discover_yarbo` discovery fixes.
+
+---
+
 ## [2026.3.10] — 2026-03-01
 
 First public release of the Yarbo Home Assistant custom integration. Local MQTT control only.
