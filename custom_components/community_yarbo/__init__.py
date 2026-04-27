@@ -1,0 +1,384 @@
+"""The Yarbo integration."""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+import homeassistant.helpers.config_validation as cv
+from homeassistant.config_entries import SOURCE_DHCP, ConfigEntry
+from homeassistant.const import __version__
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
+from homeassistant.loader import async_get_integration
+from yarbo import YarboLocalClient
+from yarbo.exceptions import YarboConnectionError
+
+# Disable library-level Sentry auto-init so python-yarbo doesn't start its own
+# error reporting.  HA manages its own via custom_components/community_yarbo/error_reporting.py.
+try:
+    from yarbo.error_reporting import init_error_reporting as _lib_init_error_reporting
+
+    _lib_init_error_reporting(enabled=False)
+except ImportError:
+    pass  # python-yarbo version without error_reporting — no action needed
+
+# Minimum python-yarbo version required by this integration.
+# Bump this when using new library features (e.g. get_controller(timeout=...)).
+MIN_LIB_VERSION = "2026.3.60"
+
+from .const import (  # noqa: E402
+    CONF_ALTERNATE_BROKER_HOST,
+    CONF_BROKER_ENDPOINTS,
+    CONF_BROKER_HOST,
+    CONF_BROKER_PORT,
+    CONF_ROBOT_SERIAL,
+    DATA_CLIENT,
+    DATA_COORDINATOR,
+    DEFAULT_BROKER_PORT,
+    DEFAULT_ERROR_REPORTING,
+    DOMAIN,
+    OPT_ERROR_REPORTING,
+    PLATFORMS,
+)
+
+CONFIG_SCHEMA = cv.empty_config_schema(DOMAIN)
+
+from .coordinator import YarboDataCoordinator  # noqa: E402
+from .error_reporting import async_init_error_reporting  # noqa: E402
+from .services import async_register_services, async_unregister_services  # noqa: E402
+
+_LOGGER = logging.getLogger(__name__)
+
+
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
+    """Set up the Yarbo integration — run background ARP discovery on startup."""
+
+    async def _discover_yarbos(_now: Any = None) -> None:
+        """Scan ARP table for Yarbo devices and create discovery flows."""
+        from .discovery import DEFAULT_BROKER_PORT, _discover_from_arp
+
+        endpoints = await _discover_from_arp(DEFAULT_BROKER_PORT)
+        if not endpoints:
+            return
+
+        for ep in endpoints:
+            # Check if already configured for this host
+            existing = any(
+                entry.data.get(CONF_BROKER_HOST) == ep.host
+                for entry in hass.config_entries.async_entries(DOMAIN)
+            )
+            if existing:
+                continue
+
+            _LOGGER.info("Yarbo discovered via ARP at %s (MAC %s)", ep.host, ep.mac)
+            hass.async_create_task(
+                hass.config_entries.flow.async_init(
+                    DOMAIN,
+                    context={"source": SOURCE_DHCP},
+                    data={"ip": ep.host, "macaddress": ep.mac or "", "hostname": "yarbo"},
+                )
+            )
+
+    # Run 30s after HA fully starts so the network stack is ready
+    from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
+    from homeassistant.helpers.event import async_call_later
+
+    async def _on_start(_event: Any) -> None:
+        async_call_later(hass, 30, _discover_yarbos)
+
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _on_start)
+    return True
+
+
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Migrate old config entry to the latest version."""
+    _LOGGER.debug("Migrating Yarbo config entry from version %s", config_entry.version)
+
+    if config_entry.version == 1:
+        # v1 → v2: add CONF_BROKER_ENDPOINTS list for Primary/Secondary failover
+        new_data = dict(config_entry.data)
+        primary = new_data.get(CONF_BROKER_HOST)
+        alternate = new_data.get(CONF_ALTERNATE_BROKER_HOST)
+        if CONF_BROKER_ENDPOINTS not in new_data:
+            endpoints = [primary, alternate] if alternate and alternate != primary else [primary]
+            new_data[CONF_BROKER_ENDPOINTS] = [h for h in endpoints if h]
+        # Rare corrupt v1 rows: broker_host missing but endpoints or alternate present
+        if not new_data.get(CONF_BROKER_HOST):
+            backfill = next((h for h in new_data.get(CONF_BROKER_ENDPOINTS, []) if h), None)
+            if not backfill and alternate:
+                backfill = alternate
+            if backfill:
+                new_data[CONF_BROKER_HOST] = backfill
+        hass.config_entries.async_update_entry(config_entry, data=new_data, version=2)
+        _LOGGER.info("Migrated Yarbo config entry to version 2")
+
+    return True
+
+
+def _warmup_connect(host: str, port: int) -> None:
+    """Pre-fill import caches in executor to avoid blocking the event loop.
+
+    Creates a throwaway raw MQTT connection so that first-time imports
+    (idna metadata, etc.) happen outside the event loop.
+    """
+    try:
+        # Force idna and other lazy imports to resolve their metadata now
+        # Force all lazy imports and metadata reads that paho-mqtt triggers
+        # during connect. These must happen in the executor thread, not the
+        # event loop, to avoid HA's blocking call detection.
+        import importlib.metadata
+        import socket
+
+        for pkg in ("idna", "paho-mqtt", "certifi", "charset-normalizer"):
+            try:
+                dist = importlib.metadata.distribution(pkg)
+                dist.read_text("METADATA")
+                dist.read_text("RECORD")
+            except (importlib.metadata.PackageNotFoundError, FileNotFoundError):
+                pass
+        # Pre-import idna and force its __version__ lookup (which reads METADATA)
+        try:
+            import idna
+            import idna.codec
+            import idna.core
+            import idna.package_data
+
+            _ = idna.__version__  # triggers metadata read
+        except (ImportError, AttributeError):
+            pass
+        # Verify broker is reachable (TCP only, no MQTT protocol)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(3)
+        s.connect((host, port))
+        s.close()
+    except Exception:
+        pass  # Warmup failure is non-fatal
+
+
+def _resolve_broker_host(data: dict[str, Any]) -> str | None:
+    """Return MQTT broker host from entry data (explicit key or endpoint list)."""
+    host = data.get(CONF_BROKER_HOST)
+    if host:
+        s = str(host).strip()
+        if s:
+            return s
+    eps = data.get(CONF_BROKER_ENDPOINTS)
+    if isinstance(eps, list):
+        for h in eps:
+            if h:
+                s = str(h).strip()
+                if s:
+                    return s
+    alt = data.get(CONF_ALTERNATE_BROKER_HOST)
+    if alt:
+        s = str(alt).strip()
+        if s:
+            return s
+    return None
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up Yarbo from a config entry."""
+
+    # --- Library version guard (runs in executor to avoid blocking I/O) ---
+    def _check_lib_version() -> str | None:
+        import importlib.metadata as _meta
+
+        try:
+            return _meta.version("python-yarbo")
+        except _meta.PackageNotFoundError:
+            return None
+
+    _lib_ver = await hass.async_add_executor_job(_check_lib_version)
+    if _lib_ver is not None:
+        from packaging.version import Version
+
+        if Version(_lib_ver) < Version(MIN_LIB_VERSION):
+            _LOGGER.error(
+                "python-yarbo %s is too old; need >= %s. "
+                "Clear /config/deps and restart HA to upgrade.",
+                _lib_ver,
+                MIN_LIB_VERSION,
+            )
+            raise ConfigEntryNotReady(
+                f"python-yarbo {_lib_ver} < {MIN_LIB_VERSION}; upgrade required"
+            )
+    # --- End version guard ---
+    # Normalize broker_host + CONF_BROKER_ENDPOINTS (handles corrupt / legacy storage)
+    data = dict(entry.data)
+    changed = False
+    if CONF_BROKER_ENDPOINTS not in data:
+        primary = data.get(CONF_BROKER_HOST)
+        alternate = data.get(CONF_ALTERNATE_BROKER_HOST)
+        raw: list[Any] = [primary, alternate] if alternate and alternate != primary else [primary]
+        data[CONF_BROKER_ENDPOINTS] = [h for h in raw if h]
+        changed = True
+    resolved_host = _resolve_broker_host(data)
+    if resolved_host and not data.get(CONF_BROKER_HOST):
+        data[CONF_BROKER_HOST] = resolved_host
+        changed = True
+    if not data.get(CONF_BROKER_ENDPOINTS) and resolved_host:
+        data[CONF_BROKER_ENDPOINTS] = [resolved_host]
+        changed = True
+    if changed:
+        hass.config_entries.async_update_entry(entry, data=data)
+
+    broker_host = _resolve_broker_host(entry.data)
+    broker_port = entry.data.get(CONF_BROKER_PORT, DEFAULT_BROKER_PORT)
+    if broker_port in (None, ""):
+        broker_port = DEFAULT_BROKER_PORT
+    else:
+        broker_port = int(broker_port)
+    if not broker_host:
+        _LOGGER.error(
+            "Yarbo config entry %s is missing broker_host and no usable endpoints",
+            entry.entry_id,
+        )
+        raise ConfigEntryError(
+            "This Yarbo device is missing a base station IP. "
+            "Remove the integration and set it up again, or use Reconfigure."
+        )
+
+    # Get actual integration version from manifest
+    integration_version = "unknown"
+    try:
+        integration = await async_get_integration(hass, DOMAIN)
+        integration_version = integration.manifest.get("version", "unknown") or "unknown"
+    except Exception as err:
+        _LOGGER.debug("Could not fetch integration version: %s", err)
+
+    # Opt-in error reporting: read option, default enabled during beta
+    _serial = entry.data.get(CONF_ROBOT_SERIAL, "unknown")
+    error_reporting_enabled = entry.options.get(OPT_ERROR_REPORTING, DEFAULT_ERROR_REPORTING)
+    await async_init_error_reporting(
+        hass,
+        enabled=error_reporting_enabled,
+        tags={
+            "integration": DOMAIN,
+            "integration_version": integration_version,
+            "robot_serial": f"****{_serial[-4:]}" if len(_serial) > 4 else _serial,
+            "ha_version": __version__,
+        },
+    )
+
+    # Pre-fill import caches (idna metadata etc.) in executor to avoid
+    # blocking-call warnings during the real connect.
+    try:
+        await hass.async_add_executor_job(
+            _warmup_connect,
+            broker_host,
+            broker_port,
+        )
+    except Exception:
+        _LOGGER.debug("Warmup connect failed (non-fatal)")
+
+    client = YarboLocalClient(
+        broker=broker_host,
+        port=broker_port,
+        sn=entry.data.get(CONF_ROBOT_SERIAL, ""),
+    )
+
+    try:
+        # connect() internally uses run_in_executor for blocking I/O (DNS/TLS).
+        await client.connect()
+    except YarboConnectionError as err:
+        await client.disconnect()
+        raise ConfigEntryNotReady(f"Cannot connect to Yarbo: {err}") from err
+    except Exception:
+        await client.disconnect()
+        raise
+
+    coordinator = YarboDataCoordinator(hass, client, entry)
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except Exception:
+        # Fix: shut down coordinator (cancels background tasks) before re-raising
+        await coordinator.async_shutdown()
+        await client.disconnect()
+        raise
+
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
+        DATA_CLIENT: client,
+        DATA_COORDINATOR: coordinator,
+    }
+
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    async_register_services(hass)
+
+    # Register options update listener so throttle and other options apply
+    # immediately when the user changes them in the options UI — without
+    # requiring a full config-entry reload.
+    entry.async_on_unload(entry.add_update_listener(_async_update_options))
+
+    return True
+
+
+async def _async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update — propagate new options to the coordinator."""
+    # Avoid KeyError when runtime data was never stored or was already torn down
+    # (e.g. reload race, failed setup, GlitchTip #148 / GitHub #148).
+    domain_data = hass.data.get(DOMAIN)
+    if not isinstance(domain_data, dict):
+        return
+    entry_data = domain_data.get(entry.entry_id)
+    if not isinstance(entry_data, dict):
+        _LOGGER.warning(
+            "Options update for entry %s skipped — integration not fully loaded",
+            entry.entry_id,
+        )
+        return
+    coordinator = entry_data.get(DATA_COORDINATOR)
+    if coordinator is None:
+        _LOGGER.warning(
+            "Options update for entry %s skipped — no coordinator (setup incomplete or unloaded)",
+            entry.entry_id,
+        )
+        return
+    try:
+        options: dict[str, Any] = dict(entry.options)
+        coordinator.update_options(options)
+    except KeyError as err:
+        _LOGGER.warning(
+            "Options update for entry %s failed (%s) — ignoring",
+            entry.entry_id,
+            err,
+        )
+        return
+    _LOGGER.debug("Yarbo options applied for entry %s", entry.entry_id)
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    from .repairs import (
+        async_delete_cloud_token_expired_issue,
+        async_delete_controller_lost_issue,
+        async_delete_mqtt_disconnect_issue,
+    )
+
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+    if unload_ok:
+        domain_data = hass.data.get(DOMAIN)
+        data = domain_data.pop(entry.entry_id, None) if domain_data else None
+        if data is not None:
+            coordinator = data.get(DATA_COORDINATOR)
+            client = data.get(DATA_CLIENT)
+            if coordinator is not None:
+                await coordinator.async_shutdown()
+            if client is not None:
+                await client.disconnect()
+        else:
+            _LOGGER.warning(
+                "Yarbo unload: no runtime data for entry %s (already removed?)",
+                entry.entry_id,
+            )
+        # Clean up any active repair issues to prevent orphaned issues
+        async_delete_mqtt_disconnect_issue(hass, entry.entry_id)
+        async_delete_controller_lost_issue(hass, entry.entry_id)
+        async_delete_cloud_token_expired_issue(hass, entry.entry_id)
+        if domain_data is not None and not domain_data:
+            hass.data.pop(DOMAIN, None)
+            async_unregister_services(hass)
+
+    return unload_ok

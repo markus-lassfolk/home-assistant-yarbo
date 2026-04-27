@@ -12,24 +12,27 @@ Each Yarbo device exposes a single event entity:
 The entity's `event_types` attribute lists all possible event type strings. The `event_type` state attribute reflects the most recently fired event.
 
 ```yaml
-# Example entity state
-entity_id: event.yarbo_front_yard_events
+# Example entity state (event_type values are short names on the entity)
+entity_id: event.community_yarbo_front_yard_events
 state: "2024-01-15T10:30:00+00:00"
 attributes:
-  event_type: yarbo_job_completed
+  event_type: job_completed
   event_types:
-    - yarbo_job_started
-    - yarbo_job_completed
-    - yarbo_job_paused
-    - yarbo_error
-    - yarbo_head_changed
-    - yarbo_low_battery
-    - yarbo_controller_lost
+    - job_started
+    - job_completed
+    - job_paused
+    - error
+    - head_changed
+    - low_battery
+    - controller_lost
+    - docked
 ```
 
 ## Event Definitions
 
-### `yarbo_job_started`
+Entity and logbook use the short `event_type` above. The same transition also fires on the HA event bus as `community_yarbo_<event_type>` (e.g. `community_yarbo_job_completed`).
+
+### `job_started` / bus: `community_yarbo_job_started`
 
 Fired when a job transitions from `idle` or `paused` to an active working state.
 
@@ -41,7 +44,7 @@ Fired when a job transitions from `idle` or `paused` to an active working state.
 | `head_type` | `int` | Head type integer at job start |
 | `timestamp` | `str` | ISO 8601 timestamp |
 
-### `yarbo_job_completed`
+### `job_completed` / bus: `community_yarbo_job_completed`
 
 Fired when a job finishes normally (robot returns to dock after completing plan).
 
@@ -53,7 +56,7 @@ Fired when a job finishes normally (robot returns to dock after completing plan)
 | `duration_seconds` | `int` | Elapsed job time |
 | `timestamp` | `str` | ISO 8601 timestamp |
 
-### `yarbo_job_paused`
+### `job_paused` / bus: `community_yarbo_job_paused`
 
 Fired when a running job is paused (by command or automatically).
 
@@ -64,7 +67,7 @@ Fired when a running job is paused (by command or automatically).
 | `reason` | `str` | `"command"`, `"rain"`, `"low_battery"`, `"error"` |
 | `timestamp` | `str` | ISO 8601 timestamp |
 
-### `yarbo_error`
+### `error` / bus: `community_yarbo_error`
 
 Fired when the `problem` binary sensor transitions to `on`.
 
@@ -76,7 +79,7 @@ Fired when the `problem` binary sensor transitions to `on`.
 | `error_description` | `str` | Human-readable description |
 | `timestamp` | `str` | ISO 8601 timestamp |
 
-### `yarbo_head_changed`
+### `head_changed` / bus: `community_yarbo_head_changed`
 
 Fired when `head_type` changes between telemetry messages.
 
@@ -88,7 +91,7 @@ Fired when `head_type` changes between telemetry messages.
 | `new_head` | `int` | New head type integer |
 | `timestamp` | `str` | ISO 8601 timestamp |
 
-### `yarbo_low_battery`
+### `low_battery` / bus: `community_yarbo_low_battery`
 
 Fired when battery drops below 20% while not charging.
 
@@ -99,7 +102,7 @@ Fired when battery drops below 20% while not charging.
 | `battery_level` | `int` | Current battery percentage |
 | `timestamp` | `str` | ISO 8601 timestamp |
 
-### `yarbo_controller_lost`
+### `controller_lost` / bus: `community_yarbo_controller_lost`
 
 Fired when the integration loses the MQTT controller role (another client claimed it).
 
@@ -115,30 +118,30 @@ Fired when the integration loses the MQTT controller role (another client claime
 # Trigger on job completion
 trigger:
   - platform: event
-    event_type: yarbo_job_completed
+    event_type: community_yarbo_job_completed
     event_data:
       robot_sn: "YB2024XXXXXXXX"
 
 # Trigger on any error
 trigger:
   - platform: state
-    entity_id: event.yarbo_front_yard_events
+    entity_id: event.community_yarbo_front_yard_events
     attribute: event_type
-    to: "yarbo_error"
+    to: "error"
 
 # Trigger via event entity (recommended for UI-based automations)
 trigger:
   - platform: event
     event_type: state_changed
     event_data:
-      entity_id: event.yarbo_front_yard_events
+      entity_id: event.community_yarbo_front_yard_events
 ```
 
 ## Event Bus vs. Event Entity
 
 | Mechanism | Best For |
 |-----------|----------|
-| HA event bus (`yarbo_*`) | Script/automation triggers, Node-RED, AppDaemon |
+| HA event bus (`community_yarbo_*`) | Script/automation triggers, Node-RED, AppDaemon |
 | `event` entity | UI-based automations, logbook, history |
 
 Both are fired for every event; they are not mutually exclusive.

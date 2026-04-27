@@ -95,7 +95,7 @@ body:
     id: logs
     attributes:
       label: Relevant Log Lines
-      description: Enable debug logging for `custom_components.yarbo` and paste relevant lines
+      description: Enable debug logging for `custom_components.community_yarbo` and paste relevant lines
       render: text
     validations:
       required: false

@@ -6,14 +6,14 @@ import time
 from datetime import datetime
 from unittest.mock import MagicMock
 
-from custom_components.yarbo.const import (
+from custom_components.community_yarbo.const import (
     CONF_ROBOT_NAME,
     CONF_ROBOT_SERIAL,
     HEAD_TYPE_LAWN_MOWER,
     HEAD_TYPE_LAWN_MOWER_PRO,
     HEAD_TYPE_SNOW_BLOWER,
 )
-from custom_components.yarbo.sensor import (
+from custom_components.community_yarbo.sensor import (
     YarboBatteryCellTempAvgSensor,
     YarboBatteryCellTempMaxSensor,
     YarboBatteryCellTempMinSensor,
@@ -692,7 +692,7 @@ class TestYarboLastSeenSensor:
         assert entity.entity_registry_enabled_default is False
 
 
-from custom_components.yarbo.sensor import YarboSavedWifiListSensor  # noqa: E402
+from custom_components.community_yarbo.sensor import YarboSavedWifiListSensor  # noqa: E402
 
 
 class TestYarboSavedWifiListSensor:

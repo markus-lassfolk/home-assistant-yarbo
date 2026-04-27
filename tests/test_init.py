@@ -78,26 +78,26 @@ class TestMultipleRobots:
         pass
 
 
-def test_get_controller_accepts_timeout():
+def test_get_controller_accepts_timeout() -> None:
     """Regression: HA calls get_controller(timeout=5.0). GlitchTip #30/#32.
 
     Since conftest stubs yarbo, we verify via importlib.metadata that the
     installed version meets the minimum, AND check the stub has the method.
     """
     import importlib.metadata
+
     from packaging.version import Version
 
     installed = importlib.metadata.version("python-yarbo")
     assert Version(installed) >= Version("2026.3.12"), (
-        f"python-yarbo {installed} too old; get_controller(timeout=...) "
-        "requires >= 2026.3.12"
+        f"python-yarbo {installed} too old; get_controller(timeout=...) requires >= 2026.3.12"
     )
 
     # Also verify the integration code actually calls with timeout=
     import ast
     import pathlib
 
-    for pyfile in pathlib.Path("custom_components/yarbo").glob("*.py"):
+    for pyfile in pathlib.Path("custom_components/community_yarbo").glob("*.py"):
         tree = ast.parse(pyfile.read_text())
         for node in ast.walk(tree):
             if (
@@ -109,15 +109,32 @@ def test_get_controller_accepts_timeout():
                 if "timeout" in kw_names:
                     return  # Found a call with timeout= — test passes
     # If we get here, no call with timeout= was found (unexpected)
-    assert False, "No get_controller(timeout=...) call found in integration code"
+    raise AssertionError("No get_controller(timeout=...) call found in integration code")
 
 
-def test_min_lib_version_constant():
+def test_resolve_broker_host() -> None:
+    """Regression: GlitchTip #155 — entry.data may omit broker_host; derive from endpoints."""
+    from custom_components.community_yarbo import _resolve_broker_host
+    from custom_components.community_yarbo.const import (
+        CONF_ALTERNATE_BROKER_HOST,
+        CONF_BROKER_ENDPOINTS,
+        CONF_BROKER_HOST,
+    )
+
+    assert _resolve_broker_host({CONF_BROKER_HOST: " 10.0.0.1 "}) == "10.0.0.1"
+    assert _resolve_broker_host({CONF_BROKER_ENDPOINTS: ["a", "b"]}) == "a"
+    assert _resolve_broker_host({CONF_ALTERNATE_BROKER_HOST: "alt"}) == "alt"
+    assert _resolve_broker_host({CONF_BROKER_HOST: "", CONF_BROKER_ENDPOINTS: ["x"]}) == "x"
+    assert _resolve_broker_host({}) is None
+
+
+def test_min_lib_version_constant() -> None:
     """Ensure MIN_LIB_VERSION is set and the installed library meets it."""
-    from packaging.version import Version
     import importlib.metadata
 
-    from custom_components.yarbo import MIN_LIB_VERSION
+    from packaging.version import Version
+
+    from custom_components.community_yarbo import MIN_LIB_VERSION
 
     installed = importlib.metadata.version("python-yarbo")
     assert Version(installed) >= Version(MIN_LIB_VERSION), (

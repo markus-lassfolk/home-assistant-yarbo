@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from custom_components.yarbo.const import (
+from custom_components.community_yarbo.const import (
     CONF_ROBOT_NAME,
     CONF_ROBOT_SERIAL,
     HEAD_TYPE_NONE,
@@ -15,7 +15,7 @@ from custom_components.yarbo.const import (
     LIGHT_CHANNEL_HEAD,
     LIGHT_CHANNELS,
 )
-from custom_components.yarbo.light import (
+from custom_components.community_yarbo.light import (
     YarboAllLightsGroup,
     YarboChannelLight,
     YarboHeadLight,

@@ -1,0 +1,697 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Yhdistetään Yarboon",
+        "description": "Syötä Yarbo-tukiasemasi (Data Center) IP-osoite. Integraatio muodostaa yhteyden paikalliseen MQTT-välittäjään porttiin 1883.",
+        "data": {
+          "broker_host": "Tukiaseman (data center) IP-osoite",
+          "broker_port": "MQTT-portti"
+        }
+      },
+      "manual": {
+        "title": "Anna yhteyden tiedot",
+        "description": "Verkosta ei löytynyt Yarbo-laitteita. Anna tukiaseman IP-osoite ja MQTT-portti manuaalisesti.",
+        "data": {
+          "broker_host": "Tukiaseman (data center) IP-osoite",
+          "broker_port": "MQTT-portti"
+        }
+      },
+      "confirm": {
+        "title": "Yarbo löydetty",
+        "description": "Löytyi **Yarbo {name}** verkostasi osoitteessa {host}. Lisää tämä robotti napsauttamalla Lähetä."
+      },
+      "select_endpoint": {
+        "title": "Valitse MQTT-loppupiste",
+        "description": "Löytyi **{count}** polku/polkua Yarbo-robottiin (löytymisjärjestys: ensisijainen, sitten toissijainen). Molemmat on kytketty samaan välittäjään. Yhteysongelmissa yritetään seuraavaa tässä järjestyksessä, kun nykyinen ei ole käytettävissä.",
+        "data": {
+          "selected_endpoint": "Loppupiste"
+        }
+      },
+      "mqtt_test": {
+        "title": "Yhdistetään Yarboon",
+        "description": "Testataan MQTT-yhteyttä ja odotetaan telemetriaa robotiltasi..."
+      },
+      "reconfigure": {
+        "title": "Yarbon uudelleenkonfigurointi",
+        "description": "Päivitä Yarbo-tukiasemasi IP-osoite.",
+        "data": {
+          "broker_host": "Tukiaseman (data center) IP-osoite",
+          "broker_port": "MQTT-portti"
+        }
+      },
+      "name": {
+        "title": "Nimeä robottisi",
+        "description": "Valitse Yarbo-robotille nimi. Tätä käytetään kaikkien entiteettien nimissä.",
+        "data": {
+          "robot_name": "Robotin nimi"
+        }
+      },
+      "cloud": {
+        "title": "Pilvitoiminnot (valinnainen)",
+        "description": "Yhdistä halutessasi Yarbo Cloud -palveluun laiteohjelmistopäivityksiä ja laitetietoja varten. Ei pakollinen paikalliselle ohjaukselle. Jätä tyhjäksi ohittaaksesi.",
+        "data": {
+          "cloud_username": "Yarbo-tilin sähköposti",
+          "cloud_password": "Salasana"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Todenna Yarbo Cloud uudelleen",
+        "description": "Yarbo Cloud -istuntosi käyttäjälle **{username}** on vanhentunut. Syötä salasanasi muodostaaksesi yhteyden uudelleen.",
+        "data": {
+          "cloud_password": "Salasana"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Tämä robotti on jo konfiguroitu.",
+      "cannot_connect": "Ei voida muodostaa yhteyttä MQTT-välittäjään osoitteessa {host}:1883. Onko tukiasema päällä ja tavoitettavissa?",
+      "no_telemetry": "Yhteys muodostettu, mutta robotin telemetriatietoja ei vastaanotettu 10 sekunnin kuluessa. Onko robotti päällä?",
+      "decode_error": "Dataa vastaanotettu, mutta sitä ei voida dekoodata. Laiteohjelmisto saattaa olla yhteensopimaton.",
+      "not_implemented": "Määritys vielä kesken.",
+      "wrong_device": "Löydetty laite ei vastaa tätä Yarbo-robottia.",
+      "reconfigure_successful": "Uudelleenkonfigurointi onnistui.",
+      "reconfigure_failed": "Uudelleenkonfigurointi epäonnistui.",
+      "reauth_successful": "Uudelleentunnistus onnistui."
+    },
+    "error": {
+      "cannot_connect": "Ei pysty yhdistämään.",
+      "no_telemetry": "Telemetriaa ei vastaanotettu 30 sekunnin kuluessa. Varmista, että robotti on päällä ja lähellä tukiasemaa, ja yritä uudelleen.",
+      "decode_error": "Dekoodausvirhe",
+      "cloud_auth_failed": "Pilvitodennus epäonnistui – tarkista sähköpostisi ja salasanasi",
+      "cloud_not_available": "Yarbo Cloud ei ole käytettävissä — päivitä python-yarbo"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Yarbo asetukset",
+        "description": "Määritä toiminnot. Muutokset tulevat voimaan välittömästi (ei uudelleenkäynnistystä tarvita).",
+        "data": {
+          "telemetry_throttle": "Telemetrian päivitysväli (1–10 sekuntia)",
+          "auto_controller": "Hae ohjain automaattisesti ennen komentoja",
+          "cloud_enabled": "Ota käyttöön Yarbo Cloud -ominaisuudet",
+          "activity_personality": "Hauskat aktiviteettikuvaukset (emoji-tila)",
+          "debug_logging": "Ota käyttöön virheenkorjausloki",
+          "mqtt_recording": "Tallenna MQTT-liikenne diagnostiikkaa varten",
+          "error_reporting": "Ota käyttöön anonyymi virheraportointi (auttaa parantamaan integraatiota)"
+        },
+        "data_description": {
+          "telemetry_throttle": "Kuinka usein telemetriapäivitykset lähetetään Home Assistantille. Pienemmät arvot tekevät useammin päivityksiä, mutta kuormittavat enemmän tallenninta.",
+          "activity_personality": "Kun aktiivisuusanturi on käytössä, se lisää hauskoja emoji-kuvauksia lisäominaisuuksina.",
+          "debug_logging": "Mahdollistaa kaikkien Yarbo-komponenttien yksityiskohtaisen lokikirjauksen. Hyödyllinen vianmäärityksessä.",
+          "mqtt_recording": "Tallentaa kaikki MQTT-viestit tiedostoon (enintään 10 Mt). Jaa kehittäjien kanssa, jotta voit korjata laiteohjelmistosi/päätteen ongelmia."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery": {
+        "name": "Akku"
+      },
+      "activity": {
+        "name": "Toiminta",
+        "state": {
+          "charging": "Lataa",
+          "idle": "Valmiustila",
+          "working": "Työskentelee",
+          "paused": "Keskeytetty",
+          "returning": "Palaa telakkaan",
+          "error": "Virhe"
+        }
+      },
+      "head_type": {
+        "name": "Työpään tyyppi",
+        "state": {
+          "snow_blower": "Lumilinko",
+          "lawn_mower": "Ruohonleikkuri",
+          "lawn_mower_pro": "Ruohonleikkuri Pro",
+          "leaf_blower": "Lehtipuhallin",
+          "smart_cover": "Älysuoja",
+          "trimmer": "Trimmeri",
+          "none": "Ei mitään"
+        }
+      },
+      "rtk_status": {
+        "name": "RTK-tila",
+        "state": {
+          "invalid": "Ei korjausta",
+          "gps": "GPS",
+          "dgps": "DGPS",
+          "rtk_float": "RTK float",
+          "rtk_fixed": "RTK fixed",
+          "unknown": "Tuntematon"
+        }
+      },
+      "heading": {
+        "name": "Suunta"
+      },
+      "chute_angle": {
+        "name": "Heittotorven kulma"
+      },
+      "rain_sensor": {
+        "name": "Sadeanturi"
+      },
+      "connection": {
+        "name": "Yhteys"
+      },
+      "wifi_network": {
+        "name": "WiFi-verkko"
+      },
+      "error_code": {
+        "name": "Virhekoodi"
+      },
+      "head_serial": {
+        "name": "Työpään sarjanumero"
+      },
+      "battery_temp_error": {
+        "name": "Akun lämpötilavirhe"
+      },
+      "base_station_status": {
+        "name": "Tukiaseman tila"
+      },
+      "satellite_count": {
+        "name": "Satelliittien määrä"
+      },
+      "gps_fix_quality": {
+        "name": "GPS-tarkkuus"
+      },
+      "gps_hdop": {
+        "name": "GPS HDOP"
+      },
+      "gps_altitude": {
+        "name": "GPS-korkeus"
+      },
+      "charging_power": {
+        "name": "Latausteho"
+      },
+      "battery_cell_temp_min": {
+        "name": "Akun kennon min. lämpötila"
+      },
+      "battery_cell_temp_max": {
+        "name": "Akun kennon maks. lämpötila"
+      },
+      "battery_cell_temp_avg": {
+        "name": "Akun kennon keskim. lämpötila"
+      },
+      "odometer": {
+        "name": "Matkamittari"
+      },
+      "wireless_charge_state": {
+        "name": "Langattoman latauksen tila"
+      },
+      "wireless_charge_error": {
+        "name": "Langattoman latauksen virhe"
+      },
+      "odom_confidence": {
+        "name": "Odometrian luotettavuus"
+      },
+      "odom_x": {
+        "name": "Odometria X"
+      },
+      "odom_y": {
+        "name": "Odometria Y"
+      },
+      "odom_phi": {
+        "name": "Odometria phi"
+      },
+      "rtcm_age": {
+        "name": "RTCM-ikä"
+      },
+      "rtcm_source_type": {
+        "name": "RTCM-lähdetyyppi"
+      },
+      "charge_voltage": {
+        "name": "Latausjännite"
+      },
+      "charge_current": {
+        "name": "Latausvirta"
+      },
+      "mqtt_age": {
+        "name": "MQTT-viestin ikä"
+      },
+      "heading_dop": {
+        "name": "Suunnan DOP"
+      },
+      "heading_status": {
+        "name": "Suunnan tila"
+      },
+      "antenna_distance": {
+        "name": "Antennin etäisyys"
+      },
+      "chute_steering_info": {
+        "name": "Heittotorven ohjaustiedot"
+      },
+      "nav_sensor_front_right": {
+        "name": "Navigointianturi edessä oikealla"
+      },
+      "nav_sensor_rear_right": {
+        "name": "Navigointianturi takana oikealla"
+      },
+      "head_gyro_pitch": {
+        "name": "Työpään gyroskooppi (nyökkäys)"
+      },
+      "head_gyro_roll": {
+        "name": "Työpään gyroskooppi (kallistus)"
+      },
+      "machine_controller": {
+        "name": "Koneen ohjain"
+      },
+      "plan_remaining_time": {
+        "name": "Suunnitelman jäljellä oleva aika"
+      },
+      "route_priority_hg0": {
+        "name": "Reitin prioriteetti HG0"
+      },
+      "route_priority_wlan0": {
+        "name": "Reitin prioriteetti WLAN0"
+      },
+      "route_priority_wwan0": {
+        "name": "Reitin prioriteetti WWAN0"
+      },
+      "ultrasonic_left_front": {
+        "name": "Ultraääni vasen etu"
+      },
+      "ultrasonic_middle": {
+        "name": "Ultraääni keskellä"
+      },
+      "ultrasonic_right_front": {
+        "name": "Ultraääni oikea etu"
+      },
+      "schedule_count": {
+        "name": "Aikataulujen määrä"
+      },
+      "body_current": {
+        "name": "Rungon virta"
+      },
+      "head_current": {
+        "name": "Työpään virta"
+      },
+      "speed": {
+        "name": "Nopeus"
+      },
+      "product_code": {
+        "name": "Tuotekoodi"
+      },
+      "hub_info": {
+        "name": "Hubin tiedot"
+      },
+      "recharge_point": {
+        "name": "Latauspiste"
+      },
+      "wifi_list": {
+        "name": "WiFi-lista"
+      },
+      "map_backup_count": {
+        "name": "Karttavarmuuskopioiden määrä"
+      },
+      "clean_area_count": {
+        "name": "Puhdistettujen alueiden määrä"
+      },
+      "motor_temp": {
+        "name": "Moottorin lämpötila"
+      },
+      "last_seen": {
+        "name": "Viimeksi nähty"
+      },
+      "saved_wifi_list": {
+        "name": "Tallennetut WiFi-verkot"
+      }
+    },
+    "binary_sensor": {
+      "charging": {
+        "name": "Lataa"
+      },
+      "problem": {
+        "name": "Ongelma"
+      },
+      "planning": {
+        "name": "Suunnittelu aktiivinen"
+      },
+      "planning_active": {
+        "name": "Suunnittelu aktiivinen"
+      },
+      "returning_to_charge": {
+        "name": "Palaa lataukseen"
+      },
+      "going_to_start": {
+        "name": "Siirtyy aloitukseen"
+      },
+      "follow_mode": {
+        "name": "Seurantatila"
+      },
+      "planning_paused": {
+        "name": "Suunnittelu keskeytetty"
+      },
+      "manual_controller": {
+        "name": "Manuaalinen ohjain"
+      },
+      "rain_detected": {
+        "name": "Sade havaittu"
+      },
+      "no_charge_period": {
+        "name": "Ei-latausaika"
+      },
+      "online": {
+        "name": "Linjoilla"
+      }
+    },
+    "button": {
+      "beep": {
+        "name": "Äänimerkki"
+      },
+      "return_to_dock": {
+        "name": "Palaa telakkaan"
+      },
+      "pause": {
+        "name": "Keskeytä"
+      },
+      "resume": {
+        "name": "Jatka"
+      },
+      "stop": {
+        "name": "Pysäytä"
+      },
+      "emergency_stop": {
+        "name": "Hätäpysäytys"
+      },
+      "emergency_unlock": {
+        "name": "Hätäpysäytyksen avaus"
+      },
+      "play_sound": {
+        "name": "Toista ääni"
+      },
+      "shutdown": {
+        "name": "Sammuta"
+      },
+      "restart": {
+        "name": "Käynnistä uudelleen"
+      },
+      "manual_stop": {
+        "name": "Manuaalinen pysäytys"
+      },
+      "save_charging_point": {
+        "name": "Tallenna latauspiste"
+      },
+      "start_hotspot": {
+        "name": "Käynnistä hotspot"
+      },
+      "save_map_backup": {
+        "name": "Tallenna kartan varmuuskopio"
+      },
+      "camera_calibration": {
+        "name": "Kalibroi kamera"
+      },
+      "check_camera_status": {
+        "name": "Tarkista kameran tila"
+      },
+      "firmware_update_now": {
+        "name": "Päivitä laiteohjelmisto nyt"
+      },
+      "firmware_update_tonight": {
+        "name": "Päivitä laiteohjelmisto tänä yönä"
+      },
+      "firmware_update_later": {
+        "name": "Lykkää päivitystä myöhemmäksi"
+      }
+    },
+    "event": {
+      "events": {
+        "name": "Tapahtumat",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "job_started": "Tehtävä aloitettu",
+              "job_completed": "Tehtävä suoritettu",
+              "job_paused": "Tehtävä keskeytetty",
+              "error": "Virhe",
+              "head_changed": "Työpää vaihdettu",
+              "low_battery": "Akku vähissä",
+              "controller_lost": "Yhteys ohjaimeen katkesi",
+              "docked": "Telakoitu"
+            }
+          }
+        }
+      }
+    },
+    "light": {
+      "lights": {
+        "name": "Valot"
+      },
+      "head_light": {
+        "name": "Työpään valo"
+      },
+      "led_head": {
+        "name": "Etuvalo"
+      },
+      "led_left_w": {
+        "name": "Vasen valkoinen"
+      },
+      "led_right_w": {
+        "name": "Oikea valkoinen"
+      },
+      "led_body_left": {
+        "name": "Rungon vasen"
+      },
+      "led_body_right": {
+        "name": "Rungon oikea"
+      },
+      "led_tail_left": {
+        "name": "Takavalo vasen"
+      },
+      "led_tail_right": {
+        "name": "Takavalo oikea"
+      }
+    },
+    "switch": {
+      "buzzer": {
+        "name": "Summeri"
+      },
+      "person_detect": {
+        "name": "Ihmisen tunnistus"
+      },
+      "roller": {
+        "name": "Tela"
+      },
+      "heating_film": {
+        "name": "Lämmityskalvo"
+      },
+      "follow_mode": {
+        "name": "Seurantatila"
+      },
+      "auto_update": {
+        "name": "Automaattinen päivitys"
+      },
+      "camera_ota": {
+        "name": "Kameran OTA-päivitys"
+      },
+      "trimmer": {
+        "name": "Trimmeri"
+      },
+      "camera": {
+        "name": "Kamera"
+      },
+      "laser": {
+        "name": "Laser"
+      },
+      "usb": {
+        "name": "USB"
+      },
+      "ignore_obstacles": {
+        "name": "Sivuuta esteet"
+      },
+      "draw_mode": {
+        "name": "Piirustustila"
+      },
+      "module_lock": {
+        "name": "Moduulin lukitus"
+      },
+      "wire_charging_lock": {
+        "name": "Latausjohdon lukitus"
+      },
+      "smart_blowing": {
+        "name": "Älykäs puhallus"
+      },
+      "edge_blowing": {
+        "name": "Reunojen puhallus"
+      },
+      "motor_protect": {
+        "name": "Moottorin suojaus"
+      },
+      "mower_head_sensor": {
+        "name": "Leikkuupään anturi"
+      },
+      "roof_lights": {
+        "name": "Kattovalot"
+      },
+      "sound_enable": {
+        "name": "Ääni"
+      },
+      "mower_ngz_edge": {
+        "name": "Leikkurin kielletyn alueen raja"
+      },
+      "geo_fence": {
+        "name": "Geo-aita"
+      },
+      "elec_fence": {
+        "name": "Sähköaita"
+      },
+      "smart_vision": {
+        "name": "Älykäs näkö"
+      },
+      "video_record": {
+        "name": "Videon tallennus"
+      },
+      "child_lock": {
+        "name": "Lapsilukko"
+      },
+      "bag_record": {
+        "name": "ROS bag-tallennus"
+      }
+    },
+    "number": {
+      "chute_velocity": {
+        "name": "Heittotorven nopeus"
+      },
+      "chute_steering_work": {
+        "name": "Heittotorven ohjaus (työ)"
+      },
+      "blade_height": {
+        "name": "Terän korkeus"
+      },
+      "blade_speed": {
+        "name": "Terän nopeus"
+      },
+      "blower_speed": {
+        "name": "Puhaltimen nopeus"
+      },
+      "volume": {
+        "name": "Äänenvoimakkuus"
+      },
+      "plan_start_percent": {
+        "name": "Suunnitelman aloituskynnys (%)"
+      },
+      "roller_speed": {
+        "name": "Telan nopeus"
+      },
+      "battery_charge_min": {
+        "name": "Akun vähimmäislataus"
+      },
+      "battery_charge_max": {
+        "name": "Akun enimmäislataus"
+      }
+    },
+    "select": {
+      "work_plan": {
+        "name": "Työsuunnitelma"
+      },
+      "turn_type": {
+        "name": "Kääntymistyyppi"
+      },
+      "snow_push_direction": {
+        "name": "Lumen auraussuunta"
+      }
+    },
+    "device_tracker": {
+      "location": {
+        "name": "Sijainti"
+      }
+    },
+    "lawn_mower": {
+      "mower": {
+        "name": "Ruohonleikkuri"
+      }
+    },
+    "update": {
+      "firmware": {
+        "name": "Laiteohjelmisto"
+      }
+    }
+  },
+  "issues": {
+    "telemetry_timeout": {
+      "title": "Yarbo-telemetriaa ei vastaanotettu",
+      "description": "Yarbo-robotista **{name}** ei ole vastaanotettu telemetriaa vähintään 60 sekuntiin. Tarkista, että tukiasema on päällä ja yhdistetty verkkoon."
+    },
+    "mqtt_disconnect": {
+      "title": "Yarbon tukiasemaan ei saada yhteyttä",
+      "description": "Telemetriaa ei ole vastaanotettu **{name}**-laitteelta vähintään 60 sekuntiin. Robotti saattaa olla kantaman ulkopuolella tai tukiasema saattaa olla sammutettu.\n\n**Korjausvaiheet:**\n1. Tarkista, että Yarbo Data Center (tukiasema) on päällä.\n2. Varmista, että tukiasema on yhteydessä lähiverkkoon.\n3. Varmista, että Home Assistant voi tavoittaa tukiaseman IP-osoitteen.\n\nTämä ongelma ratkeaa automaattisesti, kun telemetria jatkuu."
+    },
+    "controller_lost": {
+      "title": "Yarbo-ohjainistunto katkesi",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Yhdistä uudelleen",
+            "description": "Yarbo-sovellus tai jokin toinen asiakasohjelma on ottanut ohjainistunnon käyttäjälle **{name}**, mikä estää Home Assistantia lähettämästä komentoja.\n\nPaina **Lähetä** saadaksesi ohjainistunnon uudelleen."
+          }
+        },
+        "abort": {
+          "cannot_connect": "Ohjainistuntoa ei voitu muodostaa uudelleen. Tarkista, että Yarbo-tukiasema on tavoitettavissa ja yritä uudelleen.",
+          "unknown": "Ohjainistuntoa uudelleen haettaessa tapahtui odottamaton virhe."
+        }
+      }
+    },
+    "cloud_token_expired": {
+      "title": "Yarbo Cloud -yhteys on vanhentunut",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Uudelleenautentikointi Yarbo Cloudiin",
+            "description": "Yarbo-pilvitunnuksesi käyttäjälle **{name}** on vanhentunut. Paina **Lähetä** avataksesi uudelleentunnistusprosessin ja anna salasanasi uudelleen."
+          }
+        },
+        "abort": {
+          "unknown": "Uudelleentodennusprosessia ei voitu aloittaa."
+        }
+      }
+    }
+  },
+  "services": {
+    "send_command": {
+      "name": "Lähetä raakakomento",
+      "description": "Julkaise robotille mielivaltainen MQTT-komento (vain tehokäyttäjille)."
+    },
+    "start_plan": {
+      "name": "Aloita työsuunnitelma",
+      "description": "Aloita tallennettu työsuunnitelma sen ID:llä"
+    },
+    "pause": {
+      "name": "Keskeytä",
+      "description": "Keskeytä robotin nykyinen työsuunnitelma."
+    },
+    "resume": {
+      "name": "Jatka",
+      "description": "Jatka aiemmin keskeytettyä työsuunnitelmaa."
+    },
+    "return_to_dock": {
+      "name": "Palaa lataustelakkaan",
+      "description": "Lähetä robotti takaisin lataustelakalle."
+    },
+    "set_lights": {
+      "name": "Aseta valot",
+      "description": "Aseta kaikkien seitsemän LED-kanavan kirkkaus samanaikaisesti."
+    },
+    "set_chute_velocity": {
+      "name": "Aseta heittotorven nopeus",
+      "description": "Säädä heittotorven suuntaa ja nopeutta (vain lumilingon pää)."
+    },
+    "manual_drive": {
+      "name": "Manuaalinen käyttö",
+      "description": "Lähetä manuaalisia lineaarisia/kulmanopeuskomentoja."
+    },
+    "go_to_waypoint": {
+      "name": "Siirry reittipisteeseen",
+      "description": "Navigoi tallennettuun reittipisteindeksiin."
+    },
+    "delete_plan": {
+      "name": "Poista suunnitelma",
+      "description": "Poista tallennettu suunnitelma ID:n mukaisesti."
+    },
+    "delete_all_plans": {
+      "name": "Poista kaikki suunnitelmat",
+      "description": "Poista kaikki robotin tallennetut suunnitelmat."
+    }
+  }
+}

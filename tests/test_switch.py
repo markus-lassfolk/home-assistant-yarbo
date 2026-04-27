@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from homeassistant.helpers.entity import EntityCategory
 
-from custom_components.yarbo.const import (
+from custom_components.community_yarbo.const import (
     CONF_ROBOT_NAME,
     CONF_ROBOT_SERIAL,
     HEAD_TYPE_LAWN_MOWER,
@@ -16,7 +16,7 @@ from custom_components.yarbo.const import (
     HEAD_TYPE_LEAF_BLOWER,
     HEAD_TYPE_TRIMMER,
 )
-from custom_components.yarbo.switch import (
+from custom_components.community_yarbo.switch import (
     YarboAutoUpdateSwitch,
     YarboBuzzerSwitch,
     YarboCameraOtaSwitch,
@@ -809,7 +809,7 @@ class TestYarboSoundEnableSwitch:
         assert entity.is_on is False
 
 
-from custom_components.yarbo.switch import YarboBagRecordSwitch  # noqa: E402
+from custom_components.community_yarbo.switch import YarboBagRecordSwitch  # noqa: E402
 
 
 class TestYarboBagRecordSwitch:

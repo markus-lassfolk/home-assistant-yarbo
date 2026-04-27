@@ -7,12 +7,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.core import HomeAssistant
 
-from custom_components.yarbo.const import (
+from custom_components.community_yarbo.const import (
     CONF_CLOUD_REFRESH_TOKEN,
     CONF_CLOUD_USERNAME,
     CONF_ROBOT_NAME,
     CONF_ROBOT_SERIAL,
 )
+
+_YARBO_CLOUD_CLIENT = "custom_components.community_yarbo.update.YarboCloudClient"
 
 
 def _make_mock_cloud_client(refresh_token: str = "rt_secret_token") -> MagicMock:
@@ -34,7 +36,7 @@ class TestCloudConfigFlowStep:
 
     def _make_flow(self, hass: HomeAssistant) -> Any:
         """Create a config flow instance with pre-filled pending data."""
-        from custom_components.yarbo.config_flow import YarboConfigFlow
+        from custom_components.community_yarbo.config_flow import YarboConfigFlow
 
         flow = YarboConfigFlow()
         flow.hass = hass
@@ -82,7 +84,7 @@ class TestCloudConfigFlowStep:
         mock_client = _make_mock_cloud_client(refresh_token="rt_secret_token")
 
         with patch(
-            "custom_components.yarbo.config_flow.YarboCloudClient",
+            "custom_components.community_yarbo.config_flow.YarboCloudClient",
             return_value=mock_client,
         ):
             result = await flow.async_step_cloud(
@@ -106,7 +108,7 @@ class TestCloudConfigFlowStep:
         mock_client.connect = AsyncMock(side_effect=Exception("Invalid credentials"))
 
         with patch(
-            "custom_components.yarbo.config_flow.YarboCloudClient",
+            "custom_components.community_yarbo.config_flow.YarboCloudClient",
             return_value=mock_client,
         ):
             result = await flow.async_step_cloud(
@@ -124,7 +126,7 @@ class TestReauthFlow:
 
     def _make_reauth_flow(self, hass: HomeAssistant) -> tuple[Any, MagicMock]:
         """Create a config flow in reauth context."""
-        from custom_components.yarbo.config_flow import YarboConfigFlow
+        from custom_components.community_yarbo.config_flow import YarboConfigFlow
 
         flow = YarboConfigFlow()
         flow.hass = hass
@@ -158,7 +160,7 @@ class TestReauthFlow:
         mock_client = _make_mock_cloud_client(refresh_token="new_token")
 
         with patch(
-            "custom_components.yarbo.config_flow.YarboCloudClient",
+            "custom_components.community_yarbo.config_flow.YarboCloudClient",
             return_value=mock_client,
         ):
             result = await flow.async_step_reauth_confirm(
@@ -182,7 +184,7 @@ class TestReauthFlow:
         mock_client.connect = AsyncMock(side_effect=Exception("Auth failed"))
 
         with patch(
-            "custom_components.yarbo.config_flow.YarboCloudClient",
+            "custom_components.community_yarbo.config_flow.YarboCloudClient",
             return_value=mock_client,
         ):
             result = await flow.async_step_reauth_confirm(
@@ -201,7 +203,7 @@ class TestFirmwareUpdate:
         self, hass: HomeAssistant
     ) -> None:
         """latest_version returns installed_version (None) when cloud is not configured."""
-        from custom_components.yarbo.update import YarboFirmwareUpdate
+        from custom_components.community_yarbo.update import YarboFirmwareUpdate
 
         coordinator = MagicMock()
         coordinator.entry = MagicMock()
@@ -216,7 +218,7 @@ class TestFirmwareUpdate:
 
     async def test_latest_version_falls_back_to_installed(self, hass: HomeAssistant) -> None:
         """When no cloud version cached, latest_version mirrors installed_version."""
-        from custom_components.yarbo.update import YarboFirmwareUpdate
+        from custom_components.community_yarbo.update import YarboFirmwareUpdate
 
         coordinator = MagicMock()
         coordinator.entry = MagicMock()
@@ -231,7 +233,7 @@ class TestFirmwareUpdate:
 
     async def test_async_update_skipped_when_cloud_disabled(self, hass: HomeAssistant) -> None:
         """async_update does not call cloud API when cloud_enabled is False."""
-        from custom_components.yarbo.update import YarboFirmwareUpdate
+        from custom_components.community_yarbo.update import YarboFirmwareUpdate
 
         coordinator = MagicMock()
         coordinator.entry = MagicMock()
@@ -240,13 +242,13 @@ class TestFirmwareUpdate:
         coordinator.data = None
 
         entity = YarboFirmwareUpdate(coordinator)
-        with patch("custom_components.yarbo.update.YarboCloudClient") as mock_cloud_cls:
+        with patch(_YARBO_CLOUD_CLIENT) as mock_cloud_cls:
             await entity.async_update()
             mock_cloud_cls.assert_not_called()
 
     async def test_async_update_skipped_when_no_token(self, hass: HomeAssistant) -> None:
         """async_update does not call cloud API when no refresh_token is stored."""
-        from custom_components.yarbo.update import YarboFirmwareUpdate
+        from custom_components.community_yarbo.update import YarboFirmwareUpdate
 
         coordinator = MagicMock()
         coordinator.entry = MagicMock()
@@ -255,14 +257,14 @@ class TestFirmwareUpdate:
         coordinator.data = None
 
         entity = YarboFirmwareUpdate(coordinator)
-        with patch("custom_components.yarbo.update.YarboCloudClient") as mock_cloud_cls:
+        with patch(_YARBO_CLOUD_CLIENT) as mock_cloud_cls:
             await entity.async_update()
             mock_cloud_cls.assert_not_called()
 
     async def test_async_update_fetches_latest_version(self, hass: HomeAssistant) -> None:
         """async_update fetches and stores latest firmware version from cloud."""
 
-        from custom_components.yarbo.update import YarboFirmwareUpdate
+        from custom_components.community_yarbo.update import YarboFirmwareUpdate
 
         coordinator = MagicMock()
         coordinator.entry = MagicMock()
@@ -282,7 +284,7 @@ class TestFirmwareUpdate:
             return_value={"firmwareVersion": "3.11.0", "appVersion": "3.16.3"}
         )
 
-        with patch("custom_components.yarbo.update.YarboCloudClient", return_value=mock_client):
+        with patch(_YARBO_CLOUD_CLIENT, return_value=mock_client):
             await entity.async_update()
 
         assert entity._latest_version == "3.11.0"

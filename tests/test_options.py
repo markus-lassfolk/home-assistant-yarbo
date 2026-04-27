@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from custom_components.yarbo.const import (
+from custom_components.community_yarbo.const import (
     DEFAULT_ACTIVITY_PERSONALITY,
     DEFAULT_AUTO_CONTROLLER,
     DEFAULT_CLOUD_ENABLED,
@@ -22,13 +22,13 @@ from custom_components.yarbo.const import (
     POLL_INTERVAL_MAX,
     POLL_INTERVAL_MIN,
 )
-from custom_components.yarbo.coordinator import YarboDataCoordinator
+from custom_components.community_yarbo.coordinator import YarboDataCoordinator
 
 
 def _make_coordinator(options: dict | None = None) -> YarboDataCoordinator:
     """Build a minimal coordinator for options tests."""
     with patch(
-        "custom_components.yarbo.coordinator.DataUpdateCoordinator.__init__",
+        "custom_components.community_yarbo.coordinator.DataUpdateCoordinator.__init__",
         return_value=None,
     ):
         coord = object.__new__(YarboDataCoordinator)

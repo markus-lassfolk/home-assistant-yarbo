@@ -8,13 +8,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from homeassistant.exceptions import HomeAssistantError
 
-from custom_components.yarbo.const import (
+from custom_components.community_yarbo.const import (
     CONF_ROBOT_NAME,
     CONF_ROBOT_SERIAL,
     HEAD_TYPE_LAWN_MOWER,
     HEAD_TYPE_SNOW_BLOWER,
 )
-from custom_components.yarbo.select import (
+from custom_components.community_yarbo.select import (
     YarboPlanSelect,
     YarboSnowPushDirectionSelect,
     YarboTurnTypeSelect,

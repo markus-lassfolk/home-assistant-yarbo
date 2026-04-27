@@ -219,7 +219,7 @@ async def handle_send_command(call: ServiceCall) -> None:
 ## File Structure
 
 ```
-custom_components/yarbo/
+custom_components/community_yarbo/
 ├── __init__.py              # Integration setup, service registration
 ├── manifest.json            # Integration metadata, requirements
 ├── config_flow.py           # UI setup wizard

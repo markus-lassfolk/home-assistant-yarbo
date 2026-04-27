@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=82.0.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -36,7 +36,7 @@ ignore = [
 "tests/conftest.py" = ["E402"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["custom_components.yarbo"]
+known-first-party = ["custom_components.community_yarbo"]
 
 [tool.mypy]
 python_version = "3.13"
@@ -50,7 +50,7 @@ module = ["homeassistant.*", "yarbo.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["custom_components.yarbo.*"]
+module = ["custom_components.community_yarbo.*"]
 disable_error_code = ["return-value", "attr-defined", "arg-type"]
 
 [tool.pytest.ini_options]
@@ -60,7 +60,7 @@ asyncio_default_fixture_loop_scope = "function"
 timeout_func_only = true
 
 [tool.coverage.run]
-source = ["custom_components/yarbo"]
+source = ["custom_components/community_yarbo"]
 omit = ["tests/*"]
 
 [tool.coverage.report]

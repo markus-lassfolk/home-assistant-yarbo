@@ -35,14 +35,14 @@ Local-first Home Assistant integration for [Yarbo](https://www.yarbo.com/) — t
 
 1. **HACS → Integrations → ⋮ → Custom repositories**
 2. Add `https://github.com/markus-lassfolk/home-assistant-yarbo` → category **Integration**
-3. Search **Yarbo** → **Download**
+3. Search **Community Yarbo** → **Download**
 4. Restart Home Assistant
 5. A) Wait for auto discovery to find your device. 1-5 minutes. OR 
-5. B) **Settings → Devices & Services → Add Integration → Yarbo**
+5. B) **Settings → Devices & Services → Add Integration → Community Yarbo**
 
 ### Manual
 
-Copy `custom_components/yarbo/` to your HA `config/custom_components/yarbo/` and restart.
+Copy `custom_components/community_yarbo/` to your HA `config/custom_components/community_yarbo/` and restart.
 
 ---
 
@@ -116,19 +116,19 @@ RTK status, heading, chute angle, rain sensor, satellite count, charging power, 
 
 | Service | Description | Milestone |
 |---|---|---|
-| `yarbo.send_command` | Send any raw MQTT command | v0.1.0 |
-| `yarbo.pause` | Pause current job | v0.2.0 |
-| `yarbo.resume` | Resume paused job | v0.2.0 |
-| `yarbo.return_to_dock` | Return to dock | v0.2.0 |
-| `yarbo.set_lights` | Set all 7 LED channels | v0.2.0 |
-| `yarbo.set_chute_velocity` | Snow chute control | v0.2.0 |
-| `yarbo.start_plan` | Start a saved work plan | v0.3.0 |
+| `community_yarbo.send_command` | Send any raw MQTT command | v0.1.0 |
+| `community_yarbo.pause` | Pause current job | v0.2.0 |
+| `community_yarbo.resume` | Resume paused job | v0.2.0 |
+| `community_yarbo.return_to_dock` | Return to dock | v0.2.0 |
+| `community_yarbo.set_lights` | Set all 7 LED channels | v0.2.0 |
+| `community_yarbo.set_chute_velocity` | Snow chute control | v0.2.0 |
+| `community_yarbo.start_plan` | Start a saved work plan | v0.3.0 |
 
 ---
 
 ## Blueprints
 
-Four automation blueprints ship with the integration (available in `blueprints/automation/yarbo/`):
+Four automation blueprints ship with the integration (available in `blueprints/automation/community_yarbo/`):
 
 - **Rain Pause** — Pause and dock on rain, resume after dry delay
 - **Snow Deployment** — Start snow clearing plan when snowfall threshold is exceeded

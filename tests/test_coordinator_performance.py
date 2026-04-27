@@ -6,19 +6,22 @@ hammer the robot with unbounded requests, or leak when under load.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from custom_components.yarbo.coordinator import YarboDataCoordinator
-from custom_components.yarbo.diagnostics import async_get_config_entry_diagnostics
+from custom_components.community_yarbo.const import DOMAIN
+from custom_components.community_yarbo.coordinator import YarboDataCoordinator
+from custom_components.community_yarbo.diagnostics import async_get_config_entry_diagnostics
 
 
 @pytest.fixture
-def coordinator_with_mock_listeners():
+def coordinator_with_mock_listeners() -> Iterator[Any]:
     """Coordinator with _listeners populated (for listener_count diagnostics)."""
     with patch(
-        "custom_components.yarbo.coordinator.DataUpdateCoordinator.__init__",
+        "custom_components.community_yarbo.coordinator.DataUpdateCoordinator.__init__",
         return_value=None,
     ):
         coord = object.__new__(YarboDataCoordinator)
@@ -50,12 +53,12 @@ def coordinator_with_mock_listeners():
 
 @pytest.mark.asyncio
 async def test_diagnostics_includes_listener_count_and_poll_interval(
-    coordinator_with_mock_listeners,
+    coordinator_with_mock_listeners: Any,
 ) -> None:
     """Diagnostics should expose listener_count and poll_interval for performance debugging."""
     hass = MagicMock()
     hass.data = {
-        "yarbo": {
+        DOMAIN: {
             coordinator_with_mock_listeners._entry.entry_id: {
                 "coordinator": coordinator_with_mock_listeners,
                 "client": coordinator_with_mock_listeners.client,
@@ -70,5 +73,3 @@ async def test_diagnostics_includes_listener_count_and_poll_interval(
     assert diag["coordinator"].get("listener_count") == 45
     assert diag["coordinator"].get("poll_interval") == 10
     assert diag["coordinator"].get("throttle_interval") == 1.0
-
-

@@ -135,7 +135,7 @@ Possible causes:
 
 **Q: Can I run the robot without a work plan (manual drive)?**
 
-The integration includes the `yarbo.manual_drive` service for velocity commands. Use it carefully — the robot will continue driving until you send a stop command.
+The integration includes the `community_yarbo.manual_drive` service for velocity commands. Use it carefully — the robot will continue driving until you send a stop command.
 
 ---
 
@@ -149,7 +149,7 @@ No. Work plan creation and map editing are only available in the Yarbo app. The 
 
 **Q: Can I schedule the robot from Home Assistant instead of using the Yarbo app scheduler?**
 
-Yes. Use time-based or calendar-based automations to call `yarbo.start_plan` or press the Work Plan select entity. See [Automations](automations.md) for examples.
+Yes. Use time-based or calendar-based automations to call `community_yarbo.start_plan` or press the Work Plan select entity. See [Automations](automations.md) for examples.
 
 Note: Schedules created in the Yarbo app are stored on the robot and run independently of Home Assistant. If you want HA to be in charge of scheduling, disable the in-app schedules.
 
@@ -168,10 +168,10 @@ automation:
       to: "on"
   condition:
     - condition: state
-      entity_id: sensor.yarbo_allgott_activity
+      entity_id: sensor.community_yarbo_allgott_activity
       state: "working"
   action:
-    - service: yarbo.pause
+    - service: community_yarbo.pause
       data:
         device_id: "YOUR_DEVICE_ID"
 ```

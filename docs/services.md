@@ -11,14 +11,14 @@ description: "Home Assistant services provided by the Yarbo integration"
 > **Disclaimer:** This is an independent community project. NOT affiliated with Yarbo or its manufacturer.
 {: .warning }
 
-All services are registered under the `yarbo` domain. They require a `device_id` targeting a Yarbo device.
+All services are registered under the `community_yarbo` domain. They require a `device_id` targeting a Community Yarbo device.
 
 1. TOC
 {:toc}
 
 ---
 
-## yarbo.send_command
+## community_yarbo.send_command
 
 Send a raw MQTT command to the robot. For advanced users who want to send commands not yet exposed as entities.
 
@@ -36,7 +36,7 @@ Send a raw MQTT command to the robot. For advanced users who want to send comman
 **Example — read all work plans:**
 
 ```yaml
-service: yarbo.send_command
+service: community_yarbo.send_command
 data:
   device_id: "YOUR_DEVICE_ID"
   command: read_all_plan
@@ -46,7 +46,7 @@ data:
 **Example — set blade speed:**
 
 ```yaml
-service: yarbo.send_command
+service: community_yarbo.send_command
 data:
   device_id: "YOUR_DEVICE_ID"
   command: set_blade_speed
@@ -57,7 +57,7 @@ data:
 **Example — set chute angle (snow blower):**
 
 ```yaml
-service: yarbo.send_command
+service: community_yarbo.send_command
 data:
   device_id: "YOUR_DEVICE_ID"
   command: cmd_chute
@@ -67,7 +67,7 @@ data:
 
 ---
 
-## yarbo.start_plan
+## community_yarbo.start_plan
 
 Start a saved work plan by its ID.
 
@@ -82,7 +82,7 @@ Start a saved work plan by its ID.
 **Example — start a plan from the beginning:**
 
 ```yaml
-service: yarbo.start_plan
+service: community_yarbo.start_plan
 data:
   device_id: "YOUR_DEVICE_ID"
   plan_id: "1"
@@ -91,7 +91,7 @@ data:
 **Example — resume a plan from 50%:**
 
 ```yaml
-service: yarbo.start_plan
+service: community_yarbo.start_plan
 data:
   device_id: "YOUR_DEVICE_ID"
   plan_id: "1"
@@ -108,7 +108,7 @@ automation:
       event: start
       entity_id: calendar.mowing_schedule
   action:
-    - service: yarbo.start_plan
+    - service: community_yarbo.start_plan
       data:
         device_id: "YOUR_DEVICE_ID"
         plan_id: "1"
@@ -116,7 +116,7 @@ automation:
 
 ---
 
-## yarbo.pause
+## community_yarbo.pause
 
 Pause the robot's current work plan.
 
@@ -129,14 +129,14 @@ Pause the robot's current work plan.
 **Example:**
 
 ```yaml
-service: yarbo.pause
+service: community_yarbo.pause
 data:
   device_id: "YOUR_DEVICE_ID"
 ```
 
 ---
 
-## yarbo.resume
+## community_yarbo.resume
 
 Resume a previously paused work plan.
 
@@ -149,14 +149,14 @@ Resume a previously paused work plan.
 **Example:**
 
 ```yaml
-service: yarbo.resume
+service: community_yarbo.resume
 data:
   device_id: "YOUR_DEVICE_ID"
 ```
 
 ---
 
-## yarbo.return_to_dock
+## community_yarbo.return_to_dock
 
 Send the robot back to its charging dock.
 
@@ -169,7 +169,7 @@ Send the robot back to its charging dock.
 **Example:**
 
 ```yaml
-service: yarbo.return_to_dock
+service: community_yarbo.return_to_dock
 data:
   device_id: "YOUR_DEVICE_ID"
 ```
@@ -181,17 +181,17 @@ automation:
   alias: "Return Yarbo to dock on low battery"
   trigger:
     - platform: numeric_state
-      entity_id: sensor.yarbo_allgott_battery
+      entity_id: sensor.community_yarbo_allgott_battery
       below: 20
   action:
-    - service: yarbo.return_to_dock
+    - service: community_yarbo.return_to_dock
       data:
         device_id: "YOUR_DEVICE_ID"
 ```
 
 ---
 
-## yarbo.set_lights
+## community_yarbo.set_lights
 
 Set brightness for all 7 LED channels simultaneously or individually. Useful for automations that change the light pattern.
 
@@ -212,7 +212,7 @@ Set brightness for all 7 LED channels simultaneously or individually. Useful for
 **Example — turn all lights on at full brightness:**
 
 ```yaml
-service: yarbo.set_lights
+service: community_yarbo.set_lights
 data:
   device_id: "YOUR_DEVICE_ID"
   brightness: 255
@@ -221,7 +221,7 @@ data:
 **Example — turn all lights off:**
 
 ```yaml
-service: yarbo.set_lights
+service: community_yarbo.set_lights
 data:
   device_id: "YOUR_DEVICE_ID"
   brightness: 0
@@ -230,7 +230,7 @@ data:
 **Example — custom channel values:**
 
 ```yaml
-service: yarbo.set_lights
+service: community_yarbo.set_lights
 data:
   device_id: "YOUR_DEVICE_ID"
   led_head: 255
@@ -244,7 +244,7 @@ data:
 
 ---
 
-## yarbo.set_chute_velocity
+## community_yarbo.set_chute_velocity
 
 Control the snow chute direction and rotation speed (Snow Blower head only).
 
@@ -258,7 +258,7 @@ Control the snow chute direction and rotation speed (Snow Blower head only).
 **Example — rotate chute to the right:**
 
 ```yaml
-service: yarbo.set_chute_velocity
+service: community_yarbo.set_chute_velocity
 data:
   device_id: "YOUR_DEVICE_ID"
   velocity: 1000
@@ -267,7 +267,7 @@ data:
 **Example — stop chute rotation:**
 
 ```yaml
-service: yarbo.set_chute_velocity
+service: community_yarbo.set_chute_velocity
 data:
   device_id: "YOUR_DEVICE_ID"
   velocity: 0
@@ -275,7 +275,7 @@ data:
 
 ---
 
-## yarbo.manual_drive
+## community_yarbo.manual_drive
 
 Send manual velocity commands to drive the robot. Use with caution in open areas.
 
@@ -293,7 +293,7 @@ Send manual velocity commands to drive the robot. Use with caution in open areas
 **Example — drive forward slowly:**
 
 ```yaml
-service: yarbo.manual_drive
+service: community_yarbo.manual_drive
 data:
   device_id: "YOUR_DEVICE_ID"
   linear: 0.3
@@ -303,7 +303,7 @@ data:
 **Example — stop:**
 
 ```yaml
-service: yarbo.manual_drive
+service: community_yarbo.manual_drive
 data:
   device_id: "YOUR_DEVICE_ID"
   linear: 0.0
@@ -312,7 +312,7 @@ data:
 
 ---
 
-## yarbo.go_to_waypoint
+## community_yarbo.go_to_waypoint
 
 Navigate the robot to a stored waypoint by index.
 
@@ -326,7 +326,7 @@ Navigate the robot to a stored waypoint by index.
 **Example:**
 
 ```yaml
-service: yarbo.go_to_waypoint
+service: community_yarbo.go_to_waypoint
 data:
   device_id: "YOUR_DEVICE_ID"
   index: 0
@@ -334,7 +334,7 @@ data:
 
 ---
 
-## yarbo.delete_plan
+## community_yarbo.delete_plan
 
 Delete a single saved work plan by ID.
 
@@ -351,7 +351,7 @@ Delete a single saved work plan by ID.
 **Example:**
 
 ```yaml
-service: yarbo.delete_plan
+service: community_yarbo.delete_plan
 data:
   device_id: "YOUR_DEVICE_ID"
   plan_id: "1"
@@ -359,7 +359,7 @@ data:
 
 ---
 
-## yarbo.delete_all_plans
+## community_yarbo.delete_all_plans
 
 Delete all saved work plans on the robot.
 
@@ -375,7 +375,7 @@ Delete all saved work plans on the robot.
 **Example:**
 
 ```yaml
-service: yarbo.delete_all_plans
+service: community_yarbo.delete_all_plans
 data:
   device_id: "YOUR_DEVICE_ID"
 ```

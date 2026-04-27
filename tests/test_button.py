@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from homeassistant.helpers.entity import EntityCategory
 
-from custom_components.yarbo.button import (
+from custom_components.community_yarbo.button import (
     YarboEmergencyUnlockButton,
     YarboManualStopButton,
     YarboPlaySoundButton,
@@ -18,7 +18,7 @@ from custom_components.yarbo.button import (
     YarboShutdownButton,
     YarboStartHotspotButton,
 )
-from custom_components.yarbo.const import CONF_ROBOT_NAME, CONF_ROBOT_SERIAL
+from custom_components.community_yarbo.const import CONF_ROBOT_NAME, CONF_ROBOT_SERIAL
 
 
 def _make_coordinator() -> MagicMock:
@@ -279,7 +279,7 @@ class TestYarboSaveMapBackupButton:
 
 
 # ---- imports for new entities ----
-from custom_components.yarbo.button import (  # noqa: E402
+from custom_components.community_yarbo.button import (  # noqa: E402
     YarboCameraCalibrationButton,
     YarboCheckCameraStatusButton,
     YarboFirmwareUpdateLaterButton,

@@ -9,9 +9,9 @@
 | Config flow | DHCP discovery, manual IP entry, MQTT validation, naming step |
 | Core entities | Battery sensor, activity sensor, charging binary_sensor, problem binary_sensor, head_type sensor |
 | Control entities | Beep button, return_to_dock button, pause button, resume button, stop button |
-| Events | `event` entity, `yarbo_job_started`, `yarbo_job_completed`, `yarbo_job_paused`, `yarbo_error` |
+| Events | `event` entity, `community_yarbo_job_started`, `community_yarbo_job_completed`, `community_yarbo_job_paused`, `community_yarbo_error` |
 | Diagnostics | Robot SN, firmware version, MQTT connected, last seen, signal strength |
-| Services | `yarbo.send_command`, `yarbo.pause`, `yarbo.resume`, `yarbo.return_to_dock` |
+| Services | `community_yarbo.send_command`, `community_yarbo.pause`, `community_yarbo.resume`, `community_yarbo.return_to_dock` |
 | Testing | 40% coverage target |
 
 ## v0.2.0 — Full Telemetry
@@ -24,8 +24,8 @@
 | Light entities | Group light entity, 7 individual LED channel lights |
 | Switch entities | Buzzer switch, planning binary_sensor |
 | Number entities | Chute velocity (-2000 to 2000) |
-| Services | `yarbo.set_lights`, `yarbo.set_chute_velocity` |
-| Events | `yarbo_head_changed`, `yarbo_low_battery`, `yarbo_controller_lost` |
+| Services | `community_yarbo.set_lights`, `community_yarbo.set_chute_velocity` |
+| Events | `community_yarbo_head_changed`, `community_yarbo_low_battery`, `community_yarbo_controller_lost` |
 | Blueprints | Low Battery Notification, Job Complete Notification |
 | Options flow | `telemetry_throttle`, `auto_controller` |
 | Testing | 55% coverage target |
@@ -36,7 +36,7 @@
 
 | Area | Deliverables |
 |------|-------------|
-| Services | `yarbo.start_plan` |
+| Services | `community_yarbo.start_plan` |
 | Blueprints | Pause on Rain, Snow Deployment (all 4 blueprints complete) |
 | Cloud auth | Optional cloud credentials in config flow and options flow |
 | Options flow | `cloud_enabled` option |

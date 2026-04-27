@@ -1,0 +1,697 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Połącz z Yarbo",
+        "description": "Proszę podać adres IP stacji bazowej Yarbo (Data Center). Integracja połączy się z lokalnym brokerem MQTT na porcie 1883.",
+        "data": {
+          "broker_host": "Adres IP stacji bazowej",
+          "broker_port": "Port MQTT"
+        }
+      },
+      "manual": {
+        "title": "Wprowadź dane połączenia",
+        "description": "W sieci nie znaleziono żadnych urządzeń Yarbo. Proszę wprowadzić adres IP stacji bazowej oraz port MQTT ręcznie.",
+        "data": {
+          "broker_host": "Adres IP stacji bazowej",
+          "broker_port": "Port MQTT"
+        }
+      },
+      "confirm": {
+        "title": "Znaleziono Yarbo",
+        "description": "Znaleziono **Yarbo {name}** w sieci pod adresem {host}. Kliknij Wyślij, aby dodać tego robota."
+      },
+      "select_endpoint": {
+        "title": "Wybierz punkt końcowy MQTT",
+        "description": "Znaleziono **{count}** ścieżek do Twojej kosiarki Yarbo (kolejność od wykrycia: Główna, następnie Zapasowa). Obie łączą się z tym samym brokerem. Failover wypróbuje następną w tej kolejności, gdy obecna będzie niedostępna.",
+        "data": {
+          "selected_endpoint": "Punkt końcowy"
+        }
+      },
+      "mqtt_test": {
+        "title": "Łączenie z Yarbo",
+        "description": "Testowanie połączenia MQTT i oczekiwanie na telemetrię od robota..."
+      },
+      "reconfigure": {
+        "title": "Zrekonfiguruj Yarbo",
+        "description": "Zaktualizuj adres IP stacji bazowej Yarbo.",
+        "data": {
+          "broker_host": "Adres IP stacji bazowej",
+          "broker_port": "Port MQTT"
+        }
+      },
+      "name": {
+        "title": "Nazwij swojego robota",
+        "description": "Proszę wybrać nazwę dla robota Yarbo. Będzie ona używana dla wszystkich nazw encji.",
+        "data": {
+          "robot_name": "Nazwa robota"
+        }
+      },
+      "cloud": {
+        "title": "Funkcje chmury (opcjonalne)",
+        "description": "Można opcjonalnie połączyć się z chmurą Yarbo w celu pobierania aktualizacji oprogramowania układowego (firmware) i informacji o urządzeniu. Nie jest to wymagane do sterowania lokalnego. Pozostaw puste, aby pominąć.",
+        "data": {
+          "cloud_username": "E-mail konta Yarbo",
+          "cloud_password": "Hasło"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ponowna autoryzacja Yarbo Cloud",
+        "description": "Sesja chmury Yarbo dla **{username}** wygasła. Proszę wprowadzić hasło, aby połączyć się ponownie.",
+        "data": {
+          "cloud_password": "Hasło"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Ten robot jest już skonfigurowany.",
+      "cannot_connect": "Nie można połączyć się z brokerem MQTT pod adresem {host}:1883. Czy stacja bazowa jest włączona i osiągalna?",
+      "no_telemetry": "Połączono, ale nie otrzymano telemetrii robota w ciągu 10 sekund. Czy robot jest włączony?",
+      "decode_error": "Otrzymano dane, ale nie można ich zdekodować. Firmware może być niekompatybilne.",
+      "not_implemented": "Proces konfiguracji nie został jeszcze zaimplementowany.",
+      "wrong_device": "Wykryte urządzenie nie pasuje do tego robota Yarbo.",
+      "reconfigure_successful": "Rekonfiguracja zakończona sukcesem.",
+      "reconfigure_failed": "Rekonfiguracja nie powiodła się.",
+      "reauth_successful": "Ponowna autoryzacja powiodła się."
+    },
+    "error": {
+      "cannot_connect": "Nie można połączyć",
+      "no_telemetry": "Nie otrzymano telemetrii w ciągu 30 sekund. Upewnij się, że robot jest włączony i znajduje się w pobliżu stacji bazowej, a następnie spróbuj ponownie.",
+      "decode_error": "Błąd dekodowania",
+      "cloud_auth_failed": "Autoryzacja w chmurze nie powiodła się — sprawdź e-mail i hasło",
+      "cloud_not_available": "Klient chmury niedostępny — zaktualizuj python-yarbo"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje Yarbo",
+        "description": "Skonfiguruj zachowanie integracji. Zmiany wchodzą w życie natychmiast (nie jest wymagany restart).",
+        "data": {
+          "telemetry_throttle": "Interwał aktualizacji telemetrii (1–10 sekund)",
+          "auto_controller": "Automatycznie przejmuj kontrolę przed wysłaniem komend",
+          "cloud_enabled": "Włącz funkcje chmury",
+          "activity_personality": "Zabawne opisy aktywności (tryb emoji)",
+          "debug_logging": "Włącz logowanie debugowania",
+          "mqtt_recording": "Zapisuj ruch MQTT do diagnostyki",
+          "error_reporting": "Włącz anonimowe raportowanie awarii (pomaga ulepszyć integrację)"
+        },
+        "data_description": {
+          "telemetry_throttle": "Jak często aktualizacje telemetrii są przesyłane do Home Assistant. Niższe wartości oznaczają częstsze aktualizacje, ale większe obciążenie rejestratora.",
+          "activity_personality": "Po włączeniu czujnik aktywności zawiera zabawne opisy z emoji jako dodatkowe atrybuty.",
+          "debug_logging": "Włącza szczegółowe logowanie dla wszystkich komponentów Yarbo. Przydatne przy rozwiązywaniu problemów.",
+          "mqtt_recording": "Zapisuje wszystkie komunikaty MQTT do pliku (maks. 10 MB). Podziel się nim z programistami, aby pomóc rozwiązać problemy z Twoim oprogramowaniem/głowicą."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery": {
+        "name": "Bateria"
+      },
+      "activity": {
+        "name": "Aktywność",
+        "state": {
+          "charging": "Ładowanie",
+          "idle": "Bezczynny",
+          "working": "Pracuje",
+          "paused": "Wstrzymany",
+          "returning": "Powrót do stacji",
+          "error": "Błąd"
+        }
+      },
+      "head_type": {
+        "name": "Typ głowicy",
+        "state": {
+          "snow_blower": "Odśnieżarka",
+          "lawn_mower": "Kosiarka",
+          "lawn_mower_pro": "Kosiarka Pro",
+          "leaf_blower": "Dmuchawa do liści",
+          "smart_cover": "Inteligentna osłona",
+          "trimmer": "Podkaszarka",
+          "none": "Brak"
+        }
+      },
+      "rtk_status": {
+        "name": "Status RTK",
+        "state": {
+          "invalid": "Brak poprawki",
+          "gps": "GPS",
+          "dgps": "DGPS",
+          "rtk_float": "RTK float",
+          "rtk_fixed": "RTK fixed",
+          "unknown": "Nieznany"
+        }
+      },
+      "heading": {
+        "name": "Kierunek"
+      },
+      "chute_angle": {
+        "name": "Kąt wyrzutni"
+      },
+      "rain_sensor": {
+        "name": "Czujnik deszczu"
+      },
+      "connection": {
+        "name": "Połączenie"
+      },
+      "wifi_network": {
+        "name": "Sieć WiFi"
+      },
+      "error_code": {
+        "name": "Kod błędu"
+      },
+      "head_serial": {
+        "name": "Numer seryjny głowicy"
+      },
+      "battery_temp_error": {
+        "name": "Błąd temperatury baterii"
+      },
+      "base_station_status": {
+        "name": "Status stacji bazowej"
+      },
+      "satellite_count": {
+        "name": "Liczba satelitów"
+      },
+      "gps_fix_quality": {
+        "name": "Jakość poprawki GPS"
+      },
+      "gps_hdop": {
+        "name": "GPS HDOP"
+      },
+      "gps_altitude": {
+        "name": "Wysokość GPS"
+      },
+      "charging_power": {
+        "name": "Moc ładowania"
+      },
+      "battery_cell_temp_min": {
+        "name": "Minimalna temp. ogniwa baterii"
+      },
+      "battery_cell_temp_max": {
+        "name": "Maksymalna temp. ogniwa baterii"
+      },
+      "battery_cell_temp_avg": {
+        "name": "Średnia temp. ogniwa baterii"
+      },
+      "odometer": {
+        "name": "Drogomierz"
+      },
+      "wireless_charge_state": {
+        "name": "Stan ładowania bezprzewodowego"
+      },
+      "wireless_charge_error": {
+        "name": "Błąd ładowania bezprzewodowego"
+      },
+      "odom_confidence": {
+        "name": "Pewność odometrii"
+      },
+      "odom_x": {
+        "name": "Odometria X"
+      },
+      "odom_y": {
+        "name": "Odometria Y"
+      },
+      "odom_phi": {
+        "name": "Odometria phi"
+      },
+      "rtcm_age": {
+        "name": "Wiek RTCM"
+      },
+      "rtcm_source_type": {
+        "name": "Typ źródła RTCM"
+      },
+      "charge_voltage": {
+        "name": "Napięcie ładowania"
+      },
+      "charge_current": {
+        "name": "Prąd ładowania"
+      },
+      "mqtt_age": {
+        "name": "Wiek wiadomości MQTT"
+      },
+      "heading_dop": {
+        "name": "DOP kursu"
+      },
+      "heading_status": {
+        "name": "Status kierunku"
+      },
+      "antenna_distance": {
+        "name": "Odległość anteny"
+      },
+      "chute_steering_info": {
+        "name": "Informacje o sterowaniu wyrzutnią"
+      },
+      "nav_sensor_front_right": {
+        "name": "Czujnik nawigacji prawy przód"
+      },
+      "nav_sensor_rear_right": {
+        "name": "Czujnik nawigacji prawy tył"
+      },
+      "head_gyro_pitch": {
+        "name": "Kąt pochylenia żyroskopu głowicy"
+      },
+      "head_gyro_roll": {
+        "name": "Kąt przechylenia żyroskopu głowicy"
+      },
+      "machine_controller": {
+        "name": "Kontroler maszyny"
+      },
+      "plan_remaining_time": {
+        "name": "Pozostały czas planu"
+      },
+      "route_priority_hg0": {
+        "name": "Priorytet trasy HG0"
+      },
+      "route_priority_wlan0": {
+        "name": "Priorytet trasy WLAN0"
+      },
+      "route_priority_wwan0": {
+        "name": "Priorytet trasy WWAN0"
+      },
+      "ultrasonic_left_front": {
+        "name": "Ultradźwiękowy lewy przód"
+      },
+      "ultrasonic_middle": {
+        "name": "Ultradźwiękowy środek"
+      },
+      "ultrasonic_right_front": {
+        "name": "Ultradźwiękowy prawy przód"
+      },
+      "schedule_count": {
+        "name": "Liczba harmonogramów"
+      },
+      "body_current": {
+        "name": "Prąd korpusu"
+      },
+      "head_current": {
+        "name": "Prąd głowicy"
+      },
+      "speed": {
+        "name": "Prędkość"
+      },
+      "product_code": {
+        "name": "Kod produktu"
+      },
+      "hub_info": {
+        "name": "Informacje o hubie"
+      },
+      "recharge_point": {
+        "name": "Punkt ładowania"
+      },
+      "wifi_list": {
+        "name": "Lista WiFi"
+      },
+      "map_backup_count": {
+        "name": "Liczba kopii zapasowych map"
+      },
+      "clean_area_count": {
+        "name": "Liczba oczyszczonych obszarów"
+      },
+      "motor_temp": {
+        "name": "Temperatura silnika"
+      },
+      "last_seen": {
+        "name": "Ostatnio widziany"
+      },
+      "saved_wifi_list": {
+        "name": "Zapisane sieci WiFi"
+      }
+    },
+    "binary_sensor": {
+      "charging": {
+        "name": "Ładowanie"
+      },
+      "problem": {
+        "name": "Usterka"
+      },
+      "planning": {
+        "name": "Planowanie aktywne"
+      },
+      "planning_active": {
+        "name": "Planowanie aktywne"
+      },
+      "returning_to_charge": {
+        "name": "Powrót do ładowania"
+      },
+      "going_to_start": {
+        "name": "Powrót na start"
+      },
+      "follow_mode": {
+        "name": "Tryb podążania"
+      },
+      "planning_paused": {
+        "name": "Planowanie wstrzymane"
+      },
+      "manual_controller": {
+        "name": "Sterownik ręczny"
+      },
+      "rain_detected": {
+        "name": "Wykryto deszcz"
+      },
+      "no_charge_period": {
+        "name": "Okres bez ładowania"
+      },
+      "online": {
+        "name": "Online"
+      }
+    },
+    "button": {
+      "beep": {
+        "name": "Sygnał dźwiękowy"
+      },
+      "return_to_dock": {
+        "name": "Powrót do stacji"
+      },
+      "pause": {
+        "name": "Pauza"
+      },
+      "resume": {
+        "name": "Wznów"
+      },
+      "stop": {
+        "name": "Zatrzymaj"
+      },
+      "emergency_stop": {
+        "name": "Zatrzymanie awaryjne"
+      },
+      "emergency_unlock": {
+        "name": "Odblokowanie awaryjne"
+      },
+      "play_sound": {
+        "name": "Odtwórz dźwięk"
+      },
+      "shutdown": {
+        "name": "Wyłącz"
+      },
+      "restart": {
+        "name": "Uruchom ponownie"
+      },
+      "manual_stop": {
+        "name": "Ręczne zatrzymanie"
+      },
+      "save_charging_point": {
+        "name": "Zapisz punkt ładowania"
+      },
+      "start_hotspot": {
+        "name": "Uruchom hotspot"
+      },
+      "save_map_backup": {
+        "name": "Zapisz kopię mapy"
+      },
+      "camera_calibration": {
+        "name": "Kalibruj kamerę"
+      },
+      "check_camera_status": {
+        "name": "Sprawdź status kamery"
+      },
+      "firmware_update_now": {
+        "name": "Zaktualizuj firmware teraz"
+      },
+      "firmware_update_tonight": {
+        "name": "Zaktualizuj firmware w nocy"
+      },
+      "firmware_update_later": {
+        "name": "Odłóż aktualizację firmware"
+      }
+    },
+    "event": {
+      "events": {
+        "name": "Zdarzenia",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "job_started": "Zadanie rozpoczęte",
+              "job_completed": "Zadanie zakończone",
+              "job_paused": "Zadanie wstrzymane",
+              "error": "Błąd",
+              "head_changed": "Zmieniono głowicę",
+              "low_battery": "Niski poziom baterii",
+              "controller_lost": "Utracono kontroler",
+              "docked": "Zadokowano"
+            }
+          }
+        }
+      }
+    },
+    "light": {
+      "lights": {
+        "name": "Światła"
+      },
+      "head_light": {
+        "name": "Światło głowicy"
+      },
+      "led_head": {
+        "name": "LED Głowicy"
+      },
+      "led_left_w": {
+        "name": "Lewe białe"
+      },
+      "led_right_w": {
+        "name": "Prawe białe"
+      },
+      "led_body_left": {
+        "name": "Korpus lewy"
+      },
+      "led_body_right": {
+        "name": "Korpus prawy"
+      },
+      "led_tail_left": {
+        "name": "Tył lewy"
+      },
+      "led_tail_right": {
+        "name": "Tył prawy"
+      }
+    },
+    "switch": {
+      "buzzer": {
+        "name": "Brzęczyk"
+      },
+      "person_detect": {
+        "name": "Wykrywanie osób"
+      },
+      "roller": {
+        "name": "Rolka"
+      },
+      "heating_film": {
+        "name": "Folia grzewcza"
+      },
+      "follow_mode": {
+        "name": "Tryb podążania"
+      },
+      "auto_update": {
+        "name": "Automatyczna aktualizacja"
+      },
+      "camera_ota": {
+        "name": "Kamera OTA"
+      },
+      "trimmer": {
+        "name": "Podkaszarka"
+      },
+      "camera": {
+        "name": "Kamera"
+      },
+      "laser": {
+        "name": "Laser"
+      },
+      "usb": {
+        "name": "USB"
+      },
+      "ignore_obstacles": {
+        "name": "Ignoruj przeszkody"
+      },
+      "draw_mode": {
+        "name": "Tryb rysowania"
+      },
+      "module_lock": {
+        "name": "Blokada modułu"
+      },
+      "wire_charging_lock": {
+        "name": "Blokada ładowania przewodowego"
+      },
+      "smart_blowing": {
+        "name": "Inteligentne dmuchanie"
+      },
+      "edge_blowing": {
+        "name": "Dmuchanie krawędzi"
+      },
+      "motor_protect": {
+        "name": "Ochrona silnika"
+      },
+      "mower_head_sensor": {
+        "name": "Czujnik głowicy kosiarki"
+      },
+      "roof_lights": {
+        "name": "Światła dachowe"
+      },
+      "sound_enable": {
+        "name": "Dźwięk"
+      },
+      "mower_ngz_edge": {
+        "name": "Krawędź strefy zakazanej kosiarki"
+      },
+      "geo_fence": {
+        "name": "Geofence"
+      },
+      "elec_fence": {
+        "name": "Ogrodzenie elektryczne"
+      },
+      "smart_vision": {
+        "name": "Inteligentne wykrywanie"
+      },
+      "video_record": {
+        "name": "Nagrywanie wideo"
+      },
+      "child_lock": {
+        "name": "Blokada rodzicielska"
+      },
+      "bag_record": {
+        "name": "ROS bag recording"
+      }
+    },
+    "number": {
+      "chute_velocity": {
+        "name": "Prędkość wyrzutni"
+      },
+      "chute_steering_work": {
+        "name": "Sterowanie wyrzutnią (Praca)"
+      },
+      "blade_height": {
+        "name": "Wysokość ostrza"
+      },
+      "blade_speed": {
+        "name": "Prędkość ostrza"
+      },
+      "blower_speed": {
+        "name": "Prędkość dmuchawy"
+      },
+      "volume": {
+        "name": "Głośność"
+      },
+      "plan_start_percent": {
+        "name": "Procent rozpoczęcia planu"
+      },
+      "roller_speed": {
+        "name": "Prędkość rolki"
+      },
+      "battery_charge_min": {
+        "name": "Minimalne naładowanie baterii"
+      },
+      "battery_charge_max": {
+        "name": "Maksymalne naładowanie baterii"
+      }
+    },
+    "select": {
+      "work_plan": {
+        "name": "Plan pracy"
+      },
+      "turn_type": {
+        "name": "Typ skrętu"
+      },
+      "snow_push_direction": {
+        "name": "Kierunek odśnieżania"
+      }
+    },
+    "device_tracker": {
+      "location": {
+        "name": "Lokalizacja"
+      }
+    },
+    "lawn_mower": {
+      "mower": {
+        "name": "Kosiarka"
+      }
+    },
+    "update": {
+      "firmware": {
+        "name": "Firmware"
+      }
+    }
+  },
+  "issues": {
+    "telemetry_timeout": {
+      "title": "Brak telemetrii Yarbo",
+      "description": "Nie otrzymano telemetrii od **{name}** przez co najmniej 60 sekund. Sprawdź, czy stacja bazowa jest włączona i podłączona do sieci."
+    },
+    "mqtt_disconnect": {
+      "title": "Stacja bazowa Yarbo jest nieosiągalna",
+      "description": "Nie otrzymano telemetrii od **{name}** przez co najmniej 60 sekund. Robot może być poza zasięgiem lub stacja bazowa może być wyłączona.\n\n**Kroki naprawy:**\n1. Sprawdź, czy Yarbo Data Center (stacja bazowa) jest włączone.\n2. Upewnij się, że stacja bazowa jest podłączona do sieci lokalnej.\n3. Potwierdź, że Home Assistant może połączyć się z adresem IP stacji bazowej.\n\nTen problem rozwiąże się automatycznie po wznowieniu telemetrii."
+    },
+    "controller_lost": {
+      "title": "Utracono sesję kontrolera Yarbo",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Odzyskaj kontroler",
+            "description": "Aplikacja Yarbo lub inny klient przejął sesję kontrolera dla **{name}**, uniemożliwiając Home Assistantowi wysyłanie poleceń.\n\nNaciśnij **Wyślij**, aby odzyskać sesję kontrolera."
+          }
+        },
+        "abort": {
+          "cannot_connect": "Nie można odzyskać sesji kontrolera. Upewnij się, że stacja bazowa Yarbo jest osiągalna i spróbuj ponownie.",
+          "unknown": "Wystąpił nieoczekiwany błąd podczas próby odzyskania sesji kontrolera."
+        }
+      }
+    },
+    "cloud_token_expired": {
+      "title": "Wygasła sesja chmury Yarbo",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Ponowna autoryzacja chmury",
+            "description": "Twój token chmury Yarbo dla **{name}** wygasł. Naciśnij **Wyślij**, aby otworzyć formularz ponownej autoryzacji i wpisz ponownie swoje hasło."
+          }
+        },
+        "abort": {
+          "unknown": "Nie można uruchomić procesu ponownej autoryzacji."
+        }
+      }
+    }
+  },
+  "services": {
+    "send_command": {
+      "name": "Wyślij surową komendę",
+      "description": "Publikuje dowolną komendę MQTT do robota (tylko dla zaawansowanych)."
+    },
+    "start_plan": {
+      "name": "Uruchom plan pracy",
+      "description": "Uruchamia zapisany plan pracy według jego ID."
+    },
+    "pause": {
+      "name": "Pauza",
+      "description": "Wstrzymuje aktualny plan pracy robota."
+    },
+    "resume": {
+      "name": "Wznów",
+      "description": "Wznawia wcześniej wstrzymany plan pracy."
+    },
+    "return_to_dock": {
+      "name": "Powrót do stacji",
+      "description": "Wysyła robota z powrotem do stacji dokującej."
+    },
+    "set_lights": {
+      "name": "Ustaw światła",
+      "description": "Ustawia jasność dla wszystkich 7 kanałów LED jednocześnie."
+    },
+    "set_chute_velocity": {
+      "name": "Ustaw prędkość wyrzutni",
+      "description": "Steruje kierunkiem i prędkością wyrzutni śniegu (tylko głowica odśnieżarki)."
+    },
+    "manual_drive": {
+      "name": "Sterowanie ręczne",
+      "description": "Wysyła ręczne polecenia prędkości liniowej/kątowej."
+    },
+    "go_to_waypoint": {
+      "name": "Idź do punktu trasy",
+      "description": "Nawiguje do zapisanego indeksu punktu trasy."
+    },
+    "delete_plan": {
+      "name": "Usuń plan",
+      "description": "Usuwa zapisany plan pracy po ID."
+    },
+    "delete_all_plans": {
+      "name": "Usuń wszystkie plany",
+      "description": "Usuwa wszystkie zapisane plany pracy z robota."
+    }
+  }
+}

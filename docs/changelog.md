@@ -19,6 +19,34 @@ All notable changes to this project are documented here. The project follows [Se
 
 ---
 
+## [2026.4.270] — 2026-04-27
+
+> **Compared to Git tag `v2026.3.63`:** see the detailed narrative in [Release notes — v2026.4.270](releases/v2026.4.270.md).
+
+### Breaking
+
+- **Community Yarbo** — integration domain is `community_yarbo` (folder `custom_components/community_yarbo/`). Coexists with the official `yarbo` integration. Requires removing the old community `yarbo` entry, installing the new folder, restart, and re-adding **Community Yarbo**; update services, events, blueprints, and entity IDs accordingly. MQTT debug folder: `community_yarbo_recordings/`.
+
+### Added
+
+- **Translations:** `fi`, `sv`, `de`, `nl`, `nb`, `es`, `fr`, `it`, `pl` (#131).
+- **Runtime behaviour:** `CONFIG_SCHEMA`; centralized controller acquisition with clear timeout errors (#147); broker host resolution and migration (#155).
+
+### Fixed
+
+- Telemetry / shutdown race when the event loop is closing (#137).
+- Options listener and unload with missing runtime data (#148).
+- Low-battery listener when `battery_capacity` is `None` (#146).
+- `MIN_LIB_VERSION` vs manifest for `get_controller(timeout=...)` (#153).
+- CI: clone `python-yarbo` from `main`; Ruff + DHCP test socket fixes.
+
+### Changed
+
+- GitHub Actions dependency bumps; dev setuptools `>=82.0.1` (#151).
+- Merged `main` through **2026.3.63** (performance diagnostics, Last Seen write optimization, polling options); PR #156 conflict resolution; Copilot doc + `discover_yarbo` discovery fixes.
+
+---
+
 ## [2026.3.10] — 2026-03-01
 
 First public release of the Yarbo Home Assistant custom integration. Local MQTT control only.
@@ -34,12 +62,12 @@ First public release of the Yarbo Home Assistant custom integration. Local MQTT 
   - Buttons: buzzer, return to dock, emergency stop, recharge
   - Binary sensors: online status, charging, error state
 - **Services:**
-  - `yarbo.start_plan`, `yarbo.stop_plan`, `yarbo.pause_plan`, `yarbo.resume_plan`
-  - `yarbo.set_velocity`, `yarbo.set_blade_height`, `yarbo.set_blade_speed`
-  - `yarbo.set_roller_speed`, `yarbo.push_snow_direction`, `yarbo.set_chute`
-  - `yarbo.send_command` (with input validation against injection)
-  - `yarbo.delete_plan`, `yarbo.delete_all_plans`, `yarbo.erase_map`, `yarbo.map_recovery` (with confirmation required)
-  - `yarbo.get_map`, `yarbo.get_wifi_list`, `yarbo.get_hub_info`
+  - `community_yarbo.start_plan`, `community_yarbo.stop_plan`, `community_yarbo.pause_plan`, `community_yarbo.resume_plan`
+  - `community_yarbo.set_velocity`, `community_yarbo.set_blade_height`, `community_yarbo.set_blade_speed`
+  - `community_yarbo.set_roller_speed`, `community_yarbo.push_snow_direction`, `community_yarbo.set_chute`
+  - `community_yarbo.send_command` (with input validation against injection)
+  - `community_yarbo.delete_plan`, `community_yarbo.delete_all_plans`, `community_yarbo.erase_map`, `community_yarbo.map_recovery` (with confirmation required)
+  - `community_yarbo.get_map`, `community_yarbo.get_wifi_list`, `community_yarbo.get_hub_info`
 - **Diagnostics** — full device diagnostics download with credential redaction
 - **MQTT telemetry recorder** — optional local recording for debugging
 - **Sentry error reporting** — opt-in with comprehensive payload scrubbing
@@ -77,8 +105,8 @@ First public release of the Yarbo Home Assistant custom integration. Local MQTT 
 - **Update entity:** Integration version checking
 - Multi-head support — entities automatically available/unavailable based on installed head
 - Work plan list dynamically loaded from robot
-- `yarbo.send_command` service for advanced users
-- `yarbo.start_plan` service with optional start percentage
+- `community_yarbo.send_command` service for advanced users
+- `community_yarbo.start_plan` service with optional start percentage
 - Multiple endpoint support (Data Center + Rover) with automatic failover
 - Connection sensor showing active MQTT endpoint
 - Telemetry throttle option to limit recorder load
